@@ -3,7 +3,7 @@ import Express from 'express'
 import { TypedRequestBody } from './globals/types'
 const express = require('express')
 const router = express.Router()
-const client = require('./connection')
+const client = require('./globals/connection')
 const bcrypt = require('bcrypt')
 
 router.post('/pantelclients', async (req: TypedRequestBody<{
