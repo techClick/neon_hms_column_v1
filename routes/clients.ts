@@ -4,7 +4,7 @@ import { TypedRequestBody } from './globals/types'
 const express = require('express')
 const router = express.Router()
 const client = require('./connection')
-const bcrypt = require('bcrypt')
+// const bcrypt = require('bcrypt')
 
 router.post('/pantelclients', async (req: TypedRequestBody<{
   username: string
@@ -13,7 +13,7 @@ router.post('/pantelclients', async (req: TypedRequestBody<{
   try {
     const requestBody = req.body
     const username = requestBody.username
-    const password = await bcrypt.hash(requestBody.password, 10)
+    const password = requestBody.password // await bcrypt.hash(requestBody.password, 10)
     await client.query('DROP TABLE IF EXISTS PantelClients')
     await client.query(`CREATE TABLE IF NOT EXISTS PantelClients
       ( id serial PRIMARY KEY, username text, password text, permission text )`)
