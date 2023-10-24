@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": "",
+    "types": ["node", "jest"]
+  },
+  "include": [".eslintrc.js", "babel.config.js", "*.ts", "routes/*.ts", "routes/globals/*.ts"],
+  "target": "esnext", 
+  "module": "commonjs", 
+  "esModuleInterop": true
+}
