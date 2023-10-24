@@ -5,6 +5,7 @@ app.use(cors())
 app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
 // [].map((endPoint) => app.use('/', require(`./routes/${endPoint}`)))
+app.use('/', require('./routes/clients'))
 require('dotenv').config()
 
 const port = process.env.PORT || 8000
