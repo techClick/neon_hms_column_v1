@@ -7,30 +7,33 @@ const jwt = require('jsonwebtoken')
 const client = require('./globals/connection')
 const verify = require('./globals/verify')
 require('dotenv').config()
-
-interface User {
-  name: string
-  password: string
-}
+const bcrypt = require('bcryptjs')
 
 const tokenExpTime = '10m'
 
-router.post('/auth', async (req: TypedRequestBody<{
-  user: User
+router.get('/auth', async (req: TypedRequestBody<{
+  username: string
+  password: string
 }>, res: Express.Response) => {
   try {
-    if (!req.body.user) return res.status(400).json((networkResponse('error', 'Bad request')))
+    if (!req.body.username) return res.status(400).json((networkResponse('error', 'Bad request')))
 
-    const { name, password } = req.body.user
-    if (!name || !password) return res.status(400).json((networkResponse('error', 'Bad request')))
+    const username = req.body.username
+    const password = req.body.password
+    if (!username || !password) return res.status(400).json((networkResponse('error', 'Bad request 2')))
 
     await client.query(`CREATE TABLE IF NOT EXISTS PantelClients
       ( id serial PRIMARY KEY, username text, password text, permission text)`)
-    const result = await client.query(`SELECT * FROM PantelClients WHERE username='${name}' AND password='${password}'`)
-    if (!result.rows.length) return res.status(403).json((networkResponse('error', 'Forbidden')))
+    const result = await client.query(`SELECT * FROM PantelClients WHERE username='${username}'`)
+    if (!result.rows.length) return res.status(403).json((networkResponse('error', 'Forbidden. Wrong password or username')))
 
-    const token = jwt.sign({ name }, process.env.TOKEN_KEY, { expiresIn: tokenExpTime })
-    res.status(200).json((networkResponse('success', token)))
+    const correctPassword = await bcrypt.compare(password, result.rows[0].password)
+    if (!correctPassword) {
+      return res.status(403).json((networkResponse('error', 'Forbidden. Wrong password or username')))
+    }
+
+    const token = jwt.sign({ username }, process.env.TOKEN_KEY, { expiresIn: tokenExpTime })
+    res.status(200).json((networkResponse('success', { token, permission: result.rows[0].permission })))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }
