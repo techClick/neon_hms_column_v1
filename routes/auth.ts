@@ -4,8 +4,8 @@ import Express from 'express'
 const express = require('express')
 const router = express.Router()
 const jwt = require('jsonwebtoken')
-const client = require('../globals/connection')
-const verify = require('../globals/verify')
+const client = require('./globals/connection')
+const verify = require('./globals/verify')
 require('dotenv').config()
 
 interface User {

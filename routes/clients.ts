@@ -4,7 +4,7 @@ import { TypedRequestBody } from './globals/types'
 const express = require('express')
 const router = express.Router()
 const client = require('./globals/connection')
-const bcrypt = require('bcrypt')
+const bcrypt = require('bcryptjs')
 
 router.post('/pantelclients', async (req: TypedRequestBody<{
   username: string
@@ -21,7 +21,7 @@ router.post('/pantelclients', async (req: TypedRequestBody<{
     if (result.rows.length) {
       return res.status(403).json((networkResponse('error', 'User with this name exists already')))
     }
-    await client.query(`INSERT INTO PantelClients (username, password) VALUES ('${username}', '${password}', 2)`)
+    await client.query(`INSERT INTO PantelClients (username, password, permission) VALUES ('${username}', '${password}', 2)`)
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
