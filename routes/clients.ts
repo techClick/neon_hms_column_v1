@@ -14,7 +14,7 @@ router.post('/pantelclients', async (req: TypedRequestBody<{
     const requestBody = req.body
     const username = requestBody.username
     const password = await bcrypt.hash(requestBody.password, 10)
-    await client.query('DROP TABLE IF EXISTS PantelClients')
+    // await client.query('DROP TABLE IF EXISTS PantelClients')
     await client.query(`CREATE TABLE IF NOT EXISTS PantelClients
       ( id serial PRIMARY KEY, username text, password text, permission integer )`)
     const result = await client.query(`SELECT username from PantelClients WHERE username='${username}'`)
