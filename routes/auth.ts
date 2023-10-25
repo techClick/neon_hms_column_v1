@@ -50,7 +50,7 @@ router.get('/refresh', verify, (req: TypedRequestBody<{
   token: string
   decodedToken: any
 }>, res: Express.Response) => {
-  const token = jwt.sign({ name: req.body.decodedToken.name }, process.env.TOKEN_KEY, { expiresIn: tokenExpTime })
+  const token = jwt.sign({ username: req.body.decodedToken.username }, process.env.TOKEN_KEY, { expiresIn: tokenExpTime })
   res.status(200).json((networkResponse('success', token)))
 })
 
