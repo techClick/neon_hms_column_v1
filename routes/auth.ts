@@ -25,11 +25,11 @@ router.get('/auth', async (req: TypedRequestBody<{
     await client.query(`CREATE TABLE IF NOT EXISTS PantelClients
       ( id serial PRIMARY KEY, username text, password text, permission text)`)
     const result = await client.query(`SELECT * FROM PantelClients WHERE username='${username}'`)
-    if (!result.rows.length) return res.status(403).json((networkResponse('error', 'Forbidden. Wrong password or username')))
+    if (!result.rows.length) return res.status(403).json((networkResponse('error', 'Wrong password or username')))
 
     const correctPassword = await bcrypt.compare(password, result.rows[0].password)
     if (!correctPassword) {
-      return res.status(403).json((networkResponse('error', 'Forbidden. Wrong password or username')))
+      return res.status(403).json((networkResponse('error', 'Wrong password or username')))
     }
 
     const token = jwt.sign({ username }, process.env.TOKEN_KEY, { expiresIn: tokenExpTime })
