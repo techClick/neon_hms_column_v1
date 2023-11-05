@@ -11,7 +11,7 @@ const bcrypt = require('bcryptjs')
 
 const tokenExpTime = '10m'
 
-router.get('/auth', async (req: TypedRequestBody<{
+router.post('/auth', async (req: TypedRequestBody<{
   username: string
   password: string
 }>, res: Express.Response) => {
@@ -39,14 +39,14 @@ router.get('/auth', async (req: TypedRequestBody<{
   }
 })
 
-router.get('/verify', verify, (req: TypedRequestBody<{
+router.post('/verify', verify, (req: TypedRequestBody<{
   token: string
   decodedToken: any
 }>, res: Express.Response) => {
   res.status(204).json((networkResponse('success', undefined)))
 })
 
-router.get('/refresh', verify, (req: TypedRequestBody<{
+router.post('/refresh', verify, (req: TypedRequestBody<{
   token: string
   decodedToken: any
 }>, res: Express.Response) => {
