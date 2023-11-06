@@ -39,15 +39,13 @@ router.post('/auth', async (req: TypedRequestBody<{
   }
 })
 
-router.post('/verify', verify, (req: TypedRequestBody<{
-  token: string
+router.get('/verify', verify, (req: TypedRequestBody<{
   decodedToken: any
 }>, res: Express.Response) => {
   res.status(204).json((networkResponse('success', undefined)))
 })
 
-router.post('/refresh', verify, (req: TypedRequestBody<{
-  token: string
+router.get('/refresh', verify, (req: TypedRequestBody<{
   decodedToken: any
 }>, res: Express.Response) => {
   const token = jwt.sign({ username: req.body.decodedToken.username }, process.env.TOKEN_KEY, { expiresIn: tokenExpTime })
