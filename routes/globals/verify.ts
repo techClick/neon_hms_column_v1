@@ -10,7 +10,7 @@ const verify = (req, res: Express.Response, next): any => {
     const decodedToken = jwt.verify(token, process.env.TOKEN_KEY)
     req.body.decodedToken = decodedToken
   } catch (err) {
-    return res.status(403).json((networkResponse('error', 'Forbidden')))
+    return res.status(401).json((networkResponse('error', 'Unauthorized')))
   }
   return next()
 }
