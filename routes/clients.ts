@@ -6,22 +6,24 @@ const router = express.Router()
 const client = require('./globals/connection')
 const bcrypt = require('bcryptjs')
 
-router.post('/pantelclients', async (req: TypedRequestBody<{
-  username: string
+router.post('/addstaff', async (req: TypedRequestBody<{
+  email: string
   password: string
+  permission: number
 }>, res: Express.Response) => {
   try {
     const requestBody = req.body
-    const username = requestBody.username
+    const { email, permission } = requestBody
     const password = await bcrypt.hash(requestBody.password, 10)
     // await client.query('DROP TABLE IF EXISTS PantelClients')
     await client.query(`CREATE TABLE IF NOT EXISTS PantelClients
-      ( id serial PRIMARY KEY, username text, password text, permission integer )`)
-    const result = await client.query(`SELECT username from PantelClients WHERE username='${username}'`)
+      ( id serial PRIMARY KEY, email text, password text, permission integer )`)
+    const result = await client.query(`SELECT email from PantelClients WHERE email='${email}'`)
     if (result.rows.length) {
-      return res.status(403).json((networkResponse('error', 'User with this name exists already')))
+      return res.status(403).json((networkResponse('error', 'User with this email exists already')))
     }
-    await client.query(`INSERT INTO PantelClients (username, password, permission) VALUES ('${username}', '${password}', 2)`)
+    await client.query(`INSERT INTO PantelClients (email, password, permission)
+      VALUES ('${email}', '${password}', '${permission}')`)
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))

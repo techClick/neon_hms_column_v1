@@ -42,7 +42,7 @@ router.get('/rooms', async (req, res: Express.Response) => {
     await client.query(`CREATE TABLE IF NOT EXISTS PantelRooms
       ( id serial PRIMARY KEY, name text, description text, price text, img text NULL, freeBy timestamp, onHold text NULL,
         bookToken text NULL, bookName text NULL, createdOn timestamp, updatedAsOf timestamp, updatedBy text )`)
-    const result = await client.query(`SELECT id, name, description, price, freeBy, createdOn,
+    const result = await client.query(`SELECT id, name, description, price, freeBy, onHold, bookToken, bookName, createdOn,
       updatedAsOf, updatedBy from PantelRooms`)
     res.status(200).json((networkResponse('success', result.rows)))
   } catch (error) {
@@ -62,17 +62,18 @@ router.get('/roomimages', async (req, res: Express.Response) => {
   }
 })
 
-router.get('/numbers', async (req, res: Express.Response) => {
+router.get('/info', async (req, res: Express.Response) => {
   try {
-    // await client.query('DROP TABLE IF EXISTS PantelNumbers')
-    await client.query('CREATE TABLE IF NOT EXISTS PantelNumbers ( id serial PRIMARY KEY, numbers text )')
-    const result = await client.query('SELECT numbers from PantelNumbers')
+    // await client.query('DROP TABLE IF EXISTS PantelInfo')
+    await client.query(`CREATE TABLE IF NOT EXISTS PantelInfo ( id serial PRIMARY KEY, numbers text,
+      sendToOwner text NULL )`)
+    const result = await client.query('SELECT numbers, sendToOwner from PantelInfo')
     if (!result.rows.length) {
-      await client.query(`INSERT INTO PantelNumbers (numbers)
+      await client.query(`INSERT INTO PantelInfo (numbers)
         VALUES ('${JSON.stringify([])}')`)
-      return res.status(200).json((networkResponse('success', [])))
+      return res.status(200).json((networkResponse('success', { numbers: [], sendtoowner: null })))
     }
-    res.status(200).json((networkResponse('success', JSON.parse(result.rows[0].numbers))))
+    res.status(200).json((networkResponse('success', result.rows[0])))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }
@@ -80,10 +81,46 @@ router.get('/numbers', async (req, res: Express.Response) => {
 
 router.post('/savenumbers', verify, async (req, res: Express.Response) => {
   try {
-    await client.query('CREATE TABLE IF NOT EXISTS PantelNumbers ( numbers text )')
-    await client.query(`UPDATE PantelNumbers SET numbers='${JSON.stringify(req.body.numbers)}'
+    await client.query(`CREATE TABLE IF NOT EXISTS PantelInfo ( id serial PRIMARY KEY, numbers text,
+      sendToOwner text NULL )`)
+    await client.query(`UPDATE PantelInfo SET numbers='${JSON.stringify(req.body.numbers)}'
       where id=1`)
     res.status(200).json((networkResponse('success', true)))
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.post('/setsendtoowner', verify, async (req, res: Express.Response) => {
+  try {
+    await client.query(`CREATE TABLE IF NOT EXISTS PantelInfo ( id serial PRIMARY KEY, numbers text,
+      sendToOwner text NULL )`)
+    if (req.body.sendToOwner) {
+      await client.query(`UPDATE PantelInfo SET sendToOwner='${req.body.sendToOwner}'
+        where id=1`)
+    } else {
+      await client.query(`UPDATE PantelInfo SET sendToOwner=NULL
+        where id=1`)
+    }
+    res.status(200).json((networkResponse('success', req.body.sendToOwner)))
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.post('/book', async (req, res: Express.Response) => {
+  try {
+    const { id, name, days } = req.body
+    const bookToken = `${id}${Math.random().toString(36).slice(2, 9)}`
+    const date = new Date()
+    date.setDate(date.getDate() + Number(days))
+    await client.query(`CREATE TABLE IF NOT EXISTS PantelRooms
+      ( id serial PRIMARY KEY, name text, description text, price text, img text NULL, freeBy timestamp, onHold text NULL,
+        bookToken text NULL, bookName text NULL, createdOn timestamp, updatedAsOf timestamp, updatedBy text )`)
+    await client.query(`UPDATE PantelRooms SET (bookToken, bookName, freeBy) = ('${bookToken}', '${name}', $1)
+      where id='${id}'`, [date])
+    const result = await client.query(`SELECT freeBy, bookToken, bookName from PantelRooms where id='${id}'`)
+    res.status(200).json((networkResponse('success', result.rows[0])))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }
