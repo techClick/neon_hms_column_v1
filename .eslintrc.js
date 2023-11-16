@@ -29,6 +29,7 @@ module.exports = {
       "@typescript-eslint/consistent-type-imports": 0,
       "@typescript-eslint/prefer-nullish-coalescing": 0,
       "@typescript-eslint/strict-boolean-expressions": 0,
-      "@typescript-eslint/restrict-template-expressions": 0
+      "@typescript-eslint/restrict-template-expressions": 0,
+      "multiline-ternary": 0
     }
 }
