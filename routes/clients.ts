@@ -17,7 +17,7 @@ router.post('/addstaff', async (req: TypedRequestBody<{
     const password = await bcrypt.hash(requestBody.password, 10)
     // await client.query('DROP TABLE IF EXISTS PantelClients')
     await client.query(`CREATE TABLE IF NOT EXISTS PantelClients
-      ( id serial PRIMARY KEY, email text, password text, permission integer )`)
+      ( id serial PRIMARY KEY, email text, password text, permission integer, forgotKey text NULL )`)
     const result = await client.query(`SELECT email from PantelClients WHERE email='${email}'`)
     if (result.rows.length) {
       return res.status(403).json((networkResponse('error', 'User with this email exists already')))

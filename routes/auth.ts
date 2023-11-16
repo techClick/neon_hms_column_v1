@@ -22,7 +22,7 @@ router.post('/auth', async (req: TypedRequestBody<{
     if (!email || !password) return res.status(400).json((networkResponse('error', 'Bad request 2')))
 
     await client.query(`CREATE TABLE IF NOT EXISTS PantelClients
-      ( id serial PRIMARY KEY, email text, password text, permission integer)`)
+      ( id serial PRIMARY KEY, email text, password text, permission integer, forgotKey text NULL)`)
     const result = await client.query(`SELECT * FROM PantelClients WHERE email='${email}'`)
     if (!result.rows.length) return res.status(403).json((networkResponse('error', 'Wrong password or email')))
 

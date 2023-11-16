@@ -14,11 +14,14 @@ router.post('/addroom',
     { name: 'name', maxCount: 1 },
     { name: 'description', maxCount: 1 },
     { name: 'price', maxCount: 1 },
+    { name: 'onHold', maxCount: 1 },
     { name: 'img', maxCount: 1 }
   ])],
   verify, async (req, res: Express.Response) => {
     try {
       const { name, description, price, img, onHold } = req.body
+      let onHoldHere = onHold
+      if (!onHold) onHoldHere = null
       const { email } = req.body.decodedToken
       // await client.query('DROP TABLE IF EXISTS PantelRooms')
       await client.query(`CREATE TABLE IF NOT EXISTS PantelRooms
@@ -30,7 +33,7 @@ router.post('/addroom',
       }
       await client.query(`INSERT INTO PantelRooms (name, description, price, img, freeBy, createdOn, updatedAsOf,
         updatedBy, onHold) VALUES ('${name}', '${description}', '${price}', $1, $2,
-        $3, $4, '${email}', NULLIF('${onHold}', '${null}'))`, [img, new Date(), new Date(), new Date()])
+        $3, $4, '${email}', NULLIF('${onHoldHere}', '${null}'))`, [img, new Date(), new Date(), new Date()])
       res.status(200).json((networkResponse('success', { email })))
     } catch (error) {
       res.status(500).json((networkResponse('error', error)))
@@ -173,6 +176,15 @@ router.post('/book', async (req, res: Express.Response) => {
     const result = await client.query(`SELECT freeBy, bookToken, bookName from PantelRooms where id='${id}'`)
 
     res.status(200).json((networkResponse('success', result.rows[0])))
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.delete('/deleteroom', async (req, res: Express.Response) => {
+  try {
+    await client.query(`DELETE FROM PantelRooms where id=${req.body.id}`)
+    res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }
