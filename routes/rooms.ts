@@ -8,6 +8,7 @@ const multer = require('multer')
 const upload = multer({
   limits: { fieldSize: 1048576 * 5 }
 })
+const jwt = require('jsonwebtoken')
 
 router.post('/addroom',
   [upload.fields([
@@ -175,9 +176,15 @@ router.post('/book', async (req, res: Express.Response) => {
     if (hours && Number(hours) > 0) date.setHours(date.getHours() + Number(hours))
     if (mins && Number(mins) > 0) date.setMinutes(date.getMinutes() + Number(mins))
 
-    await client.query(`UPDATE PantelRooms SET (bookToken, bookName, freeBy) = 
-      (NULLIF('${bookToken}', '${null}'), NULLIF('${nameSave}', '${null}'), $1)
-      where id='${id}'`, [date])
+    const auth = req.get('token')
+    let username1
+    try {
+      username1 = jwt.verify(auth, process.env.TOKEN_KEY)?.username
+    } catch {}
+    const username = username1 || 'Room booker'
+    await client.query(`UPDATE PantelRooms SET (bookToken, bookName, freeBy, updatedBy, updatedAsOf) = 
+      (NULLIF('${bookToken}', '${null}'), NULLIF('${nameSave}', '${null}'), $1, '${username}', $2)
+      where id='${id}'`, [date, new Date()])
     const result = await client.query(`SELECT freeBy, bookToken, bookName from PantelRooms where id='${id}'`)
 
     res.status(200).json((networkResponse('success', result.rows[0])))

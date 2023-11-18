@@ -158,28 +158,42 @@ const forgotKeyMailOptions = (path: string, forgotKey: string, email: string): a
 router.post('/forgot', async (req: TypedRequestBody<{
   email: string
   path: string
+  isRegister: boolean | null
 }>, res: Express.Response) => {
   try {
     const requestBody = req.body
-    const { email, path } = requestBody
-    const result = await client.query(`SELECT email, forgotKey from PantelClients WHERE email='${email}'`)
+    const { email, path, isRegister } = requestBody
+    const result = await client.query(`SELECT email, password, forgotKey from PantelClients WHERE email='${email}'`)
     if (!result.rows.length) {
       return res.status(403).json((networkResponse('error', 'Email is not registered.')))
     }
+
+    if (!result.rows[0].password && !isRegister) {
+      return res.status(401).json((networkResponse('error',
+        "Please register your email address first. Use the 'Staff register' link.")))
+    } else {
+      if (result.rows[0].password && isRegister) {
+        return res.status(401).json((networkResponse('error',
+          result.rows[0])))
+      }
+    }
+
     const forgotKey = result.rows[0].forgotkey || Math.random().toString(36).slice(2, 12)
     if (!result.rows[0].forgotkey) {
       await client.query(`UPDATE PantelClients SET forgotKey='${forgotKey}' WHERE email='${email}'`)
     }
-    clearTimeout(saveForgotKeyTimeout)
-    saveForgotKeyTimeout = setTimeout(async () => {
-      await client.query(`UPDATE PantelClients SET forgotKey=NULL WHERE email='${email}'`)
-    }, 1000 * 60 * 10)
-    const result2 = await sendMail(forgotKeyMailOptions(path, forgotKey, email))
-    if (result2.accepted) {
-      res.status(200).json((networkResponse('success', result2.response)))
+
+    if (!isRegister) {
+      clearTimeout(saveForgotKeyTimeout)
+      saveForgotKeyTimeout = setTimeout(async () => {
+        await client.query(`UPDATE PantelClients SET forgotKey=NULL WHERE email='${email}'`)
+      }, 1000 * 60 * 10)
+      await sendMail(forgotKeyMailOptions(path, forgotKey, email))
     } else {
-      res.status(500).json((networkResponse('error', result2.response)))
+      await sendMail(addStaffMailOptions(path, forgotKey, email))
     }
+
+    res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }
@@ -208,10 +222,11 @@ router.post('/setpassword', async (req: TypedRequestBody<{
   email: string
   password: string
   key: string
+  isRegister: boolean | null
 }>, res: Express.Response) => {
   try {
     const requestBody = req.body
-    const { email, key } = requestBody
+    const { email, key, isRegister } = requestBody
     const password = await bcrypt.hash(requestBody.password, 10)
 
     const result = await client.query(`SELECT email from PantelClients WHERE email='${email}'`)
@@ -234,9 +249,10 @@ router.post('/setpassword', async (req: TypedRequestBody<{
     }
 
     await client.query(`UPDATE PantelClients SET (password, forgotKey) = ('${password}', NULL) WHERE email='${email}'`)
-    const result2 = await sendMail(resetPassMailOptions(email))
 
-    res.status(200).json((networkResponse('success', result2.response)))
+    if (!isRegister) await sendMail(resetPassMailOptions(email))
+
+    res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }
