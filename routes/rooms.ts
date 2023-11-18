@@ -22,7 +22,7 @@ router.post('/addroom',
       const { name, description, price, img, onHold } = req.body
       let onHoldHere = onHold
       if (!onHold) onHoldHere = null
-      const { email } = req.body.decodedToken
+      const { username } = req.body.decodedToken
       // await client.query('DROP TABLE IF EXISTS PantelRooms')
       await client.query(`CREATE TABLE IF NOT EXISTS PantelRooms
         ( id serial PRIMARY KEY, name text, description text, price text, img text NULL, freeBy timestamp, onHold text NULL,
@@ -33,8 +33,8 @@ router.post('/addroom',
       }
       await client.query(`INSERT INTO PantelRooms (name, description, price, img, freeBy, createdOn, updatedAsOf,
         updatedBy, onHold) VALUES ('${name}', '${description}', '${price}', $1, $2,
-        $3, $4, '${email}', NULLIF('${onHoldHere}', '${null}'))`, [img, new Date(), new Date(), new Date()])
-      res.status(200).json((networkResponse('success', { email })))
+        $3, $4, '${username}', NULLIF('${onHoldHere}', '${null}'))`, [img, new Date(), new Date(), new Date()])
+      res.status(200).json((networkResponse('success', { username })))
     } catch (error) {
       res.status(500).json((networkResponse('error', error)))
     }
@@ -55,7 +55,7 @@ router.patch('/editroom',
       const { name, id, origName, description, price, img, onHold } = req.body
       let onHoldHere = onHold
       if (!onHold) onHoldHere = null
-      const { email } = req.body.decodedToken
+      const { username } = req.body.decodedToken
       const result = await client.query(`SELECT name from PantelRooms WHERE name='${name}'`)
       if (result.rows.length && origName !== name) {
         return res.status(403).json((networkResponse('error', 'A room with this name exists already')))
@@ -63,7 +63,7 @@ router.patch('/editroom',
 
       const date = new Date()
       await client.query(`UPDATE PantelRooms SET (name, description, price, img, updatedAsOf, updatedBy, onHold)
-        = ('${name}', '${description}', '${price}', $1, $2, '${email}', NULLIF('${onHoldHere}', '${null}'))
+        = ('${name}', '${description}', '${price}', $1, $2, '${username}', NULLIF('${onHoldHere}', '${null}'))
         where id='${id}'`, [img, date])
       const responseData = {
         name,
@@ -72,7 +72,7 @@ router.patch('/editroom',
         img,
         updatedasof: date,
         onhold: onHoldHere,
-        updatedby: email
+        updatedby: username
       }
 
       res.status(200).json((networkResponse('success', responseData)))
@@ -110,21 +110,21 @@ router.get('/info', async (req, res: Express.Response) => {
     await client.query(`CREATE TABLE IF NOT EXISTS PantelInfo ( id serial PRIMARY KEY, numbers text,
       sendToOwner text NULL )`)
     const result = await client.query('SELECT numbers, sendToOwner from PantelInfo')
+    const result2 = await client.query('SELECT username, email, permission from PantelClients')
     if (!result.rows.length) {
       await client.query(`INSERT INTO PantelInfo (numbers)
         VALUES ('${JSON.stringify([])}')`)
-      return res.status(200).json((networkResponse('success', { numbers: [], sendtoowner: null })))
+      return res.status(200).json((networkResponse('success',
+        { users: result2.rows, info: { numbers: JSON.stringify([]), sendtoowner: null } })))
     }
-    res.status(200).json((networkResponse('success', result.rows[0])))
+    res.status(200).json((networkResponse('success', { users: result2.rows, info: result.rows[0] })))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }
 })
 
-router.post('/savenumbers', verify, async (req, res: Express.Response) => {
+router.patch('/savenumbers', verify, async (req, res: Express.Response) => {
   try {
-    await client.query(`CREATE TABLE IF NOT EXISTS PantelInfo ( id serial PRIMARY KEY, numbers text,
-      sendToOwner text NULL )`)
     await client.query(`UPDATE PantelInfo SET numbers='${JSON.stringify(req.body.numbers)}'
       where id=1`)
     res.status(200).json((networkResponse('success', true)))
@@ -133,10 +133,18 @@ router.post('/savenumbers', verify, async (req, res: Express.Response) => {
   }
 })
 
-router.post('/setsendtoowner', verify, async (req, res: Express.Response) => {
+router.patch('/saveemails', verify, async (req, res: Express.Response) => {
   try {
-    await client.query(`CREATE TABLE IF NOT EXISTS PantelInfo ( id serial PRIMARY KEY, numbers text,
-      sendToOwner text NULL )`)
+    await client.query(`UPDATE PantelInfo SET emails='${JSON.stringify(req.body.emails)}'
+      where id=1`)
+    res.status(200).json((networkResponse('success', true)))
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.patch('/setsendtoowner', verify, async (req, res: Express.Response) => {
+  try {
     if (req.body.sendToOwner) {
       await client.query(`UPDATE PantelInfo SET sendToOwner='${req.body.sendToOwner}'
         where id=1`)
@@ -167,9 +175,6 @@ router.post('/book', async (req, res: Express.Response) => {
     if (hours && Number(hours) > 0) date.setHours(date.getHours() + Number(hours))
     if (mins && Number(mins) > 0) date.setMinutes(date.getMinutes() + Number(mins))
 
-    await client.query(`CREATE TABLE IF NOT EXISTS PantelRooms
-      ( id serial PRIMARY KEY, name text, description text, price text, img text NULL, freeBy timestamp, onHold text NULL,
-        bookToken text NULL, bookName text NULL, createdOn timestamp, updatedAsOf timestamp, updatedBy text )`)
     await client.query(`UPDATE PantelRooms SET (bookToken, bookName, freeBy) = 
       (NULLIF('${bookToken}', '${null}'), NULLIF('${nameSave}', '${null}'), $1)
       where id='${id}'`, [date])
