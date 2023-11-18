@@ -181,11 +181,12 @@ router.post('/book', async (req, res: Express.Response) => {
     try {
       username1 = jwt.verify(auth, process.env.TOKEN_KEY)?.username
     } catch {}
-    const username = username1 || 'Room booker'
+    const username = username1 || 'Online booker'
     await client.query(`UPDATE PantelRooms SET (bookToken, bookName, freeBy, updatedBy, updatedAsOf) = 
       (NULLIF('${bookToken}', '${null}'), NULLIF('${nameSave}', '${null}'), $1, '${username}', $2)
       where id='${id}'`, [date, new Date()])
-    const result = await client.query(`SELECT freeBy, bookToken, bookName from PantelRooms where id='${id}'`)
+    const result = await client.query(`SELECT freeBy, bookToken, bookName, updatedBy, updatedAsOf from
+      PantelRooms where id='${id}'`)
 
     res.status(200).json((networkResponse('success', result.rows[0])))
   } catch (error) {
