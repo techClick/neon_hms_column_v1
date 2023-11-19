@@ -1,3 +1,5 @@
+import { convertDate, convertTime2 } from './globals/dates'
+import { sendMail } from './globals/email'
 import { networkResponse } from './globals/globals'
 import Express from 'express'
 const express = require('express')
@@ -9,6 +11,7 @@ const upload = multer({
   limits: { fieldSize: 1048576 * 5 }
 })
 const jwt = require('jsonwebtoken')
+require('dotenv').config()
 
 router.post('/addroom',
   [upload.fields([
@@ -16,7 +19,9 @@ router.post('/addroom',
     { name: 'description', maxCount: 1 },
     { name: 'price', maxCount: 1 },
     { name: 'onHold', maxCount: 1 },
-    { name: 'img', maxCount: 1 }
+    { name: 'img', maxCount: 1 },
+    { name: 'imgs', maxCount: 6 },
+    { name: 'imgsCount', maxCount: 1 }
   ])],
   verify, async (req, res: Express.Response) => {
     try {
@@ -24,11 +29,6 @@ router.post('/addroom',
       let onHoldHere = onHold
       if (!onHold) onHoldHere = null
       const { username } = req.body.decodedToken
-      // await client.query('DROP TABLE IF EXISTS PantelRooms')
-      await client.query(`CREATE TABLE IF NOT EXISTS PantelRooms
-        ( id serial PRIMARY KEY, name text, description text, price text, img text NULL, freeBy timestamp, onHold text NULL,
-          bookToken text NULL, bookName text NULL, createdOn timestamp, updatedAsOf timestamp, updatedBy text,
-          imgs text NULL, imgsCount text NULL )`)
       const result = await client.query(`SELECT name from PantelRooms WHERE name='${name}'`)
       if (result.rows.length) {
         return res.status(403).json((networkResponse('error', 'A room with this name exists already')))
@@ -50,7 +50,9 @@ router.patch('/editroom',
     { name: 'description', maxCount: 1 },
     { name: 'price', maxCount: 1 },
     { name: 'onHold', maxCount: 1 },
-    { name: 'img', maxCount: 1 }
+    { name: 'img', maxCount: 1 },
+    { name: 'imgs', maxCount: 6 },
+    { name: 'imgsCount', maxCount: 1 }
   ])],
   verify, async (req, res: Express.Response) => {
     try {
@@ -88,9 +90,10 @@ router.get('/rooms', async (req, res: Express.Response) => {
     // await client.query('DROP TABLE IF EXISTS PantelRooms')
     await client.query(`CREATE TABLE IF NOT EXISTS PantelRooms
       ( id serial PRIMARY KEY, name text, description text, price text, img text NULL, freeBy timestamp, onHold text NULL,
-        bookToken text NULL, bookName text NULL, createdOn timestamp, updatedAsOf timestamp, updatedBy text )`)
+      bookToken text NULL, bookName text NULL, createdOn timestamp, updatedAsOf timestamp, updatedBy text,
+      imgs text NULL, imgsCount text NULL )`)
     const result = await client.query(`SELECT id, name, description, price, freeBy, onHold, bookToken, bookName, createdOn,
-      updatedAsOf, updatedBy from PantelRooms`)
+      updatedAsOf, updatedBy, imgsCount from PantelRooms`)
     res.status(200).json((networkResponse('success', result.rows)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
@@ -106,63 +109,126 @@ router.get('/roomimages', async (req, res: Express.Response) => {
   }
 })
 
-router.get('/info', async (req, res: Express.Response) => {
-  try {
-    // await client.query('DROP TABLE IF EXISTS PantelInfo')
-    await client.query(`CREATE TABLE IF NOT EXISTS PantelInfo ( id serial PRIMARY KEY, numbers text,
-      sendToOwner text NULL )`)
-    const result = await client.query('SELECT numbers, sendToOwner from PantelInfo')
-    const result2 = await client.query('SELECT username, email, permission from PantelClients')
-    if (!result.rows.length) {
-      await client.query(`INSERT INTO PantelInfo (numbers)
-        VALUES ('${JSON.stringify([])}')`)
-      return res.status(200).json((networkResponse('success',
-        { users: result2.rows, info: { numbers: JSON.stringify([]), sendtoowner: null } })))
-    }
-    res.status(200).json((networkResponse('success', { users: result2.rows, info: result.rows[0] })))
-  } catch (error) {
-    res.status(500).json((networkResponse('error', error)))
+const hotelName = process.env.HOTEL_NAME
+type BookEmailDetails = {
+  name: string
+  days: string
+  checkIn: string
+  checkInTime: string
+  checkOut: string
+  checkOutTime: string
+  price: string
+  room: string
+  token: string
+}
+const bookMailOptions = (to: string, name: string, details: BookEmailDetails): any => {
+  return {
+    from: 1,
+    to,
+    subject: 'Your Reservation Receipt',
+    html: `Hi ${name},
+      <br/>
+      <br/>
+      <div style='width: 100%; height: max-content; box-sizing: border-box;
+      max-width: 620px'>
+        <div style='font-size: 17px; padding: 20px; background: #f2f2f2; width: 100%;
+        border: 1px solid lightgrey; border-radius: 3px; line-height: 1.6;'>
+          You have booked a room online with
+          ${' '}
+          <strong>${hotelName}</strong>.
+          <br/>
+          <div style='font-size: 15px'>Your receipt is viewable below</div>
+        </div>
+        <div style='font-size: 14px; padding: 20px; background: #f2f2f2; width: 420px;
+        border: 1px dashed grey; border-radius: 3px; line-height: 1.6; margin: auto; background: white;
+        margin-top: 15px;'>
+          <div style='font-size: 24px; font-weight: 700;'>
+            Customer Receipt
+          </div>
+          <div style='color: #a0aec0;'>
+            Your reservation is now confirmed
+          </div>
+          <div style='margin-top: 10px; display: flex; width: 100%; align-items: center'>
+            <div style='color: #718096;'>
+              Guest
+            </div>
+            <div style='color: black; margin-left: auto;'>
+              ${details.name}
+            </div>
+          </div>
+          <div style='margin-top: 10px; display: flex; width: 100%; align-items: center'>
+            <div style='color: #718096;'>
+              Token
+            </div>
+            <div style='color: black; margin-left: auto; font-weight: 700;'>
+              ${details.token}
+            </div>
+          </div>
+          <div style='margin-top: 10px; display: flex; width: 100%; align-items: center'>
+            <div style='color: #718096;'>
+              Room
+            </div>
+            <div style='color: black; margin-left: auto;'>
+              ${details.room}
+            </div>
+          </div>
+          <div style='margin-top: 10px; display: flex; width: 100%; align-items: center'>
+            <div style='color: #718096;'>
+              Nights
+            </div>
+            <div style='color: black; margin-left: auto;'>
+              ${details.days}
+            </div>
+          </div>
+          <div style='margin-top: 10px; display: flex; width: 100%; align-items: center; font-size: 14px;
+          border: 2px solid #edf2f7; border-left: none; border-right: none; padding: 24px 0px;'>
+            <div>
+              <div style='color: #a0aec0; font-size: 10px; margin-bottom: 5px; letter-spacing: 1px;'>
+                CHECK-IN
+              </div>
+              <div style='color: black; font-weight: 600;'>
+                ${details.checkIn.toUpperCase()}
+              </div>
+              <div style='color: black; font-weight: 600;'>
+                ${details.checkInTime}
+              </div>
+            </div>
+            <div style='margin-left: auto; text-align: right'>
+              <div style='color: #a0aec0; font-size: 10px; margin-bottom: 5px;letter-spacing: 1px;'>
+                CHECK-OUT
+              </div>
+              <div style='color: black; font-weight: 600;'>
+                ${details.checkOut.toUpperCase()}
+              </div>
+              <div style='color: black; font-weight: 600;'>
+                ${details.checkOutTime}
+              </div>
+            </div>
+          </div>
+          <div style='margin-top: 10px; display: flex; width: 100%; align-items: center'>
+            <div style='color: #718096;'>
+              Price per night
+            </div>
+            <div style='color: black; margin-left: auto; font-weight: 600;'>
+              ₦${Number(details.price || 0).toLocaleString()}
+            </div>
+          </div>
+          <div style='margin-top: 32px; display: flex; width: 100%; align-items: center'>
+            <div style='color: black; font-size: 20px; font-weight: 600;'>
+              Total
+            </div>
+            <div style='color: black; margin-left: auto; color: #68d391; font-size: 20px;'>
+              ₦${(Number(details.price || 0) * Number(details.days)).toLocaleString()}
+            </div>
+          </div>
+        </div>
+      </div>`
   }
-})
-
-router.patch('/savenumbers', verify, async (req, res: Express.Response) => {
-  try {
-    await client.query(`UPDATE PantelInfo SET numbers='${JSON.stringify(req.body.numbers)}'
-      where id=1`)
-    res.status(200).json((networkResponse('success', true)))
-  } catch (error) {
-    res.status(500).json((networkResponse('error', error)))
-  }
-})
-
-router.patch('/saveemails', verify, async (req, res: Express.Response) => {
-  try {
-    await client.query(`UPDATE PantelInfo SET emails='${JSON.stringify(req.body.emails)}'
-      where id=1`)
-    res.status(200).json((networkResponse('success', true)))
-  } catch (error) {
-    res.status(500).json((networkResponse('error', error)))
-  }
-})
-
-router.patch('/setsendtoowner', verify, async (req, res: Express.Response) => {
-  try {
-    if (req.body.sendToOwner) {
-      await client.query(`UPDATE PantelInfo SET sendToOwner='${req.body.sendToOwner}'
-        where id=1`)
-    } else {
-      await client.query(`UPDATE PantelInfo SET sendToOwner=NULL
-        where id=1`)
-    }
-    res.status(200).json((networkResponse('success', req.body.sendToOwner)))
-  } catch (error) {
-    res.status(500).json((networkResponse('error', error)))
-  }
-})
-
+}
 router.post('/book', async (req, res: Express.Response) => {
   try {
-    const { id, name, days, hours, mins, useToken, token } = req.body
+    const { id, name, days, hours, mins, useToken, token, email, email2 } = req.body
+    const room = req.body.room ? JSON.parse(req.body.room) : {}
     let bookToken = useToken ? `${id}${Math.random().toString(36).slice(2, 8)}`.toUpperCase()
       : null
     bookToken = token ?? bookToken
@@ -186,6 +252,23 @@ router.post('/book', async (req, res: Express.Response) => {
     await client.query(`UPDATE PantelRooms SET (bookToken, bookName, freeBy, updatedBy, updatedAsOf) = 
       (NULLIF('${bookToken}', '${null}'), NULLIF('${nameSave}', '${null}'), $1, '${username}', $2)
       where id='${id}'`, [date, new Date()])
+
+    if (email) {
+      const bookEmailDetails: BookEmailDetails = {
+        name: nameSave,
+        days,
+        checkIn: convertDate(new Date()),
+        checkInTime: convertTime2(new Date()),
+        checkOut: convertDate(date),
+        checkOutTime: convertTime2(date),
+        price: room?.price,
+        room: room?.name,
+        token: bookToken
+      }
+      await sendMail(
+        bookMailOptions(`${email}${email2 ? `, ${email2}` : ''}`, nameSave.split(' ')[0], bookEmailDetails)
+      )
+    }
 
     const result = {
       freeby: date,
