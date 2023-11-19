@@ -27,7 +27,8 @@ router.post('/addroom',
       // await client.query('DROP TABLE IF EXISTS PantelRooms')
       await client.query(`CREATE TABLE IF NOT EXISTS PantelRooms
         ( id serial PRIMARY KEY, name text, description text, price text, img text NULL, freeBy timestamp, onHold text NULL,
-          bookToken text NULL, bookName text NULL, createdOn timestamp, updatedAsOf timestamp, updatedBy text )`)
+          bookToken text NULL, bookName text NULL, createdOn timestamp, updatedAsOf timestamp, updatedBy text,
+          imgs text NULL, imgsCount text NULL )`)
       const result = await client.query(`SELECT name from PantelRooms WHERE name='${name}'`)
       if (result.rows.length) {
         return res.status(403).json((networkResponse('error', 'A room with this name exists already')))
@@ -185,10 +186,16 @@ router.post('/book', async (req, res: Express.Response) => {
     await client.query(`UPDATE PantelRooms SET (bookToken, bookName, freeBy, updatedBy, updatedAsOf) = 
       (NULLIF('${bookToken}', '${null}'), NULLIF('${nameSave}', '${null}'), $1, '${username}', $2)
       where id='${id}'`, [date, new Date()])
-    const result = await client.query(`SELECT freeBy, bookToken, bookName, updatedBy, updatedAsOf from
-      PantelRooms where id='${id}'`)
 
-    res.status(200).json((networkResponse('success', result.rows[0])))
+    const result = {
+      freeby: date,
+      booktoken: bookToken,
+      bookname: nameSave,
+      updatedby: username1,
+      updatedasof: new Date()
+    }
+
+    res.status(200).json((networkResponse('success', result)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }
