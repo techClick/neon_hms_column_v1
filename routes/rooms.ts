@@ -8,7 +8,7 @@ const verify = require('./globals/verify')
 const client = require('./globals/connection')
 const multer = require('multer')
 const upload = multer({
-  limits: { fieldSize: 1048576 * 5 }
+  limits: { fieldSize: 1048576 * 3.01 }
 })
 const jwt = require('jsonwebtoken')
 require('dotenv').config()
@@ -20,12 +20,11 @@ router.post('/addroom',
     { name: 'price', maxCount: 1 },
     { name: 'onHold', maxCount: 1 },
     { name: 'img', maxCount: 1 },
-    { name: 'imgs', maxCount: 6 },
-    { name: 'imgsCount', maxCount: 1 }
+    { name: 'imgs', maxCount: 6 }
   ])],
   verify, async (req, res: Express.Response) => {
     try {
-      const { name, description, price, img, onHold } = req.body
+      const { name, description, price, img, imgs, onHold } = req.body
       let onHoldHere = onHold
       if (!onHold) onHoldHere = null
       const { username } = req.body.decodedToken
@@ -34,8 +33,8 @@ router.post('/addroom',
         return res.status(403).json((networkResponse('error', 'A room with this name exists already')))
       }
       await client.query(`INSERT INTO PantelRooms (name, description, price, img, freeBy, createdOn, updatedAsOf,
-        updatedBy, onHold) VALUES ('${name}', '${description}', '${price}', $1, $2,
-        $3, $4, '${username}', NULLIF('${onHoldHere}', '${null}'))`, [img, new Date(), new Date(), new Date()])
+        imgs, updatedBy, onHold) VALUES ('${name}', '${description}', '${price}', $1, $2, $3, $4, $5,
+        '${username}', NULLIF('${onHoldHere}', '${null}'))`, [img, new Date(), new Date(), new Date(), imgs])
       res.status(200).json((networkResponse('success', { username })))
     } catch (error) {
       res.status(500).json((networkResponse('error', error)))
@@ -51,12 +50,11 @@ router.patch('/editroom',
     { name: 'price', maxCount: 1 },
     { name: 'onHold', maxCount: 1 },
     { name: 'img', maxCount: 1 },
-    { name: 'imgs', maxCount: 6 },
-    { name: 'imgsCount', maxCount: 1 }
+    { name: 'imgs', maxCount: 6 }
   ])],
   verify, async (req, res: Express.Response) => {
     try {
-      const { name, id, origName, description, price, img, onHold } = req.body
+      const { name, id, origName, description, price, img, imgs, onHold } = req.body
       let onHoldHere = onHold
       if (!onHold) onHoldHere = null
       const { username } = req.body.decodedToken
@@ -66,9 +64,10 @@ router.patch('/editroom',
       }
 
       const date = new Date()
-      await client.query(`UPDATE PantelRooms SET (name, description, price, img, updatedAsOf, updatedBy, onHold)
-        = ('${name}', '${description}', '${price}', $1, $2, '${username}', NULLIF('${onHoldHere}', '${null}'))
-        where id='${id}'`, [img, date])
+      await client.query(`UPDATE PantelRooms SET (name, description, price, img, imgs, updatedAsOf, updatedBy, onHold)
+        = ('${name}', '${description}', '${price}', $1, $2, $3, '${username}', NULLIF('${onHoldHere}', '${null}'))
+        where id='${id}'`, [img, imgs, date])
+
       const responseData = {
         name,
         description,
@@ -76,7 +75,8 @@ router.patch('/editroom',
         img,
         updatedasof: date,
         onhold: onHoldHere,
-        updatedby: username
+        updatedby: username,
+        imgs
       }
 
       res.status(200).json((networkResponse('success', responseData)))
@@ -104,6 +104,16 @@ router.get('/roomimages', async (req, res: Express.Response) => {
   try {
     const result = await client.query('SELECT img from PantelRooms')
     res.status(200).json((networkResponse('success', result.rows)))
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.post('/bulkimages', async (req, res: Express.Response) => {
+  try {
+    const { id } = req.body
+    const result = await client.query(`SELECT imgs from PantelRooms where id='${id}'`)
+    res.status(200).json((networkResponse('success', JSON.parse(result.rows?.[0].imgs || '[]'))))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }
