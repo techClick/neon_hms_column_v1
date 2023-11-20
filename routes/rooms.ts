@@ -91,9 +91,9 @@ router.get('/rooms', async (req, res: Express.Response) => {
     await client.query(`CREATE TABLE IF NOT EXISTS PantelRooms
       ( id serial PRIMARY KEY, name text, description text, price text, img text NULL, freeBy timestamp, onHold text NULL,
       bookToken text NULL, bookName text NULL, createdOn timestamp, updatedAsOf timestamp, updatedBy text,
-      imgs text NULL, imgsCount text NULL )`)
+      imgs text NULL)`)
     const result = await client.query(`SELECT id, name, description, price, freeBy, onHold, bookToken, bookName, createdOn,
-      updatedAsOf, updatedBy, imgsCount from PantelRooms`)
+      updatedAsOf, updatedBy from PantelRooms`)
     res.status(200).json((networkResponse('success', result.rows)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
