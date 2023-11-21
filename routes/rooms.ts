@@ -130,6 +130,7 @@ type BookEmailDetails = {
   price: string
   room: string
   token: string
+  isDeskBooking: boolean
 }
 const bookMailOptions = (to: string, name: string, details: BookEmailDetails): any => {
   return {
@@ -142,16 +143,26 @@ const bookMailOptions = (to: string, name: string, details: BookEmailDetails): a
       <div style='width: 100%; height: max-content; box-sizing: border-box;
       max-width: 620px'>
         <div style='font-size: 17px; padding: 20px; background: #f2f2f2; width: 100%;
-        border: 1px solid lightgrey; border-radius: 3px; line-height: 1.6;'>
-          You have booked a room online with
-          ${' '}
-          <strong>${hotelName}</strong>.
-          <br/>
-          <div style='font-size: 15px'>Your receipt is viewable below</div>
+        border: 1px solid lightgrey; border-radius: 3px; line-height: 1.6; box-sizing: border-box;'>
+          ${
+              !details.isDeskBooking
+              ? `You have booked a room online with
+                ${' '}
+                <strong>${hotelName}</strong>.
+                <br/>
+                <div style='font-size: 15px'>Your receipt is viewable below;</div>`
+              : `You have booked a room with
+                ${' '}
+                <strong>${hotelName}</strong>.`
+          }
         </div>
         <div style='font-size: 14px; padding: 20px; background: #f2f2f2; width: 420px;
-        border: 1px dashed grey; border-radius: 3px; line-height: 1.6; margin: auto; background: white;
+        border: 1px dashed grey; border-radius: 6px; line-height: 1.6; margin: auto; background: white;
         margin-top: 15px;'>
+          <div style='font-size: 30px; margin-bottom: 15px; font-weight: 700;'>
+            ${hotelName}
+            &#174;
+          </div>
           <div style='font-size: 24px; font-weight: 700;'>
             Customer Receipt
           </div>
@@ -237,7 +248,15 @@ const bookMailOptions = (to: string, name: string, details: BookEmailDetails): a
 }
 router.post('/book', async (req, res: Express.Response) => {
   try {
-    const { id, name, days, hours, mins, useToken, token, email, email2 } = req.body
+    const {
+      id,
+      name,
+      days,
+      hours,
+      mins,
+      useToken,
+      token, email, email2, isDeskBooking
+    } = req.body
     const room = req.body.room ? JSON.parse(req.body.room) : {}
     let bookToken = useToken ? `${id}${Math.random().toString(36).slice(2, 8)}`.toUpperCase()
       : null
@@ -273,7 +292,8 @@ router.post('/book', async (req, res: Express.Response) => {
         checkOutTime: convertTime2(date),
         price: room?.price,
         room: room?.name,
-        token: bookToken
+        token: bookToken,
+        isDeskBooking
       }
       await sendMail(
         bookMailOptions(`${email}${email2 ? `, ${email2}` : ''}`, nameSave.split(' ')[0], bookEmailDetails)
