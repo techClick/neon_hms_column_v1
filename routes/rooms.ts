@@ -234,7 +234,7 @@ router.post('/book', async (req, res: Express.Response) => {
       token, email, email2, isDeskBooking
     } = req.body
     const room = req.body.room ? JSON.parse(req.body.room) : {}
-    let bookToken = useToken ? `${id}${Math.random().toString(36).slice(2, 8)}`.toUpperCase()
+    let bookToken = useToken ? `${Math.random().toString(36).slice(2, 8)}${id}`.toUpperCase()
       : null
     bookToken = token ?? bookToken
 
