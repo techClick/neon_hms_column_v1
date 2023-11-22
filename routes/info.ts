@@ -10,8 +10,8 @@ router.get('/info', async (req, res: Express.Response) => {
   try {
     // await client.query('DROP TABLE IF EXISTS PantelInfo')
     await client.query(`CREATE TABLE IF NOT EXISTS PantelInfo ( id serial PRIMARY KEY, numbers text,
-      sendToOwner text NULL )`)
-    const result = await client.query('SELECT numbers, sendToOwner from PantelInfo')
+      sendToOwner text NULL, displayNumber text NULL )`)
+    const result = await client.query('SELECT numbers, sendToOwner, displayNumber from PantelInfo')
     const result2 = await client.query('SELECT username, email, permission from PantelClients')
     if (!result.rows.length) {
       await client.query(`INSERT INTO PantelInfo (numbers)
@@ -47,14 +47,19 @@ router.patch('/saveemails', verify, async (req, res: Express.Response) => {
 
 router.patch('/setsendtoowner', verify, async (req, res: Express.Response) => {
   try {
-    if (req.body.sendToOwner) {
-      await client.query(`UPDATE PantelInfo SET sendToOwner='${req.body.sendToOwner}'
-        where id=1`)
-    } else {
-      await client.query(`UPDATE PantelInfo SET sendToOwner=NULL
-        where id=1`)
-    }
+    await client.query(`UPDATE PantelInfo SET sendToOwner =
+      NULLIF('${req.body.sendToOwner}', '${null}') where id=1`)
     res.status(200).json((networkResponse('success', req.body.sendToOwner)))
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.patch('/savedisplaynumber', verify, async (req, res: Express.Response) => {
+  try {
+    await client.query(`UPDATE PantelInfo SET displayNumber =
+      NULLIF('${req.body.displayNumber}', '${null}') where id=1`)
+    res.status(200).json((networkResponse('success', req.body.displayNumber)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }

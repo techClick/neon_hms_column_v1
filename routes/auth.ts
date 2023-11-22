@@ -16,10 +16,8 @@ router.post('/auth', async (req: TypedRequestBody<{
   password: string
 }>, res: Express.Response) => {
   try {
-    if (!req.body.email) return res.status(400).json((networkResponse('error', 'Bad request')))
-
     const { email, password } = req.body
-    if (!email || !password) return res.status(400).json((networkResponse('error', 'Bad request 2')))
+    if (!email || !password) return res.status(400).json((networkResponse('error', 'Bad request')))
 
     await client.query(`CREATE TABLE IF NOT EXISTS PantelClients
       ( id serial PRIMARY KEY, email text, password text, permission integer, forgotKey text NULL)`)
@@ -32,7 +30,8 @@ router.post('/auth', async (req: TypedRequestBody<{
     }
 
     const token = jwt.sign({ username: result.rows[0].username }, process.env.TOKEN_KEY, { expiresIn: tokenExpTime })
-    res.status(200).json((networkResponse('success', { token, permission: result.rows[0].permission })))
+    res.status(200).json((networkResponse('success',
+      { token, permission: result.rows[0].permission, username: result.rows[0].username })))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }
@@ -41,7 +40,7 @@ router.post('/auth', async (req: TypedRequestBody<{
 router.get('/verify', verify, (req: TypedRequestBody<{
   decodedToken: any
 }>, res: Express.Response) => {
-  res.status(204).json((networkResponse('success', undefined)))
+  res.status(200).json((networkResponse('success', req.body.decodedToken.exp)))
 })
 
 router.get('/refresh', verify, (req: TypedRequestBody<{
