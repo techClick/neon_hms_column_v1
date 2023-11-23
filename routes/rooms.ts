@@ -9,6 +9,8 @@ const client = require('./globals/connection')
 const jwt = require('jsonwebtoken')
 require('dotenv').config()
 
+process.env.TZ = 'Africa/Lagos'
+
 router.post('/addroom', verify, async (req, res: Express.Response) => {
   try {
     const { name, description, price, imgFile: img, imgFiles: imgs, onHold } = req.body
@@ -19,8 +21,7 @@ router.post('/addroom', verify, async (req, res: Express.Response) => {
     if (result.rows.length) {
       return res.status(403).json((networkResponse('error', 'A room with this name exists already')))
     }
-    const now = new Date()
-    const date = new Date(now.getTime() + now.getTimezoneOffset() * 60000)
+    const date = new Date()
     await client.query(`INSERT INTO PantelRooms (name, description, price, img, freeBy, createdOn, updatedAsOf,
       imgs, updatedBy, onHold) VALUES ('${name}', '${description}', '${price}', $1, $2, $3, $4, $5,
       '${username}', NULLIF('${onHoldHere}', '${null}'))`, [img, date, date, date, imgs])
@@ -246,9 +247,8 @@ router.post('/book', async (req, res: Express.Response) => {
       (mins && Number(mins) > 0)
     ) ? name : null
 
-    const now = new Date()
-    const date1 = new Date(now.getTime() + now.getTimezoneOffset() * 60000)
-    const date = new Date(now.getTime() + now.getTimezoneOffset() * 60000)
+    const date1 = new Date()
+    const date = new Date()
 
     if (days && Number(days) > 0) date.setDate(date.getDate() + Number(days))
     if (hours && Number(hours) > 0) date.setHours(date.getHours() + Number(hours))
