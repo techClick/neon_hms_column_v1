@@ -1,5 +1,7 @@
 const { Client } = require('pg')
-require('dotenv').config()
+const dotenv = require('dotenv')
+dotenv.config()
+dotenv.config({ path: '.env.local', override: true })
 
 const clientTmp = new Client({
   host: process.env.HOST,
@@ -11,3 +13,5 @@ const clientTmp = new Client({
 clientTmp.connect()
 
 module.exports = clientTmp
+
+export {}

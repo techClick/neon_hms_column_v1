@@ -4,7 +4,6 @@ const express = require('express')
 const router = express.Router()
 const verify = require('./globals/verify')
 const client = require('./globals/connection')
-require('dotenv').config()
 
 router.get('/info', async (req, res: Express.Response) => {
   try {

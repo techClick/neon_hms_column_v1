@@ -7,7 +7,6 @@ const router = express.Router()
 const verify = require('./globals/verify')
 const client = require('./globals/connection')
 const jwt = require('jsonwebtoken')
-require('dotenv').config()
 
 process.env.TZ = 'Africa/Lagos'
 

@@ -1,7 +1,9 @@
 import Express from 'express'
 import { networkResponse } from './networkResponse'
 const jwt = require('jsonwebtoken')
-require('dotenv').config()
+const dotenv = require('dotenv')
+dotenv.config()
+dotenv.config({ path: '.env.local', override: true })
 
 const verify = (req, res: Express.Response, next): any => {
   const token = req.get('token')

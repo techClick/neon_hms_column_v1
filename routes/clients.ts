@@ -7,7 +7,6 @@ const router = express.Router()
 const client = require('./globals/connection')
 const bcrypt = require('bcryptjs')
 const verify = require('./globals/verify')
-require('dotenv').config()
 
 const hotelName = process.env.HOTEL_NAME
 const addStaffMailOptions = (path: string, registerKey: string, email: string): any => {

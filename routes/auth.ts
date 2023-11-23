@@ -6,7 +6,6 @@ const router = express.Router()
 const jwt = require('jsonwebtoken')
 const client = require('./globals/connection')
 const verify = require('./globals/verify')
-require('dotenv').config()
 const bcrypt = require('bcryptjs')
 
 const tokenExpTime = '10m'
