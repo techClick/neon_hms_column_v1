@@ -225,7 +225,7 @@ const bookMailOptions = (to: string, name: string, details: BookEmailDetails): a
       </div>`
   }
 }
-router.post('/book', async (req, res: Express.Response) => {
+router.patch('/book', async (req, res: Express.Response) => {
   try {
     const {
       id,

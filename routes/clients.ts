@@ -4,6 +4,8 @@ import { TypedRequestBody } from './globals/types'
 import { sendMail } from './globals/email'
 const express = require('express')
 const router = express.Router()
+const cors = require('cors')
+router.use(cors())
 const client = require('./globals/connection')
 const bcrypt = require('bcryptjs')
 const verify = require('./globals/verify')

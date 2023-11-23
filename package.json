@@ -21,7 +21,8 @@
     "supertest": "^6.3.3",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.1",
-    "typescript": "*"
+    "typescript": "*",
+    "vercel": "^32.5.6"
   },
   "scripts": {
     "start": "nodemon index.ts",
