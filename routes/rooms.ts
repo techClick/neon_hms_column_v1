@@ -19,9 +19,11 @@ router.post('/addroom', verify, async (req, res: Express.Response) => {
     if (result.rows.length) {
       return res.status(403).json((networkResponse('error', 'A room with this name exists already')))
     }
+    const now = new Date()
+    const date = new Date(now.getTime() + now.getTimezoneOffset() * 60000)
     await client.query(`INSERT INTO PantelRooms (name, description, price, img, freeBy, createdOn, updatedAsOf,
       imgs, updatedBy, onHold) VALUES ('${name}', '${description}', '${price}', $1, $2, $3, $4, $5,
-      '${username}', NULLIF('${onHoldHere}', '${null}'))`, [img, new Date(), new Date(), new Date(), imgs])
+      '${username}', NULLIF('${onHoldHere}', '${null}'))`, [img, date, date, date, imgs])
     res.status(200).json((networkResponse('success', { username })))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
@@ -39,7 +41,8 @@ router.patch('/editroom', verify, async (req, res: Express.Response) => {
       return res.status(403).json((networkResponse('error', 'A room with this name exists already')))
     }
 
-    const date = new Date()
+    const now = new Date()
+    const date = new Date(now.getTime() + now.getTimezoneOffset() * 60000)
     await client.query(`UPDATE PantelRooms SET (name, description, price, img, imgs, updatedAsOf, updatedBy, onHold)
       = ('${name}', '${description}', '${price}', $1, $2, $3, '${username}', NULLIF('${onHoldHere}', '${null}'))
       where id='${id}'`, [img, imgs, date])
@@ -243,7 +246,10 @@ router.post('/book', async (req, res: Express.Response) => {
       (mins && Number(mins) > 0)
     ) ? name : null
 
-    const date = new Date()
+    const now = new Date()
+    const date1 = new Date(now.getTime() + now.getTimezoneOffset() * 60000)
+    const date = new Date(now.getTime() + now.getTimezoneOffset() * 60000)
+
     if (days && Number(days) > 0) date.setDate(date.getDate() + Number(days))
     if (hours && Number(hours) > 0) date.setHours(date.getHours() + Number(hours))
     if (mins && Number(mins) > 0) date.setMinutes(date.getMinutes() + Number(mins))
@@ -256,14 +262,14 @@ router.post('/book', async (req, res: Express.Response) => {
     const username = username1 || 'Online booker'
     await client.query(`UPDATE PantelRooms SET (bookToken, bookName, freeBy, updatedBy, updatedAsOf) = 
       (NULLIF('${bookToken}', '${null}'), NULLIF('${nameSave}', '${null}'), $1, '${username}', $2)
-      where id='${id}'`, [date, new Date()])
+      where id='${id}'`, [date, date1])
 
     if (email) {
       const bookEmailDetails: BookEmailDetails = {
         name: nameSave,
         days,
-        checkIn: convertDate(new Date()),
-        checkInTime: convertTime2(new Date()),
+        checkIn: convertDate(date1),
+        checkInTime: convertTime2(date1),
         checkOut: convertDate(date),
         checkOutTime: convertTime2(date),
         price: room?.price,
@@ -281,7 +287,7 @@ router.post('/book', async (req, res: Express.Response) => {
       booktoken: bookToken,
       bookname: nameSave,
       updatedby: username1,
-      updatedasof: new Date()
+      updatedasof: date1
     }
 
     res.status(200).json((networkResponse('success', result)))
