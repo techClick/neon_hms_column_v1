@@ -12,7 +12,8 @@ process.env.TZ = 'Africa/Lagos'
 
 router.post('/addroom', verify, async (req, res: Express.Response) => {
   try {
-    const { name, description, price, imgFile: img, imgFiles: imgs, onHold } = req.body
+    const { name, description, price, imgFile: img1, imgFiles: imgs, onHold } = req.body
+    const img = img1 === 'refresh' ? null : img1
     let onHoldHere = onHold
     if (!onHold) onHoldHere = null
     const { username } = req.body.decodedToken
@@ -24,7 +25,21 @@ router.post('/addroom', verify, async (req, res: Express.Response) => {
     await client.query(`INSERT INTO PantelRooms (name, description, price, img, freeBy, createdOn, updatedAsOf,
       imgs, updatedBy, onHold) VALUES ('${name}', '${description}', '${price}', $1, $2, $3, $4, $5,
       '${username}', NULLIF('${onHoldHere}', '${null}'))`, [img, date, date, date, imgs])
-    res.status(200).json((networkResponse('success', { username })))
+    const result2 = await client.query(`SELECT id from PantelRooms WHERE name='${name}'`)
+
+    const addedRoom = {
+      id: result2.rows[0].id,
+      name,
+      description,
+      price,
+      img: 'refresh',
+      freeby: date,
+      createdon: date,
+      updatedasof: date,
+      updatedby: username,
+      onhold: onHoldHere
+    }
+    res.status(200).json((networkResponse('success', addedRoom)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }
@@ -32,13 +47,14 @@ router.post('/addroom', verify, async (req, res: Express.Response) => {
 
 router.patch('/editroom', verify, async (req, res: Express.Response) => {
   try {
-    const { name, id, origName, description, price, imgFile: img, imgFiles: imgs, onHold } = req.body
+    const { name, id, origName, description, price, imgFile: img1, imgFiles: imgs, onHold } = req.body
+    const img = img1 === 'refresh' ? null : img1
     let onHoldHere = onHold
     if (!onHold) onHoldHere = null
     const { username } = req.body.decodedToken
     const result = await client.query(`SELECT name from PantelRooms WHERE name='${name}'`)
     if (result.rows.length && origName !== name) {
-      return res.status(403).json((networkResponse('error', 'A room with this name exists already')))
+      return res.status(400).json((networkResponse('error', 'A room with this name exists already')))
     }
 
     const now = new Date()
@@ -48,14 +64,14 @@ router.patch('/editroom', verify, async (req, res: Express.Response) => {
       where id='${id}'`, [img, imgs, date])
 
     const responseData = {
+      id,
       name,
       description,
       price,
-      img,
+      img: 'refresh',
       updatedasof: date,
       onhold: onHoldHere,
-      updatedby: username,
-      imgs
+      updatedby: username
     }
 
     res.status(200).json((networkResponse('success', responseData)))
@@ -83,6 +99,16 @@ router.get('/roomimages', async (req, res: Express.Response) => {
   try {
     const result = await client.query('SELECT img from PantelRooms')
     res.status(200).json((networkResponse('success', result.rows)))
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.post('/roomimage', async (req, res: Express.Response) => {
+  try {
+    const { id } = req.body
+    const result = await client.query(`SELECT img from PantelRooms where id=${id}`)
+    res.status(200).json((networkResponse('success', result.rows[0].img)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }
@@ -233,13 +259,9 @@ router.patch('/book', async (req, res: Express.Response) => {
       days,
       hours,
       mins,
-      useToken,
       token, email, email2, isDeskBooking
     } = req.body
     const room = req.body.room ? JSON.parse(req.body.room) : {}
-    let bookToken = useToken ? `${Math.random().toString(36).slice(2, 8)}${id}`.toUpperCase()
-      : null
-    bookToken = token ?? bookToken
 
     const nameSave = ((days && Number(days) > 0) ||
       (hours && Number(hours) > 0) ||
@@ -260,7 +282,7 @@ router.patch('/book', async (req, res: Express.Response) => {
     } catch {}
     const username = username1 || 'Online booker'
     await client.query(`UPDATE PantelRooms SET (bookToken, bookName, freeBy, updatedBy, updatedAsOf) = 
-      (NULLIF('${bookToken}', '${null}'), NULLIF('${nameSave}', '${null}'), $1, '${username}', $2)
+      (NULLIF('${token}', '${null}'), NULLIF('${nameSave}', '${null}'), $1, '${username}', $2)
       where id='${id}'`, [date, date1])
 
     if (email) {
@@ -273,7 +295,7 @@ router.patch('/book', async (req, res: Express.Response) => {
         checkOutTime: convertTime2(date),
         price: room?.price,
         room: room?.name,
-        token: bookToken,
+        token,
         isDeskBooking
       }
       await sendMail(
@@ -282,8 +304,9 @@ router.patch('/book', async (req, res: Express.Response) => {
     }
 
     const result = {
+      id,
       freeby: date,
-      booktoken: bookToken,
+      booktoken: token,
       bookname: nameSave,
       updatedby: username1,
       updatedasof: date1
