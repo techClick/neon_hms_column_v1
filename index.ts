@@ -21,8 +21,6 @@ const io = new Server(server, {
 })
 
 io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.id}`)
-
   socket.on('book_room', (room) => {
     socket.broadcast.emit('get_booked_room', room)
     socket.emit('get_booked_room', room)
@@ -49,7 +47,6 @@ io.on('connection', (socket) => {
   })
 
   socket.on('disconnect', () => {
-    console.log(`User Disconnected: ${socket.id}`)
   })
 })
 
