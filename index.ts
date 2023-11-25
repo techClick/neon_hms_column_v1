@@ -15,35 +15,30 @@ const server = require('http').createServer(app)
 
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL,
-    methods: ['GET', 'POST']
+    origin: [process.env.CLIENT_URL],
+    methods: ['GET', 'POST', 'PATCH', 'DELETE']
   }
 })
 
 io.on('connection', (socket) => {
   socket.on('book_room', (room) => {
     socket.broadcast.emit('get_booked_room', room)
-    socket.emit('get_booked_room', room)
   })
 
   socket.on('add_room', (room) => {
     socket.broadcast.emit('get_added_room', room)
-    socket.emit('get_added_room', room)
   })
 
   socket.on('edit_room', (room) => {
     socket.broadcast.emit('get_edited_room', room)
-    socket.emit('get_edited_room', room)
   })
 
   socket.on('delete_room', (id) => {
     socket.broadcast.emit('get_deleted_room', id)
-    socket.emit('get_deleted_room', id)
   })
 
   socket.on('revoke_staff', (username) => {
     socket.broadcast.emit('get_revoked_staff', username)
-    socket.emit('get_revoked_staff', username)
   })
 
   socket.on('disconnect', () => {
