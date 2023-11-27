@@ -28,7 +28,7 @@ router.post('/auth', async (req: TypedRequestBody<{
       return res.status(403).json((networkResponse('error', 'Wrong password or email')))
     }
 
-    const token = jwt.sign({ username: result.rows[0].username }, process.env.TOKEN_KEY, { expiresIn: tokenExpTime })
+    const token = jwt.sign({ username: result.rows[0].username }, process.env.SECRET_TOKEN_KEY, { expiresIn: tokenExpTime })
     res.status(200).json((networkResponse('success',
       { token, permission: result.rows[0].permission, username: result.rows[0].username })))
   } catch (error) {
@@ -46,7 +46,7 @@ router.get('/refresh', verify, (req: TypedRequestBody<{
   decodedToken: any
 }>, res: Express.Response) => {
   const { username } = req.body.decodedToken
-  const token = jwt.sign({ username }, process.env.TOKEN_KEY, { expiresIn: tokenExpTime })
+  const token = jwt.sign({ username }, process.env.SECRET_TOKEN_KEY, { expiresIn: tokenExpTime })
   res.status(200).json((networkResponse('success', token)))
 })
 

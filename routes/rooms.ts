@@ -278,7 +278,7 @@ router.patch('/book', async (req, res: Express.Response) => {
     const auth = req.get('token')
     let username1
     try {
-      username1 = jwt.verify(auth, process.env.TOKEN_KEY)?.username
+      username1 = jwt.verify(auth, process.env.SECRET_TOKEN_KEY)?.username
     } catch {}
     const username = username1 || 'Online booker'
     await client.query(`UPDATE PantelRooms SET (bookToken, bookName, freeBy, updatedBy, updatedAsOf) = 

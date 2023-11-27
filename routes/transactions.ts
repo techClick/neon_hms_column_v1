@@ -42,16 +42,22 @@ process.env.TZ = 'Africa/Lagos'
 //   }
 // }
 
-export const verifyAndTransfer = async (txRef, id, amount, currency) => {
-  const verifiedTrans = await verifiedTransaction(id, amount, currency)
-  console.log('Verfied???', verifiedTrans)
+export const verifyAndTransfer = async (txRef, id, amount, currency, type?) => {
   let transferedToHotel = false
+  let verifiedTrans: any = null
   try {
+    verifiedTrans = await verifiedTransaction(id, amount, currency)
     if (verifiedTrans) {
       await neonClient.query(`CREATE TABLE IF NOT EXISTS PaidToMe ( id serial PRIMARY KEY, txRef text,
         amount text, timestamp text, transactionId text)`)
-      await neonClient.query(`INSERT INTO PaidToMe ( txref, amount, timestamp, transactionId) VALUES ('${txRef}',
+
+      const result = await neonClient.query(`SELECT txRef FROM PaidToMe where txRef='${txRef.trim()}'`)
+      if (result?.rows?.[0]?.txref) {
+        return true
+      }
+      await neonClient.query(`INSERT INTO PaidToMe ( txref, amount, timestamp, transactionId) VALUES ('${txRef.trim()}',
         '${amount.toString()}', $1, '${id.toString()}')`, [convertDate(new Date())])
+
       transferedToHotel = true// await transferToHotelAPI(txRef, Number(amount), id)
       if (!transferedToHotel) {
         // send mail to me(Ike) warning of needed payment to hotel;
@@ -60,11 +66,11 @@ export const verifyAndTransfer = async (txRef, id, amount, currency) => {
     } else {
       await neonClient.query(`CREATE TABLE IF NOT EXISTS NoVerifyPaidToMe ( id serial PRIMARY KEY, txRef text,
         amount text, timestamp text, transactionId text)`)
-      await neonClient.query(`INSERT INTO NoVerifyPaidToMe ( txref, amount, timestamp, transactionId) VALUES ('${txRef}',
-        '${amount.toString()}', $1, '${id.toString()}')`, [convertDate(new Date())])
+      await neonClient.query(`INSERT INTO NoVerifyPaidToMe ( txref, amount, timestamp, transactionId)
+        VALUES ('${txRef.trim()}', '${amount.toString()}', $1, '${id.toString()}')`, [convertDate(new Date())])
     }
-  } catch (error) {
-    return error
+  } catch {
+    return verifiedTrans
   }
   return verifiedTrans
 }
@@ -72,8 +78,7 @@ export const verifyAndTransfer = async (txRef, id, amount, currency) => {
 router.post('/verifyandtransfer', async (req, res: Express.Response) => {
   try {
     const { txRef, transId, amount, currency } = req.body
-    const result = await verifyAndTransfer(txRef, transId, Number(amount), currency)
-    console.log(result)
+    const result = await verifyAndTransfer(txRef, transId, Number(amount), currency, 'UI')
     res.status(200).json((networkResponse('success', result)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
@@ -81,3 +86,4 @@ router.post('/verifyandtransfer', async (req, res: Express.Response) => {
 })
 
 module.exports = router
+module.exports.verifyAndTransfer = verifyAndTransfer
