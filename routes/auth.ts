@@ -4,7 +4,7 @@ import Express from 'express'
 const express = require('express')
 const router = express.Router()
 const jwt = require('jsonwebtoken')
-const client = require('./globals/connection')
+const client = require('./globals/connection')[0]
 const verify = require('./globals/verify')
 const bcrypt = require('bcryptjs')
 

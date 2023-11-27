@@ -6,7 +6,7 @@ const express = require('express')
 const router = express.Router()
 const cors = require('cors')
 router.use(cors())
-const client = require('./globals/connection')
+const client = require('./globals/connection')[0]
 const bcrypt = require('bcryptjs')
 const verify = require('./globals/verify')
 

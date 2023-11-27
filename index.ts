@@ -9,7 +9,8 @@ dotenv.config({ path: '.env.local', override: true })
 app.use(cors())
 app.options('*', cors())
 const { Server } = require('socket.io');
-['clients', 'auth', 'rooms', 'info'].map((endPoint) => app.use('/', require(`./routes/${endPoint}`)))
+['clients', 'auth', 'rooms', 'info', 'transactions', 'webhook']
+  .map((endPoint) => app.use('/', require(`./routes/${endPoint}`)))
 
 const server = require('http').createServer(app)
 

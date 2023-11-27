@@ -23,3 +23,8 @@ export const convertDate = (date: Date) => {
 export const convertTime2 = (date: Date) => {
   return `${convertTime(`${date.getHours()}:${date.getMinutes()}`)}`
 }
+
+export const convertDate2 = (date: Date) => {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  return `${date.getDate()}-${months[date.getMonth()]}-${date.getFullYear()}`
+}

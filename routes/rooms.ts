@@ -5,7 +5,7 @@ import Express from 'express'
 const express = require('express')
 const router = express.Router()
 const verify = require('./globals/verify')
-const client = require('./globals/connection')
+const client = require('./globals/connection')[0]
 const jwt = require('jsonwebtoken')
 
 process.env.TZ = 'Africa/Lagos'
@@ -86,7 +86,7 @@ router.get('/rooms', async (req, res: Express.Response) => {
     await client.query(`CREATE TABLE IF NOT EXISTS PantelRooms
       ( id serial PRIMARY KEY, name text, description text, price text, img text NULL, freeBy timestamp, onHold text NULL,
       bookToken text NULL, bookName text NULL, createdOn timestamp, updatedAsOf timestamp, updatedBy text,
-      imgs text NULL)`)
+      imgs text NULL, increment text)`)
     const result = await client.query(`SELECT id, name, description, price, freeBy, onHold, bookToken, bookName, createdOn,
       updatedAsOf, updatedBy from PantelRooms`)
     res.status(200).json((networkResponse('success', result.rows)))

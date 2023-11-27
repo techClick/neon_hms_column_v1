@@ -12,6 +12,15 @@ const clientTmp = new Client({
 })
 clientTmp.connect()
 
-module.exports = clientTmp
+const clientTmp2 = new Client({
+  host: process.env.HOST2,
+  user: process.env.DBITEM2,
+  port: process.env.DBPORT2,
+  password: process.env.PASSWORD2,
+  database: process.env.DBITEM2
+})
+clientTmp2.connect()
+
+module.exports = [clientTmp, clientTmp2]
 
 export {}
