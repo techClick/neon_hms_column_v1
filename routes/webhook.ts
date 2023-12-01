@@ -15,7 +15,7 @@ router.post('/fvwebhook', async (req, res: Express.Response) => {
   if (req.body['event.type'] === 'CARD_TRANSACTION') {
     if (status === 'successful') {
       setTimeout(async () => {
-        const verifiedTrans = await verifyAndTransfer(txRef, id.toString(), amount, currency, 'Webhook')
+        const verifiedTrans = await verifyAndTransfer(txRef, id.toString(), amount, currency)
         if (!verifiedTrans) {
           await neonClient.query(`CREATE TABLE IF NOT EXISTS WebhookFailPayMe ( txRef text, amount text,
             timestamp text, transactionId text)`)

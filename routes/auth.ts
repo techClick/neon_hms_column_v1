@@ -18,9 +18,9 @@ router.post('/auth', async (req: TypedRequestBody<{
     const { email, password } = req.body
     if (!email || !password) return res.status(400).json((networkResponse('error', 'Bad request')))
 
-    await client.query(`CREATE TABLE IF NOT EXISTS PantelClients
+    await client.query(`CREATE TABLE IF NOT EXISTS Staff
       ( id serial PRIMARY KEY, email text, password text, permission integer, forgotKey text NULL)`)
-    const result = await client.query(`SELECT * FROM PantelClients WHERE email='${email}'`)
+    const result = await client.query(`SELECT * FROM Staff WHERE email='${email}'`)
     if (!result.rows.length) return res.status(403).json((networkResponse('error', 'Wrong password or email')))
 
     const correctPassword = await bcrypt.compare(password, result.rows[0].password)

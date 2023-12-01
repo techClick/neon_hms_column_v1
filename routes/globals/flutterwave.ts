@@ -6,7 +6,7 @@ const client = require('./connection')[0]
 const neonClient = require('./connection')[1]
 
 export const getTransferRef = (txRef: string, email: string) => {
-  return `transfer_FOR:${txRef}-${process.env.HOTEL_NAME}-comm:${process.env.COMMISION}_${email}`
+  return `transfer_FOR:${txRef}-${process.env.HOTEL_NAME}-comm:${process.env.COMMISION}%_${email}`
 }
 
 export const verifiedTransaction = async (transactionId: string, amount: number, currency: string) => {
@@ -30,6 +30,7 @@ export const verifiedTransaction = async (transactionId: string, amount: number,
 export const transferToHotel =
   async (roomName: string, amountTmp: number, transferRef: string, transId: string) => {
     try {
+      // This 1.4% might be gettable from the frontend response
       const amount = Math.floor((amountTmp - (amountTmp * (1.4 / 100))) * 100) / 100
       const res1 = await flw.Transfer.fee({
         type: 'account',
@@ -38,19 +39,19 @@ export const transferToHotel =
       })
       const { fee } = res1.data
       if (res1.status === 'success' && (fee || fee === 0)) {
-        await neonClient.query(`CREATE TABLE IF NOT EXISTS FlutterFee ( fee text, amount text, timestamp text,
-          transactionId text)`)
-        await neonClient.query(`INSERT INTO FlutterFee ( fee, amount, timestamp, transactionId) VALUES
-          ('${fee.toString()}', '${amount.toString()}', $1, '${transId}')`, [convertDate(new Date())])
+        await neonClient.query(`CREATE TABLE IF NOT EXISTS FlutterFee ( id serial PRIMARY KEY, fee text,
+          amount text, timestamp text, transactionId text)`)
+        await neonClient.query(`INSERT INTO FlutterFee ( fee, amount, timestamp, transactionId)
+          VALUES ('${fee.toString()}', '${amount.toString()}', $1, '${transId}')`, [convertDate(new Date())])
       } else {
-        await neonClient.query(`CREATE TABLE IF NOT EXISTS ErrorFlutterFee ( message text, amount text, timestamp text,
-          transactionId text)`)
+        await neonClient.query(`CREATE TABLE IF NOT EXISTS ErrorFlutterFee ( id serial PRIMARY KEY, message text,
+          amount text, timestamp text, transactionId text)`)
         await neonClient.query(`INSERT INTO ErrorFlutterFee ( message, amount, timestamp, transactionId) VALUES
           ('${res1.data.message}', '${amount.toString()}', $1, '${transId}')`, [convertDate(new Date())])
         return false
       }
 
-      const result = await client.query(`SELECT increment from PantelRooms where name=${roomName}`)
+      const result = await client.query(`SELECT increment from Rooms where name=${roomName}`)
 
       if (!result?.rows?.[0]?.increment) {
         return false
