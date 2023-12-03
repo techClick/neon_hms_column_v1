@@ -39,7 +39,7 @@ router.post('/auth', async (req: TypedRequestBody<{
 router.get('/verify', verify, (req: TypedRequestBody<{
   decodedToken: any
 }>, res: Express.Response) => {
-  res.status(200).json((networkResponse('success', req.body.decodedToken.exp)))
+  res.status(200).json((networkResponse('success', req.body.decodedToken?.exp)))
 })
 
 router.get('/refresh', verify, (req: TypedRequestBody<{

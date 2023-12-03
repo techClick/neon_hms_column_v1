@@ -9,12 +9,12 @@ export const getTransferRef = (txRef: string, email: string) => {
   return `transfer_FOR:${txRef}-${process.env.HOTEL_NAME}-comm:${process.env.COMMISION}%_${email}`
 }
 
-export const verifiedTransaction = async (transactionId: string, amount: number, currency: string) => {
+export const verifiedPayment = async (transactionId: string, amount: number) => {
   try {
     const response = await flw.Transaction.verify({ id: transactionId })
     if (
       response.data.status === 'successful' &&
-      response.data.amount === amount && response.data.currency === currency
+      response.data.amount === amount && response.data.currency === 'NGN'
     ) {
       // Success! Confirm the customer's payment
       return true

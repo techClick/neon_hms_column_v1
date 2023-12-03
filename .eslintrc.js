@@ -33,6 +33,9 @@ module.exports = {
       "multiline-ternary": 0,
       "@typescript-eslint/no-misused-promises": 0,
       "@typescript-eslint/explicit-function-return-type": 0,
-      "@typescript-eslint/consistent-type-definitions": 0
+      "@typescript-eslint/consistent-type-definitions": 0,
+      "@typescript-eslint/consistent-type-assertions": 0,
+      "@typescript-eslint/await-thenable": 0,
+      "@typescript-eslint/return-await": 0
     }
 }

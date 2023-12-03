@@ -121,7 +121,7 @@ router.get('/rooms', async (req, res: Express.Response) => {
       bookToken, bookName, createdOn, updatedAsOf, updatedBy, perks, floor from Rooms`)
     result.rows.forEach((r, i) => {
       const price = result.rows[i].origprice
-      const realPrice = Math.ceil((Number(price || 0) * (Number(process.env.INCREMENT_NUM || 0) / 100)) / 500) * 500
+      const realPrice = Math.ceil((Number(price || 0) * (Number(process.env.INCREMENT_NUM || 0) / 100)) / 100) * 100
       result.rows[i] = { ...result.rows[i], price: realPrice.toString(), perks: JSON.parse(result.rows[i].perks) }
     })
     res.status(200).json((networkResponse('success', result.rows)))
@@ -294,9 +294,10 @@ router.patch('/book', async (req, res: Express.Response) => {
       days,
       hours,
       mins,
+      price,
+      roomName,
       token, email, email2, isDeskBooking
     } = req.body
-    const room = req.body.room ? JSON.parse(req.body.room) : {}
 
     const nameSave = ((days && Number(days) > 0) ||
       (hours && Number(hours) > 0) ||
@@ -328,8 +329,8 @@ router.patch('/book', async (req, res: Express.Response) => {
         checkInTime: convertTime2(date1),
         checkOut: convertDate(date),
         checkOutTime: convertTime2(date),
-        price: room?.price,
-        room: room?.name,
+        price,
+        room: roomName,
         token,
         isDeskBooking
       }

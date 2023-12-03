@@ -1,6 +1,6 @@
 import Express from 'express'
-import { verifyAndTransfer } from './transactions'
 import { convertDate } from './globals/dates'
+import { verifyPayment } from './transactions'
 const express = require('express')
 const router = express.Router()
 const neonClient = require('./globals/connection')[1]
@@ -11,11 +11,11 @@ router.post('/fvwebhook', async (req, res: Express.Response) => {
   if (!signature || (signature !== secretHash)) {
     res.status(401).end()
   }
-  const { txRef, id, status, amount, currency } = req.body
+  const { txRef, id, status, amount } = req.body
   if (req.body['event.type'] === 'CARD_TRANSACTION') {
     if (status === 'successful') {
       setTimeout(async () => {
-        const verifiedTrans = await verifyAndTransfer(txRef, id.toString(), amount, currency)
+        const verifiedTrans = await verifyPayment(txRef, id.toString(), amount)
         if (!verifiedTrans) {
           await neonClient.query(`CREATE TABLE IF NOT EXISTS WebhookFailPayMe ( txRef text, amount text,
             timestamp text, transactionId text)`)
