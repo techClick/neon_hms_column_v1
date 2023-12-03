@@ -40,7 +40,6 @@ router.get('/postpayment', async (req, res: Express.Response, next) => {
 
     let verifyStatus: any = 'fail'
     if (status === 'successful') {
-      console.log(req.query, amount)
       const isVerified = await verifyPayment(txRef, transId, Number(amount))
       if (isVerified) {
         verifyStatus = 'pass'
