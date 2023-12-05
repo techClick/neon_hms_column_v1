@@ -4,11 +4,11 @@ dotenv.config()
 dotenv.config({ path: '.env.local', override: true })
 
 const client = new Client({
-  host: process.env.MYS_HOST,
-  user: process.env.MYS_DBUSER,
-  port: process.env.MYS_DBPORT,
-  password: process.env.MYS_PASSWORD,
-  database: process.env.MYS_DB
+  host: process.env.HOST,
+  user: process.env.DBITEM,
+  port: process.env.DBPORT,
+  password: process.env.PASSWORD,
+  database: process.env.DBITEM
 })
 client.connect()
 

@@ -5,7 +5,7 @@ import Express from 'express'
 const express = require('express')
 const router = express.Router()
 const verify = require('./globals/verify')
-const client = require('./globals/connection')[0]
+const pgClient = require('./globals/connection-pg')[0]
 const jwt = require('jsonwebtoken')
 
 process.env.TZ = 'Africa/Lagos'
@@ -24,7 +24,7 @@ router.post('/addroom', verify, async (req, res: Express.Response) => {
       perks
     } = req.body
 
-    const result = await client.query(`SELECT name from Rooms WHERE name='${name}'`)
+    const result = await pgClient.query(`SELECT name from Rooms WHERE name='${name}'`)
     if (result.rows.length) {
       return res.status(403).json((networkResponse('error', 'A room with this name exists already')))
     }
@@ -34,11 +34,11 @@ router.post('/addroom', verify, async (req, res: Express.Response) => {
     if (!onHold) onHoldHere = null
     const { username } = req.body.decodedToken
     const date = new Date()
-    await client.query(`INSERT INTO Rooms (name, description, price, origPrice, floor, img, freeBy, createdOn,
+    await pgClient.query(`INSERT INTO Rooms (name, description, price, origPrice, floor, img, freeBy, createdOn,
       updatedAsOf, imgs, updatedBy, onHold, perks) VALUES ('${name}', NULLIF('${description}', '${null}'),
       '${price}', '${origPrice}', '${floor}', $1, $2, $3, $4, $5, '${username}', NULLIF('${onHoldHere}', '${null}'),
       '${perks}')`, [img, date, date, date, imgs])
-    const result2 = await client.query(`SELECT id from Rooms WHERE name='${name}'`)
+    const result2 = await pgClient.query(`SELECT id from Rooms WHERE name='${name}'`)
 
     const addedRoom = {
       id: result2.rows[0].id,
@@ -80,13 +80,13 @@ router.patch('/editroom', verify, async (req, res: Express.Response) => {
     let onHoldHere = onHold
     if (!onHold) onHoldHere = null
     const { username } = req.body.decodedToken
-    const result = await client.query(`SELECT name from Rooms WHERE name='${name}'`)
+    const result = await pgClient.query(`SELECT name from Rooms WHERE name='${name}'`)
     if (result.rows.length && origName !== name) {
       return res.status(400).json((networkResponse('error', 'A room with this name exists already')))
     }
 
     const date = new Date()
-    await client.query(`UPDATE Rooms SET (name, description, price, origPrice, img, imgs, updatedAsOf, floor, perks,
+    await pgClient.query(`UPDATE Rooms SET (name, description, price, origPrice, img, imgs, updatedAsOf, floor, perks,
       updatedBy, onHold) = ('${name}', NULLIF('${description}', '${null}'), '${price}', '${origPrice}', $1, $2, $3,
       '${floor}', '${perks}', '${username}', NULLIF('${onHoldHere}', '${null}')) where id='${id}'`, [img, imgs, date])
 
@@ -112,12 +112,12 @@ router.patch('/editroom', verify, async (req, res: Express.Response) => {
 
 router.get('/rooms', async (req, res: Express.Response) => {
   try {
-    // await client.query('DROP TABLE IF EXISTS Rooms')
-    await client.query(`CREATE TABLE IF NOT EXISTS Rooms
+    // await pgClient.query('DROP TABLE IF EXISTS Rooms')
+    await pgClient.query(`CREATE TABLE IF NOT EXISTS Rooms
       ( id serial PRIMARY KEY, name text, description text NULL, price text, origPrice text, img text NULL,
       freeBy timestamp, onHold text NULL, bookToken text NULL, bookName text NULL, createdOn timestamp,
       perks text, updatedAsOf timestamp, updatedBy text, imgs text NULL, floor text)`)
-    const result = await client.query(`SELECT id, name, description, price, origPrice, freeBy, onHold,
+    const result = await pgClient.query(`SELECT id, name, description, price, origPrice, freeBy, onHold,
       bookToken, bookName, createdOn, updatedAsOf, updatedBy, perks, floor from Rooms`)
     result.rows.forEach((r, i) => {
       const price = result.rows[i].origprice
@@ -132,7 +132,7 @@ router.get('/rooms', async (req, res: Express.Response) => {
 
 router.get('/roomimages', async (req, res: Express.Response) => {
   try {
-    const result = await client.query('SELECT img from Rooms')
+    const result = await pgClient.query('SELECT img from Rooms')
     res.status(200).json((networkResponse('success', result.rows)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
@@ -142,7 +142,7 @@ router.get('/roomimages', async (req, res: Express.Response) => {
 router.post('/roomimage', async (req, res: Express.Response) => {
   try {
     const { id } = req.body
-    const result = await client.query(`SELECT img from Rooms where id=${id}`)
+    const result = await pgClient.query(`SELECT img from Rooms where id=${id}`)
     res.status(200).json((networkResponse('success', result.rows[0].img)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
@@ -152,7 +152,7 @@ router.post('/roomimage', async (req, res: Express.Response) => {
 router.post('/bulkimages', async (req, res: Express.Response) => {
   try {
     const { id } = req.body
-    const result = await client.query(`SELECT imgs from Rooms where id='${id}'`)
+    const result = await pgClient.query(`SELECT imgs from Rooms where id='${id}'`)
     res.status(200).json((networkResponse('success', JSON.parse(result.rows?.[0].imgs || '[]'))))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
@@ -317,7 +317,7 @@ router.patch('/book', async (req, res: Express.Response) => {
       username1 = jwt.verify(auth, process.env.SECRET_TOKEN_KEY)?.username
     } catch {}
     const username = username1 || 'Online booker'
-    await client.query(`UPDATE Rooms SET (bookToken, bookName, freeBy, updatedBy, updatedAsOf) = 
+    await pgClient.query(`UPDATE Rooms SET (bookToken, bookName, freeBy, updatedBy, updatedAsOf) = 
       (NULLIF('${token}', '${null}'), NULLIF('${nameSave}', '${null}'), $1, '${username}', $2)
       where id='${id}'`, [date, date1])
 
@@ -356,7 +356,7 @@ router.patch('/book', async (req, res: Express.Response) => {
 
 router.delete('/deleteroom', async (req, res: Express.Response) => {
   try {
-    await client.query(`DELETE FROM Rooms where id=${req.body.id}`)
+    await pgClient.query(`DELETE FROM Rooms where id=${req.body.id}`)
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
