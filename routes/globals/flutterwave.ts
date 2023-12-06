@@ -2,8 +2,8 @@ import { convertDate } from './dates'
 
 const Flutterwave = require('flutterwave-node-v3')
 const flw = new Flutterwave(process.env.FV_PUBLIC_KEY, process.env.FV_SECRET_KEY)
-const pgClient = require('./connection-pg')[0]
-const neonClient = require('./connection-pg')[1]
+const client = require('./connection')[0]
+const neonClient = require('./connection')[1]
 
 export const getTransferRef = (txRef: string, email: string) => {
   return `transfer_FOR:${txRef}-${process.env.HOTEL_NAME}-comm:${process.env.COMMISION}%_${email}`
@@ -51,7 +51,7 @@ export const transferToHotel =
         return false
       }
 
-      const result = await pgClient.query(`SELECT increment from Rooms where name=${roomName}`)
+      const result = await client.query(`SELECT increment from Rooms where name=${roomName}`)
 
       if (!result?.rows?.[0]?.increment) {
         return false

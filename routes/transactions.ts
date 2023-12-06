@@ -4,7 +4,7 @@ import { networkResponse } from './globals/globals'
 import Express from 'express'
 const express = require('express')
 const router = express.Router()
-const pgNeonClient = require('./globals/connection-pg')[1]
+const neonClient = require('./globals/connection')[1]
 
 process.env.TZ = 'Africa/Lagos'
 
@@ -12,20 +12,20 @@ export const verifyPayment = async (txRef, id, amount) => {
   try {
     const isVerifiedPayment = await verifiedPayment(id, amount)
     if (isVerifiedPayment) {
-      await pgNeonClient.query(`CREATE TABLE IF NOT EXISTS PaidToMe ( id serial PRIMARY KEY, txRef text,
+      await neonClient.query(`CREATE TABLE IF NOT EXISTS PaidToMe ( id serial PRIMARY KEY, txRef text,
         amount text, timestamp text, transactionId text)`)
 
-      const result = await pgNeonClient.query(`SELECT txRef FROM PaidToMe where txRef='${txRef.trim()}'`)
+      const result = await neonClient.query(`SELECT txRef FROM PaidToMe where txRef='${txRef.trim()}'`)
       if (result?.rows?.[0]?.txref) {
         return true
       }
-      await pgNeonClient.query(`INSERT INTO PaidToMe ( txref, amount, timestamp, transactionId) VALUES ('${txRef.trim()}',
+      await neonClient.query(`INSERT INTO PaidToMe ( txref, amount, timestamp, transactionId) VALUES ('${txRef.trim()}',
         '${amount.toString()}', $1, '${id.toString()}')`, [convertDate(new Date())])
       return true
     } else {
-      await pgNeonClient.query(`CREATE TABLE IF NOT EXISTS NoVerifyPaidToMe ( id serial PRIMARY KEY, txRef text,
+      await neonClient.query(`CREATE TABLE IF NOT EXISTS NoVerifyPaidToMe ( id serial PRIMARY KEY, txRef text,
         amount text, timestamp text, transactionId text)`)
-      await pgNeonClient.query(`INSERT INTO NoVerifyPaidToMe ( txref, amount, timestamp, transactionId)
+      await neonClient.query(`INSERT INTO NoVerifyPaidToMe ( txref, amount, timestamp, transactionId)
         VALUES ('${txRef.trim()}', '${amount.toString()}', $1, '${id.toString()}')`, [convertDate(new Date())])
     }
   } catch (error) {

@@ -3,7 +3,7 @@ import { convertDate } from './globals/dates'
 import { verifyPayment } from './transactions'
 const express = require('express')
 const router = express.Router()
-const pgNeonClient = require('./globals/connection-pg')[1]
+const neonClient = require('./globals/connection')[1]
 
 router.post('/fvwebhook', async (req, res: Express.Response) => {
   const secretHash = process.env.FV_WEBHOOK_SECRET_HASH
@@ -17,17 +17,17 @@ router.post('/fvwebhook', async (req, res: Express.Response) => {
       setTimeout(async () => {
         const verifiedTrans = await verifyPayment(txRef, id.toString(), amount)
         if (!verifiedTrans) {
-          await pgNeonClient.query(`CREATE TABLE IF NOT EXISTS WebhookFailPayMe ( txRef text, amount text,
+          await neonClient.query(`CREATE TABLE IF NOT EXISTS WebhookFailPayMe ( txRef text, amount text,
             timestamp text, transactionId text)`)
-          await pgNeonClient.query(`INSERT INTO WebhookFailPayMe ( txref, amount, timestamp, transactionId)
+          await neonClient.query(`INSERT INTO WebhookFailPayMe ( txref, amount, timestamp, transactionId)
             VALUES ('${txRef}', '${amount.toString()}', $1, '${id.toString()}')`, [convertDate(new Date())])
         }
       }, 5500)
     } else {
       setTimeout(async () => {
-        await pgNeonClient.query(`CREATE TABLE IF NOT EXISTS WebhookFailPayMe ( txRef text, amount text,
+        await neonClient.query(`CREATE TABLE IF NOT EXISTS WebhookFailPayMe ( txRef text, amount text,
           timestamp text, transactionId text)`)
-        await pgNeonClient.query(`INSERT INTO WebhookFailPayMe ( txref, amount, timestamp, transactionId)
+        await neonClient.query(`INSERT INTO WebhookFailPayMe ( txref, amount, timestamp, transactionId)
           VALUES ('${txRef}', '${amount.toString()}', $1, '${id.toString()}')`, [convertDate(new Date())])
       }, 1)
     }

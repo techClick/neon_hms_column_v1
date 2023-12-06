@@ -4,7 +4,7 @@ import Express from 'express'
 const express = require('express')
 const router = express.Router()
 const jwt = require('jsonwebtoken')
-const pgClient = require('./globals/connection-pg')[0]
+const client = require('./globals/connection')[0]
 const verify = require('./globals/verify')
 const bcrypt = require('bcryptjs')
 
@@ -18,10 +18,10 @@ router.post('/auth', async (req: TypedRequestBody<{
     const { email, password } = req.body
     if (!email || !password) return res.status(400).json((networkResponse('error', 'Bad request')))
 
-    await pgClient.query(`CREATE TABLE IF NOT EXISTS Staff
+    await client.query(`CREATE TABLE IF NOT EXISTS Staff
       ( id serial PRIMARY KEY, email text, password text, permission integer, forgotKey text NULL)`)
-    const result = await pgClient.query(`SELECT * FROM Staff WHERE email='${email}'`)
-    if (!result.rows.length) return res.status(403).json((networkResponse('error', 'Wrong password or email')))
+    const result = await client.query(`SELECT * FROM Staff WHERE email='${email}'`)
+    if (!result.rows?.length) return res.status(403).json((networkResponse('error', 'Wrong password or email')))
 
     const correctPassword = await bcrypt.compare(password, result.rows[0].password)
     if (!correctPassword) {

@@ -6,7 +6,8 @@ const express = require('express')
 const router = express.Router()
 const cors = require('cors')
 router.use(cors())
-const pgClient = require('./globals/connection-pg')[0]
+const mysql = require('mysql')
+const client = require('./globals/connection')[0]
 const bcrypt = require('bcryptjs')
 const verify = require('./globals/verify')
 
@@ -60,30 +61,39 @@ router.post('/addstaff', async (req: TypedRequestBody<{
     const { email, permission, username, path } = requestBody
     const password = requestBody.password ? await bcrypt.hash(requestBody.password, 10) : null
 
-    // await pgClient.query('DROP TABLE IF EXISTS Staff')
-    await pgClient.query(`CREATE TABLE IF NOT EXISTS Staff ( id serial PRIMARY KEY, email text
-      ,password text NULL, permission integer, username text, forgotKey text NULL )`)
-    const result = await pgClient.query(`SELECT email from Staff WHERE email='${email}'`)
-    if (result.rows.length) {
-      return res.status(403).json((networkResponse('error', 'User with this email exists already')))
-    }
-    await pgClient.query(`INSERT INTO Staff (email, password, permission, username)
-      VALUES ('${email}', NULLIF('${password}', '${null}'), '${permission}', '${username}')`)
+    console.log('HERE 1')
+    await client.query('DROP TABLE IF EXISTS Staff')
+    console.log('HERE 2')
+    await client.query(`CREATE TABLE IF NOT EXISTS Staff ( id serial PRIMARY KEY, email text
+      , password text NULL, permission integer, username text,
+      forgotKey text NULL )`)
 
-    let finalRes = null
-    if (!password) {
-      const registerKey = Math.random().toString(36).slice(2, 12)
-      await pgClient.query(`UPDATE Staff SET forgotKey='${registerKey}' WHERE email='${email}'`)
-      finalRes = await sendMail(addStaffMailOptions(path, registerKey, email))
-    }
+    // const sql = mysql.format('SELECT * from Staff')
+    const result = await client.query('SELECT * from Staff')
+    // const result = true;
+    // if (result.rows?.length) {
+    //   return res.status(403).json((networkResponse('error', result)))// 'User with this email exists already')))
+    // }
+    // await client.query(`INSERT INTO Staff (email, password, permission, username)
+    //   VALUES (?, NULLIF(?, ?), ?, ?)`,
+    // [email, password, null, permission, username])
 
-    if (finalRes && !finalRes.accepted) {
-      res.status(500).json((networkResponse('error', 'User added but failed to send mail.')))
-    } else {
-      res.status(200).json((networkResponse('success', true)))
-    }
+    // let finalRes = null
+    // if (!password) {
+    //   const registerKey = Math.random().toString(36).slice(2, 12)
+    //   await client.query(`UPDATE Staff SET forgotKey='${registerKey}' WHERE email='${email}'`)
+    //   finalRes = await sendMail(addStaffMailOptions(path, registerKey, email))
+    // }
+
+    // if (finalRes && !finalRes.accepted) {
+    //   res.status(500).json((networkResponse('error', 'User added but failed to send mail.')))
+    // } else {
+    //   res.status(200).json((networkResponse('success', true)))
+    // }
+    console.log(result)
+    res.status(200).json((networkResponse('success', result)))
   } catch (error) {
-    res.status(500).json((networkResponse('error', error)))
+    res.status(500).json((networkResponse('test', error)))
   }
 })
 
@@ -95,7 +105,7 @@ router.patch('/editstaff', verify, async (req: TypedRequestBody<{
   try {
     const requestBody = req.body
     const { email, permission, username } = requestBody
-    await pgClient.query(`UPDATE Staff SET (permission, username) = ('${Number(permission)}'
+    await client.query(`UPDATE Staff SET (permission, username) = ('${Number(permission)}'
       , '${username}') WHERE email='${email}'`)
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
@@ -109,7 +119,7 @@ router.delete('/deletestaff', verify, async (req: TypedRequestBody<{
   try {
     const requestBody = req.body
     const { email } = requestBody
-    await pgClient.query(`DELETE FROM Staff WHERE email='${email}'`)
+    await client.query(`DELETE FROM Staff WHERE email='${email}'`)
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
@@ -164,8 +174,8 @@ router.post('/forgot', async (req: TypedRequestBody<{
   try {
     const requestBody = req.body
     const { email, path, isRegister } = requestBody
-    const result = await pgClient.query(`SELECT email, password, forgotKey from Staff WHERE email='${email}'`)
-    if (!result.rows.length) {
+    const result = await client.query(`SELECT email, password, forgotKey from Staff WHERE email='${email}'`)
+    if (!result.rows?.length) {
       return res.status(403).json((networkResponse('error', 'Email is not registered.')))
     }
 
@@ -181,13 +191,13 @@ router.post('/forgot', async (req: TypedRequestBody<{
 
     const forgotKey = result.rows[0].forgotkey || Math.random().toString(36).slice(2, 12)
     if (!result.rows[0].forgotkey) {
-      await pgClient.query(`UPDATE Staff SET forgotKey='${forgotKey}' WHERE email='${email}'`)
+      await client.query(`UPDATE Staff SET forgotKey='${forgotKey}' WHERE email='${email}'`)
     }
 
     if (!isRegister) {
       clearTimeout(saveForgotKeyTimeout)
       saveForgotKeyTimeout = setTimeout(async () => {
-        await pgClient.query(`UPDATE Staff SET forgotKey=NULL WHERE email='${email}'`)
+        await client.query(`UPDATE Staff SET forgotKey=NULL WHERE email='${email}'`)
       }, 1000 * 60 * 10)
       await sendMail(forgotKeyMailOptions(path, forgotKey, email))
     } else {
@@ -230,26 +240,26 @@ router.post('/setpassword', async (req: TypedRequestBody<{
     const { email, key, isRegister } = requestBody
     const password = await bcrypt.hash(requestBody.password, 10)
 
-    const result = await pgClient.query(`SELECT email from Staff WHERE email='${email}'`)
-    if (!result.rows.length) {
+    const result = await client.query(`SELECT email from Staff WHERE email='${email}'`)
+    if (!result.rows?.length) {
       return res.status(403).json((networkResponse('error', 'Email is not registered.')))
     }
 
-    const result4 = await pgClient.query(`SELECT forgotKey FROM Staff WHERE email='${email}'`)
-    if (!result4.rows.length) {
+    const result4 = await client.query(`SELECT forgotKey FROM Staff WHERE email='${email}'`)
+    if (!result4.rows?.length) {
       return res.status(401).json(
         (networkResponse('error', 'Email is not recognized. Please use the email that received the link.'))
       )
     }
 
-    const result3 = await pgClient.query(`SELECT forgotKey FROM Staff WHERE forgotKey='${key}'`)
-    if (!result3.rows.length) {
+    const result3 = await client.query(`SELECT forgotKey FROM Staff WHERE forgotKey='${key}'`)
+    if (!result3.rows?.length) {
       return res.status(401).json(
         (networkResponse('error', 'Link is wrong or expired. Please begin forgot password process again.'))
       )
     }
 
-    await pgClient.query(`UPDATE Staff SET (password, forgotKey) = ('${password}', NULL) WHERE email='${email}'`)
+    await client.query(`UPDATE Staff SET (password, forgotKey) = ('${password}', NULL) WHERE email='${email}'`)
 
     if (!isRegister) await sendMail(resetPassMailOptions(email))
 
