@@ -6,13 +6,12 @@ const express = require('express')
 const router = express.Router()
 const cors = require('cors')
 router.use(cors())
-const mysql = require('mysql')
 const client = require('./globals/connection')[0]
 const bcrypt = require('bcryptjs')
 const verify = require('./globals/verify')
 
 const hotelName = process.env.HOTEL_NAME
-const addStaffMailOptions = (path: string, registerKey: string, email: string): any => {
+const registerMailOptions = (path: string, registerKey: string, email: string): any => {
   return {
     from: 0,
     to: email,
@@ -61,37 +60,34 @@ router.post('/addstaff', async (req: TypedRequestBody<{
     const { email, permission, username, path } = requestBody
     const password = requestBody.password ? await bcrypt.hash(requestBody.password, 10) : null
 
-    console.log('HERE 1')
-    await client.query('DROP TABLE IF EXISTS Staff')
-    console.log('HERE 2')
+    // await client.query('DROP TABLE IF EXISTS Staff')
     await client.query(`CREATE TABLE IF NOT EXISTS Staff ( id serial PRIMARY KEY, email text
       , password text NULL, permission integer, username text,
       forgotKey text NULL )`)
 
-    // const sql = mysql.format('SELECT * from Staff')
-    const result = await client.query('SELECT * from Staff')
-    // const result = true;
-    // if (result.rows?.length) {
-    //   return res.status(403).json((networkResponse('error', result)))// 'User with this email exists already')))
-    // }
-    // await client.query(`INSERT INTO Staff (email, password, permission, username)
-    //   VALUES (?, NULLIF(?, ?), ?, ?)`,
-    // [email, password, null, permission, username])
+    const rows = await client.query('SELECT email from Staff where email = ?', [email.toLowerCase()])
+    console.log(rows)
+    if (rows.length) {
+      return res.status(403).json((networkResponse('error', 'User with this email exists already')))
+    }
 
-    // let finalRes = null
-    // if (!password) {
-    //   const registerKey = Math.random().toString(36).slice(2, 12)
-    //   await client.query(`UPDATE Staff SET forgotKey='${registerKey}' WHERE email='${email}'`)
-    //   finalRes = await sendMail(addStaffMailOptions(path, registerKey, email))
-    // }
+    await client.query(`INSERT INTO Staff (email, password, permission, username)
+      VALUES (?, ?, ?, ?)`,
+    [email.toLowerCase(), password, permission, username])
 
-    // if (finalRes && !finalRes.accepted) {
-    //   res.status(500).json((networkResponse('error', 'User added but failed to send mail.')))
-    // } else {
-    //   res.status(200).json((networkResponse('success', true)))
-    // }
-    console.log(result)
-    res.status(200).json((networkResponse('success', result)))
+    let finalRes = null
+    if (!password) {
+      const registerKey = Math.random().toString(36).slice(2, 12)
+      await client.query('UPDATE Staff SET forgotKey = ? WHERE email= ?',
+        [registerKey, email])
+      finalRes = await sendMail(registerMailOptions(path, registerKey, email))
+    }
+
+    if (finalRes && !finalRes.accepted) {
+      return res.status(500).json((networkResponse('error', 'User added but failed to send mail.')))
+    }
+
+    res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('test', error)))
   }
@@ -105,8 +101,8 @@ router.patch('/editstaff', verify, async (req: TypedRequestBody<{
   try {
     const requestBody = req.body
     const { email, permission, username } = requestBody
-    await client.query(`UPDATE Staff SET (permission, username) = ('${Number(permission)}'
-      , '${username}') WHERE email='${email}'`)
+    await client.query(`UPDATE Staff SET permission = ?, username = ? WHERE 
+      email = ?`, [Number(permission), username, email])
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
@@ -119,7 +115,7 @@ router.delete('/deletestaff', verify, async (req: TypedRequestBody<{
   try {
     const requestBody = req.body
     const { email } = requestBody
-    await client.query(`DELETE FROM Staff WHERE email='${email}'`)
+    await client.query('DELETE FROM Staff WHERE email = ?', [email])
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
@@ -174,34 +170,35 @@ router.post('/forgot', async (req: TypedRequestBody<{
   try {
     const requestBody = req.body
     const { email, path, isRegister } = requestBody
-    const result = await client.query(`SELECT email, password, forgotKey from Staff WHERE email='${email}'`)
-    if (!result.rows?.length) {
+    const rows = await client.query('SELECT email, password, forgotKey from Staff WHERE email = ?', [email])
+    if (!rows?.length) {
       return res.status(403).json((networkResponse('error', 'Email is not registered.')))
     }
 
-    if (!result.rows[0].password && !isRegister) {
+    if (!rows[0].password && !isRegister) {
       return res.status(401).json((networkResponse('error',
         "Please register your email address first. Use the 'Staff register' link.")))
     } else {
-      if (result.rows[0].password && isRegister) {
+      if (rows[0].password && isRegister) {
         return res.status(401).json((networkResponse('error',
-          result.rows[0])))
+          rows[0])))
       }
     }
 
-    const forgotKey = result.rows[0].forgotkey || Math.random().toString(36).slice(2, 12)
-    if (!result.rows[0].forgotkey) {
-      await client.query(`UPDATE Staff SET forgotKey='${forgotKey}' WHERE email='${email}'`)
+    const forgotKey = rows[0].forgotKey || Math.random().toString(36).slice(2, 12)
+    if (!rows[0].forgotKey) {
+      await client.query('UPDATE Staff SET forgotKey = ? WHERE email = ?',
+        [forgotKey, email])
     }
 
     if (!isRegister) {
       clearTimeout(saveForgotKeyTimeout)
       saveForgotKeyTimeout = setTimeout(async () => {
-        await client.query(`UPDATE Staff SET forgotKey=NULL WHERE email='${email}'`)
+        await client.query('UPDATE Staff SET forgotKey = NULL WHERE email = ?', [email])
       }, 1000 * 60 * 10)
       await sendMail(forgotKeyMailOptions(path, forgotKey, email))
     } else {
-      await sendMail(addStaffMailOptions(path, forgotKey, email))
+      await sendMail(registerMailOptions(path, forgotKey, email))
     }
 
     res.status(200).json((networkResponse('success', true)))
@@ -240,31 +237,33 @@ router.post('/setpassword', async (req: TypedRequestBody<{
     const { email, key, isRegister } = requestBody
     const password = await bcrypt.hash(requestBody.password, 10)
 
-    const result = await client.query(`SELECT email from Staff WHERE email='${email}'`)
-    if (!result.rows?.length) {
+    const rows = await client.query('SELECT email from Staff WHERE email = ?', [email])
+    if (!rows.length) {
       return res.status(403).json((networkResponse('error', 'Email is not registered.')))
     }
 
-    const result4 = await client.query(`SELECT forgotKey FROM Staff WHERE email='${email}'`)
-    if (!result4.rows?.length) {
+    const rows2 = await client.query('SELECT forgotKey FROM Staff WHERE email = ?', [email])
+    if (!rows2?.length) {
       return res.status(401).json(
         (networkResponse('error', 'Email is not recognized. Please use the email that received the link.'))
       )
     }
 
-    const result3 = await client.query(`SELECT forgotKey FROM Staff WHERE forgotKey='${key}'`)
-    if (!result3.rows?.length) {
+    const rows3 = await client.query('SELECT forgotKey FROM Staff WHERE forgotKey = ?', [key])
+    if (!rows3?.length) {
       return res.status(401).json(
         (networkResponse('error', 'Link is wrong or expired. Please begin forgot password process again.'))
       )
     }
 
-    await client.query(`UPDATE Staff SET (password, forgotKey) = ('${password}', NULL) WHERE email='${email}'`)
+    await client.query('UPDATE Staff SET password = ?, forgotKey = NULL WHERE email = ?',
+      [password, email])
 
     if (!isRegister) await sendMail(resetPassMailOptions(email))
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
+    console.log(error)
     res.status(500).json((networkResponse('error', error)))
   }
 })

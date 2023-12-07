@@ -37,6 +37,8 @@ export const transferToHotel =
         amount,
         currency: 'NGN'
       })
+
+      // WARNING! Uses POSTGRES not MYSQL
       const { fee } = res1.data
       if (res1.status === 'success' && (fee || fee === 0)) {
         await neonClient.query(`CREATE TABLE IF NOT EXISTS FlutterFee ( id serial PRIMARY KEY, fee text,

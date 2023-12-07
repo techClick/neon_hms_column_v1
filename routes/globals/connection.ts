@@ -19,7 +19,7 @@ const conn = mysql.createConnection({
 
 const query = util.promisify(conn.query).bind(conn)
 
-const client2 = mysql.createConnection({
+const conn2 = mysql.createConnection({
   host: process.env.MYS_SECRET_HOST,
   user: process.env.MYS_DBUSER,
   port: process.env.MYS_DBPORT,
@@ -27,10 +27,8 @@ const client2 = mysql.createConnection({
   database: process.env.MYS_DB
 })
 
-client2.connect(function (err) {
-  if (err) throw err
-})
+const query2 = util.promisify(conn2.query).bind(conn2)
 
-module.exports = [{ query }, client2]
+module.exports = [{ query }, { query: query2 }]
 
 export {}

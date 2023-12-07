@@ -20,17 +20,17 @@ router.post('/auth', async (req: TypedRequestBody<{
 
     await client.query(`CREATE TABLE IF NOT EXISTS Staff
       ( id serial PRIMARY KEY, email text, password text, permission integer, forgotKey text NULL)`)
-    const result = await client.query(`SELECT * FROM Staff WHERE email='${email}'`)
-    if (!result.rows?.length) return res.status(403).json((networkResponse('error', 'Wrong password or email')))
+    const rows = await client.query('SELECT * FROM Staff WHERE email = ?', [email.toLowerCase()])
+    if (!rows.length) return res.status(403).json((networkResponse('error', 'Wrong password or email')))
 
-    const correctPassword = await bcrypt.compare(password, result.rows[0].password)
+    const correctPassword = await bcrypt.compare(password, rows[0].password)
     if (!correctPassword) {
       return res.status(403).json((networkResponse('error', 'Wrong password or email')))
     }
 
-    const token = jwt.sign({ username: result.rows[0].username }, process.env.SECRET_TOKEN_KEY, { expiresIn: tokenExpTime })
+    const token = jwt.sign({ username: rows[0].username }, process.env.SECRET_TOKEN_KEY, { expiresIn: tokenExpTime })
     res.status(200).json((networkResponse('success',
-      { token, permission: result.rows[0].permission, username: result.rows[0].username })))
+      { token, permission: rows[0].permission, username: rows[0].username })))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }

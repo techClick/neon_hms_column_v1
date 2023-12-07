@@ -20,7 +20,7 @@ router.post('/fvwebhook', async (req, res: Express.Response) => {
           await neonClient.query(`CREATE TABLE IF NOT EXISTS WebhookFailPayMe ( txRef text, amount text,
             timestamp text, transactionId text)`)
           await neonClient.query(`INSERT INTO WebhookFailPayMe ( txref, amount, timestamp, transactionId)
-            VALUES ('${txRef}', '${amount.toString()}', $1, '${id.toString()}')`, [convertDate(new Date())])
+            VALUES (?, ?, ?, ?)`, [txRef, amount.toString(), convertDate(new Date()), id.toString()])
         }
       }, 5500)
     } else {
@@ -28,7 +28,7 @@ router.post('/fvwebhook', async (req, res: Express.Response) => {
         await neonClient.query(`CREATE TABLE IF NOT EXISTS WebhookFailPayMe ( txRef text, amount text,
           timestamp text, transactionId text)`)
         await neonClient.query(`INSERT INTO WebhookFailPayMe ( txref, amount, timestamp, transactionId)
-          VALUES ('${txRef}', '${amount.toString()}', $1, '${id.toString()}')`, [convertDate(new Date())])
+          VALUES (?, ?, ?, ?)`, [txRef, amount.toString(), convertDate(new Date()), id.toString()])
       }, 1)
     }
   }

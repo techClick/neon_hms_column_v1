@@ -51,12 +51,13 @@ export const verifyAndTransfer = async (txRef, id, amount) => {
       await neonClient.query(`CREATE TABLE IF NOT EXISTS PaidToMe ( id serial PRIMARY KEY, txRef text,
         amount text, timestamp text, transactionId text)`)
 
-      const result = await neonClient.query(`SELECT txRef FROM PaidToMe where txRef='${txRef.trim()}'`)
-      if (result?.rows?.[0]?.txref) {
+      const rows = await neonClient.query('SELECT txRef FROM PaidToMe where txRef = ?',
+        [txRef.trim()])
+      if (rows[0]?.txref) {
         return true
       }
-      await neonClient.query(`INSERT INTO PaidToMe ( txref, amount, timestamp, transactionId) VALUES ('${txRef.trim()}',
-        '${amount.toString()}', $1, '${id.toString()}')`, [convertDate(new Date())])
+      await neonClient.query(`INSERT INTO PaidToMe ( txref, amount, timestamp, transactionId) VALUES (?,
+        ?, ?, ?)`, [txRef.trim(), amount.toString(), convertDate(new Date()), id.toString()])
 
       transferedToHotel = true// await transferToHotelAPI(txRef, Number(amount), id)
       if (!transferedToHotel) {
@@ -67,7 +68,8 @@ export const verifyAndTransfer = async (txRef, id, amount) => {
       await neonClient.query(`CREATE TABLE IF NOT EXISTS NoVerifyPaidToMe ( id serial PRIMARY KEY, txRef text,
         amount text, timestamp text, transactionId text)`)
       await neonClient.query(`INSERT INTO NoVerifyPaidToMe ( txref, amount, timestamp, transactionId)
-        VALUES ('${txRef.trim()}', '${amount.toString()}', $1, '${id.toString()}')`, [convertDate(new Date())])
+        VALUES (?, ?, ?, ?)`, [txRef.trim(), amount.toString(), convertDate(new Date()),
+        id.toString()])
     }
   } catch {
     return verifiedTrans
