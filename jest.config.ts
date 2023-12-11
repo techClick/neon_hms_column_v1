@@ -7,7 +7,7 @@
  */
 
 import type {Config} from 'jest';
-const dotenv = require('dotenv')
+import dotenv from 'dotenv'
 dotenv.config()
 dotenv.config({ path: '.env.local', override: true })
 

@@ -1,10 +1,9 @@
 import { convertDate } from './globals/dates'
 import { verifiedPayment } from './globals/flutterwave'
-import { networkResponse } from './globals/globals'
-import Express from 'express'
-const express = require('express')
+import { networkResponse } from './globals/networkResponse'
+import express from 'express'
+import { neonClient } from './globals/connection'
 const router = express.Router()
-const neonClient = require('./globals/connection')[1]
 
 process.env.TZ = 'Africa/Lagos'
 
@@ -34,7 +33,7 @@ export const verifyPayment = async (txRef, id, amount) => {
   return null
 }
 
-router.get('/postpayment', async (req, res: Express.Response, next) => {
+router.get('/postpayment', async (req, res, next) => {
   try {
     const { amount, status, tx_ref: txRef, transaction_id: transId } = req.query
 
@@ -46,7 +45,7 @@ router.get('/postpayment', async (req, res: Express.Response, next) => {
         // setTimeout transfer here if possible
       }
     }
-    res.writeHead(301, {
+    res.writeHead(201, {
       Location: `${process.env.CLIENT_URL}/rooms/${verifyStatus}`
     }).end()
   } catch (error) {
@@ -54,4 +53,4 @@ router.get('/postpayment', async (req, res: Express.Response, next) => {
   }
 })
 
-module.exports = router
+export const transactions = router

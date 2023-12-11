@@ -1,6 +1,6 @@
-import { networkResponse } from './globals/globals'
+import { networkResponse } from './globals/networkResponse'
 import { callEndpoint } from './globals/endpoint'
-const express = require('express')
+import express from 'express'
 const router = express.Router()
 
 process.env.TZ = 'Africa/Lagos'
@@ -15,7 +15,7 @@ router.get('/qtauth', async (req, res) => {
     const authUrl = {
       production: process.env.AUTH_URL,
       development: process.env.AUTH_URL_DEV
-    }[process.env.NODE_ENV]
+    }[process.env.NODE_ENV || 'development']
     console.log(`${authUrl}?${new URLSearchParams(params)}`)
 
     const result = await callEndpoint({
@@ -43,4 +43,4 @@ router.get('/qtauth', async (req, res) => {
   }
 })
 
-module.exports = router
+export const qtAuth = router

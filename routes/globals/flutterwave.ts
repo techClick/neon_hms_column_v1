@@ -1,9 +1,8 @@
 import { convertDate } from './dates'
+import { client, neonClient } from './connection'
+import Flutterwave from 'flutterwave-node-v3'
 
-const Flutterwave = require('flutterwave-node-v3')
 const flw = new Flutterwave(process.env.FV_PUBLIC_KEY, process.env.FV_SECRET_KEY)
-const client = require('./connection')[0]
-const neonClient = require('./connection')[1]
 
 export const getTransferRef = (txRef: string, email: string) => {
   return `transfer_FOR:${txRef}-${process.env.HOTEL_NAME}-comm:${process.env.COMMISION}%_${email}`

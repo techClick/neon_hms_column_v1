@@ -1,11 +1,10 @@
-import Express from 'express'
 import { convertDate } from './globals/dates'
 import { verifyPayment } from './transactions'
-const express = require('express')
+import express from 'express'
+import { neonClient } from './globals/connection'
 const router = express.Router()
-const neonClient = require('./globals/connection')[1]
 
-router.post('/fvwebhook', async (req, res: Express.Response) => {
+router.post('/fvwebhook', async (req, res) => {
   const secretHash = process.env.FV_WEBHOOK_SECRET_HASH
   const signature = req.headers['verif-hash']
   if (!signature || (signature !== secretHash)) {
@@ -35,4 +34,4 @@ router.post('/fvwebhook', async (req, res: Express.Response) => {
   res.status(200).end()
 })
 
-module.exports = router
+export const webhook = router

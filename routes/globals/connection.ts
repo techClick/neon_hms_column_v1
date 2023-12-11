@@ -1,7 +1,7 @@
-const mysql = require('mysql')
-const util = require('util')
+import mysql from 'mysql'
+import util from 'util'
+import dotenv from 'dotenv'
 
-const dotenv = require('dotenv')
 dotenv.config()
 dotenv.config({ path: '.env.local', override: true })
 
@@ -12,10 +12,6 @@ const conn = mysql.createConnection({
   password: process.env.MYS_SECRET_PASSWORD,
   database: process.env.MYS_DB
 })
-
-// conn.connect(function (err) {
-//   if (err) throw err
-// })
 
 const query = util.promisify(conn.query).bind(conn)
 
@@ -29,6 +25,6 @@ const conn2 = mysql.createConnection({
 
 const query2 = util.promisify(conn2.query).bind(conn2)
 
-module.exports = [{ query }, { query: query2 }]
-
-export {}
+const client = { query }
+const neonClient = { query: query2 }
+export { client, neonClient }

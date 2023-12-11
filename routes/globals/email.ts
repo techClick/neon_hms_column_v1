@@ -1,5 +1,5 @@
-const nodemailer = require('nodemailer')
-const dotenv = require('dotenv')
+import nodemailer from 'nodemailer'
+import dotenv from 'dotenv'
 dotenv.config()
 dotenv.config({ path: '.env.local', override: true })
 

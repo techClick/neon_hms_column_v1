@@ -1,11 +1,10 @@
-import { networkResponse } from './globals/globals'
-import Express from 'express'
-const express = require('express')
+import { networkResponse } from './globals/networkResponse'
+import express from 'express'
+import { verify } from './globals/verify'
+import { client } from './globals/connection'
 const router = express.Router()
-const verify = require('./globals/verify')
-const client = require('./globals/connection')[0]
 
-router.get('/info', async (req, res: Express.Response) => {
+router.get('/info', async (req, res) => {
   try {
     // await client.query('DROP TABLE IF EXISTS HotelInfo')
     await client.query(`CREATE TABLE IF NOT EXISTS HotelInfo ( id serial PRIMARY KEY, numbers text,
@@ -23,7 +22,7 @@ router.get('/info', async (req, res: Express.Response) => {
   }
 })
 
-router.patch('/savenumbers', verify, async (req, res: Express.Response) => {
+router.patch('/savenumbers', verify, async (req, res) => {
   try {
     await client.query('UPDATE HotelInfo SET numbers = ? where id = 1', [JSON.stringify(req.body.numbers)])
     res.status(200).json((networkResponse('success', true)))
@@ -32,7 +31,7 @@ router.patch('/savenumbers', verify, async (req, res: Express.Response) => {
   }
 })
 
-router.patch('/saveemails', verify, async (req, res: Express.Response) => {
+router.patch('/saveemails', verify, async (req, res) => {
   try {
     await client.query('UPDATE HotelInfo SET emails = ? where id = 1', [JSON.stringify(req.body.emails)])
     res.status(200).json((networkResponse('success', true)))
@@ -41,7 +40,7 @@ router.patch('/saveemails', verify, async (req, res: Express.Response) => {
   }
 })
 
-router.patch('/setemailreceiver', verify, async (req, res: Express.Response) => {
+router.patch('/setemailreceiver', verify, async (req, res) => {
   try {
     await client.query(`UPDATE HotelInfo SET emailRec =
       ? where id = 1`, [req.body.emailRec])
@@ -51,7 +50,7 @@ router.patch('/setemailreceiver', verify, async (req, res: Express.Response) => 
   }
 })
 
-router.patch('/savedisplaynumber', verify, async (req, res: Express.Response) => {
+router.patch('/savedisplaynumber', verify, async (req, res) => {
   try {
     await client.query(`UPDATE HotelInfo SET displayNumber =
       ? where id = 1`, [req.body.displayNumber])
@@ -61,4 +60,4 @@ router.patch('/savedisplaynumber', verify, async (req, res: Express.Response) =>
   }
 })
 
-module.exports = router
+export const info = router

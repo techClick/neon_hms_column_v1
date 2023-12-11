@@ -1,11 +1,9 @@
-import { networkResponse } from './globals/globals'
-import Express from 'express'
+import { networkResponse } from './globals/networkResponse'
 import { verifiedPayment } from './globals/flutterwave'
 import { convertDate } from './globals/dates'
-const express = require('express')
+import express from 'express'
+import { neonClient } from './globals/connection'
 const router = express.Router()
-// const verify = require('./globals/verify')
-const neonClient = require('./globals/connection')[1]
 
 process.env.TZ = 'Africa/Lagos'
 
@@ -77,7 +75,7 @@ export const verifyAndTransfer = async (txRef, id, amount) => {
   return verifiedTrans
 }
 
-router.post('/verifyandtransfer', async (req, res: Express.Response) => {
+router.post('/verifyandtransfer', async (req, res) => {
   try {
     const { txRef, transId, amount } = req.body
     const result = await verifyAndTransfer(txRef, transId, Number(amount))

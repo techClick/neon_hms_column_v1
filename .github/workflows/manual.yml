@@ -1,0 +1,71 @@
+name: Generate a build
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Webhook build
+    if: github.repository != 'neonhms/neon_hms_column_v1'
+    steps:
+      - run: |
+          git config --global user.email "ikechianya1@gmail.com"
+          git config --global user.name "Ikechi Anya"
+
+      - name: Git-checkout
+        uses: actions/checkout@v2
+
+      - name: Install all dependencies
+        run: yarn install --legacy-peer-deps
+
+      - name: Stop ignoring build in gitignore
+        run: sed -i 's/build/# build/' .gitignore
+
+      - name: Create build
+        run: CI=false yarn build
+
+      - name: Env file processes
+        shell: bash
+        run: |
+          touch build/.env
+          cp .env build/.env
+          echo -e "\nCLIENT_URL=${{ secrets.CLIENT_URL }}" >> build/.env
+          echo HOTEL_NAME=${{ vars.HOTEL_NAME }} >> build/.env
+          echo ENVIRONMENT=${{ vars.ENVIRONMENT }} >> build/.env
+
+      - name: Set timezone
+        uses: zcong1993/setup-timezone@master
+        with:
+          timezone: Africa/Lagos
+
+      - name: Set current date as env variable
+        run: echo "NOW=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
+
+      - name: Webhook commit with build
+        run:  |
+          git add -A
+          git commit -m 'webhook commit ${{ github.event.commits[0].message }}_${{ env.NOW }}'
+          git push
+
+      - name: Sleep for 8 seconds
+        run: sleep 8s
+        shell: bash
+
+      - name: Remove build commit
+        run:  |
+          git rm -r build
+          git add -A
+          git commit -m 'remove-build-auto commit ${{ github.event.commits[0].message }}_${{ env.NOW }}'
+          git push
+
+      - name: Ignore build in gitignore
+        run: sed -i 's/# build/build/' .gitignore
+
+      - name: Ignore-build commit
+        run:  |
+          git add -A
+          git commit -m 'final-auto commit ${{ github.event.commits[0].message }}_${{ env.NOW }}'
+          git push

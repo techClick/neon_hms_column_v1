@@ -1,16 +1,16 @@
 import { convertDate, convertTime2 } from './globals/dates'
 import { sendMail } from './globals/email'
-import { networkResponse } from './globals/globals'
-import Express from 'express'
-const express = require('express')
+import { networkResponse } from './globals/networkResponse'
+import express from 'express'
+import { verify } from './globals/verify'
+import { client } from './globals/connection'
+import jwt from 'jsonwebtoken'
 const router = express.Router()
-const verify = require('./globals/verify')
-const client = require('./globals/connection')[0]
-const jwt = require('jsonwebtoken')
 
 process.env.TZ = 'Africa/Lagos'
+// test 2bv
 
-router.post('/addroom', verify, async (req, res: Express.Response) => {
+router.post('/addroom', verify, async (req, res) => {
   try {
     const {
       name,
@@ -62,7 +62,7 @@ router.post('/addroom', verify, async (req, res: Express.Response) => {
   }
 })
 
-router.patch('/editroom', verify, async (req, res: Express.Response) => {
+router.patch('/editroom', verify, async (req, res) => {
   try {
     const {
       name,
@@ -111,7 +111,7 @@ router.patch('/editroom', verify, async (req, res: Express.Response) => {
   }
 })
 
-router.get('/rooms', async (req, res: Express.Response) => {
+router.get('/rooms', async (req, res) => {
   try {
     // await client.query('DROP TABLE IF EXISTS Rooms')
     await client.query(`CREATE TABLE IF NOT EXISTS Rooms
@@ -131,7 +131,7 @@ router.get('/rooms', async (req, res: Express.Response) => {
   }
 })
 
-router.get('/roomimages', async (req, res: Express.Response) => {
+router.get('/roomimages', async (req, res) => {
   try {
     const rows = await client.query('SELECT img from Rooms')
     res.status(200).json((networkResponse('success', rows)))
@@ -140,7 +140,7 @@ router.get('/roomimages', async (req, res: Express.Response) => {
   }
 })
 
-router.post('/roomimage', async (req, res: Express.Response) => {
+router.post('/roomimage', async (req, res) => {
   try {
     const { id } = req.body
     const rows = await client.query('SELECT img from Rooms where id = ?', [id])
@@ -150,7 +150,7 @@ router.post('/roomimage', async (req, res: Express.Response) => {
   }
 })
 
-router.post('/bulkimages', async (req, res: Express.Response) => {
+router.post('/bulkimages', async (req, res) => {
   try {
     const { id } = req.body
     const rows = await client.query('SELECT imgs from Rooms where id = ?', [id])
@@ -287,7 +287,7 @@ const bookMailOptions = (to: string, name: string, details: BookEmailDetails): a
       </div>`
   }
 }
-router.patch('/book', async (req, res: Express.Response) => {
+router.patch('/book', async (req, res) => {
   try {
     const {
       id,
@@ -354,7 +354,7 @@ router.patch('/book', async (req, res: Express.Response) => {
   }
 })
 
-router.delete('/deleteroom', async (req, res: Express.Response) => {
+router.delete('/deleteroom', async (req, res) => {
   try {
     await client.query('DELETE FROM Rooms where id = ?', [req.body.id])
     res.status(200).json((networkResponse('success', true)))
@@ -363,4 +363,4 @@ router.delete('/deleteroom', async (req, res: Express.Response) => {
   }
 })
 
-module.exports = router
+export const rooms = router

@@ -1,19 +1,18 @@
-import { TypedRequestBody } from './globals/types'
+import type { TypedRequestBody } from './globals/types'
 import { networkResponse } from './globals/networkResponse'
-import Express from 'express'
-const express = require('express')
+import express from 'express'
+import jwt from 'jsonwebtoken'
+import { client } from './globals/connection'
+import { verify } from './globals/verify'
+import bcrypt from 'bcryptjs'
 const router = express.Router()
-const jwt = require('jsonwebtoken')
-const client = require('./globals/connection')[0]
-const verify = require('./globals/verify')
-const bcrypt = require('bcryptjs')
 
 const tokenExpTime = '10m'
 
 router.post('/auth', async (req: TypedRequestBody<{
   email: string
   password: string
-}>, res: Express.Response) => {
+}>, res) => {
   try {
     const { email, password } = req.body
     if (!email || !password) return res.status(400).json((networkResponse('error', 'Bad request')))
@@ -38,16 +37,16 @@ router.post('/auth', async (req: TypedRequestBody<{
 
 router.get('/verify', verify, (req: TypedRequestBody<{
   decodedToken: any
-}>, res: Express.Response) => {
+}>, res) => {
   res.status(200).json((networkResponse('success', req.body.decodedToken?.exp)))
 })
 
 router.get('/refresh', verify, (req: TypedRequestBody<{
   decodedToken: any
-}>, res: Express.Response) => {
+}>, res) => {
   const { username } = req.body.decodedToken
   const token = jwt.sign({ username }, process.env.SECRET_TOKEN_KEY, { expiresIn: tokenExpTime })
   res.status(200).json((networkResponse('success', token)))
 })
 
-module.exports = router
+export const auth = router

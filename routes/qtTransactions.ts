@@ -1,7 +1,6 @@
 import { callEndpoint } from './globals/endpoint'
-import { networkResponse } from './globals/globals'
-import Express from 'express'
-const express = require('express')
+import { networkResponse } from './globals/networkResponse'
+import express from 'express'
 const router = express.Router()
 
 process.env.TZ = 'Africa/Lagos'
@@ -12,7 +11,7 @@ const wait = async (ms) => {
   })
 }
 
-router.get('/postpayment', async (req, res: Express.Response, next) => {
+router.get('/postpayment', async (req, res, next) => {
   try {
     await wait(5000)
     res.status(200).json((networkResponse('success', 'Success')))
@@ -21,7 +20,7 @@ router.get('/postpayment', async (req, res: Express.Response, next) => {
   }
 })
 
-router.post('/transfer', async (req, res: Express.Response, next) => {
+router.post('/transfer', async (req, res, next) => {
   try {
     // const authToken = Buffer.from(`${process.env.IT_CLIENT_ID}:${process.env.IT_SECRET_KEY}`).toString('base64')
     const params = {
@@ -61,7 +60,7 @@ router.post('/transfer', async (req, res: Express.Response, next) => {
     const authUrl = {
       production: process.env.AUTH_URL,
       development: 'https://qa.interswitchng.com/quicktellerservice/api/v5/transactions/TransferFunds'
-    }[process.env.NODE_ENV]
+    }[process.env.NODE_ENV || 'development']
     console.log(`${authUrl}`)
 
     const result = await callEndpoint({
@@ -78,4 +77,4 @@ router.post('/transfer', async (req, res: Express.Response, next) => {
   }
 })
 
-module.exports = router
+export const qtTransactions = router

@@ -1,14 +1,13 @@
-import { networkResponse } from './globals/globals'
-import Express from 'express'
-import { TypedRequestBody } from './globals/types'
+import type { TypedRequestBody } from './globals/types'
 import { sendMail } from './globals/email'
-const express = require('express')
+import { networkResponse } from './globals/networkResponse'
+import express from 'express'
+import cors from 'cors'
+import { client } from './globals/connection'
+import bcrypt from 'bcryptjs'
+import { verify } from './globals/verify'
 const router = express.Router()
-const cors = require('cors')
 router.use(cors())
-const client = require('./globals/connection')[0]
-const bcrypt = require('bcryptjs')
-const verify = require('./globals/verify')
 
 const hotelName = process.env.HOTEL_NAME
 const registerMailOptions = (path: string, registerKey: string, email: string): any => {
@@ -25,7 +24,7 @@ const registerMailOptions = (path: string, registerKey: string, email: string): 
           <div style='font-size: 15px; padding: 20px; background: #6494e8; color: white; font-weight: 500;
           border: 1px solid #3476eb; border-radius: 3px; line-height: 1.6;'>
             You have been added to the staff members of
-            ${hotelName}'${hotelName.split('')[hotelName.length - 1].toLowerCase() === 's' ? '' : 's'}
+            ${hotelName}'${hotelName?.split('')?.[(hotelName?.length || 1) - 1]?.toLowerCase() === 's' ? '' : 's'}
             <strong>Neon Hotel Manager</strong>.
           </div>
           <div style='font-size: 15px; padding: 20px; border: 1px solid #ebebeb; line-height: 1.6;
@@ -54,7 +53,7 @@ router.post('/addstaff', async (req: TypedRequestBody<{
   permission: number
   username: string
   path: string | null
-}>, res: Express.Response) => {
+}>, res) => {
   try {
     const requestBody = req.body
     const { email, permission, username, path } = requestBody
@@ -75,12 +74,12 @@ router.post('/addstaff', async (req: TypedRequestBody<{
       VALUES (?, ?, ?, ?)`,
     [email.toLowerCase(), password, permission, username])
 
-    let finalRes = null
+    let finalRes: any = null
     if (!password) {
       const registerKey = Math.random().toString(36).slice(2, 12)
       await client.query('UPDATE Staff SET forgotKey = ? WHERE email= ?',
         [registerKey, email])
-      finalRes = await sendMail(registerMailOptions(path, registerKey, email))
+      finalRes = await sendMail(registerMailOptions(path || '', registerKey, email))
     }
 
     if (finalRes && !finalRes.accepted) {
@@ -89,7 +88,7 @@ router.post('/addstaff', async (req: TypedRequestBody<{
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
-    res.status(500).json((networkResponse('test', error)))
+    res.status(500).json((networkResponse('error', error)))
   }
 })
 
@@ -97,7 +96,7 @@ router.patch('/editstaff', verify, async (req: TypedRequestBody<{
   email: string
   permission: string
   username: string
-}>, res: Express.Response) => {
+}>, res) => {
   try {
     const requestBody = req.body
     const { email, permission, username } = requestBody
@@ -111,7 +110,7 @@ router.patch('/editstaff', verify, async (req: TypedRequestBody<{
 
 router.delete('/deletestaff', verify, async (req: TypedRequestBody<{
   email: string
-}>, res: Express.Response) => {
+}>, res) => {
   try {
     const requestBody = req.body
     const { email } = requestBody
@@ -122,7 +121,7 @@ router.delete('/deletestaff', verify, async (req: TypedRequestBody<{
   }
 })
 
-let saveForgotKeyTimeout
+let saveForgotKeyTimeout: any
 const forgotKeyMailOptions = (path: string, forgotKey: string, email: string): any => {
   return {
     from: 0,
@@ -137,7 +136,7 @@ const forgotKeyMailOptions = (path: string, forgotKey: string, email: string): a
           <div style='font-size: 15px; padding: 20px; background: #f2f2f2;
           border: 1px solid lightgrey; border-radius: 3px; line-height: 1.6;'>
             You have requested to change your password on
-            ${hotelName}'${hotelName.split('')[hotelName.length - 1].toLowerCase() === 's' ? '' : 's'}
+            ${hotelName}'${hotelName?.split?.('')[hotelName.length - 1]?.toLowerCase() === 's' ? '' : 's'}
             <strong>Neon Hotel Manager</strong>.
           </div>
           <div style='font-size: 15px; padding: 20px; border: 1px solid #ebebeb; line-height: 1.6;
@@ -166,7 +165,7 @@ router.post('/forgot', async (req: TypedRequestBody<{
   email: string
   path: string
   isRegister: boolean | null
-}>, res: Express.Response) => {
+}>, res) => {
   try {
     const requestBody = req.body
     const { email, path, isRegister } = requestBody
@@ -231,7 +230,7 @@ router.post('/setpassword', async (req: TypedRequestBody<{
   password: string
   key: string
   isRegister: boolean | null
-}>, res: Express.Response) => {
+}>, res) => {
   try {
     const requestBody = req.body
     const { email, key, isRegister } = requestBody
@@ -268,4 +267,4 @@ router.post('/setpassword', async (req: TypedRequestBody<{
   }
 })
 
-module.exports = router
+export const clients = router

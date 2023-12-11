@@ -1,11 +1,11 @@
 import Express from 'express'
 import { networkResponse } from './networkResponse'
-const jwt = require('jsonwebtoken')
-const dotenv = require('dotenv')
+import jwt from 'jsonwebtoken'
+import dotenv from 'dotenv'
 dotenv.config()
 dotenv.config({ path: '.env.local', override: true })
 
-const verify = (req, res: Express.Response, next): any => {
+export const verify = (req, res: Express.Response, next): any => {
   const token = req.get('token')
   if (!token) return res.status(401).json((networkResponse('error', 'Unauthorized')))
   try {
@@ -16,5 +16,3 @@ const verify = (req, res: Express.Response, next): any => {
   }
   return next()
 }
-
-module.exports = verify
