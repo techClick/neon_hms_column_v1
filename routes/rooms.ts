@@ -4,7 +4,7 @@ import { networkResponse } from './globals/networkResponse'
 import express from 'express'
 import { safeVerify, verify } from './globals/verify'
 import { client } from './globals/connection'
-import { addLog } from './globals/logs'
+import { addLog } from './logs'
 const router = express.Router()
 
 process.env.TZ = 'Africa/Lagos'
@@ -78,14 +78,13 @@ router.patch('/editroom', verify, async (req, res) => {
       imgFiles: imgs,
       onHold,
       perks,
-      edits,
-      priceEdit
+      edits
     } = req.body
     const img = img1 === 'refresh' ? null : img1
     let onHoldHere = onHold
     if (!onHold) onHoldHere = null
     const { username } = req.body.decodedToken
-    const rows = await client.query('SELECT name from Rooms WHERE name = ?', [name])
+    const rows = await client.query('SELECT name, origPrice from Rooms WHERE name = ?', [name])
     if (rows.length && origName !== name) {
       return res.status(400).json((networkResponse('error', 'A room with this name exists already')))
     }
@@ -95,6 +94,7 @@ router.patch('/editroom', verify, async (req, res) => {
       imgs = ?, updatedAsOf = ?, floor = ?, perks = ?, updatedBy = ?, onHold = ? where id = ?`,
     [name, description, price, origPrice, img, imgs, date, floor, perks, username, onHoldHere, id])
 
+    const priceEdit = Number(rows[0].price) === Number(price) ? null : rows[0].price
     if (priceEdit) {
       addLog('Price edited', `Edited by ${username}`, new Date(), `Room name is ${name}. Former price: ${
         priceEdit}. New price ${price}`)
@@ -319,15 +319,14 @@ router.patch('/book', safeVerify, async (req, res) => {
       email,
       email2,
       isDeskBooking,
-      isEditingBooking,
       decodedToken
     } = req.body
 
-    const isCancellingBooking = ((days && Number(days) > 0) ||
+    const isBooking = ((days && Number(days) > 0) ||
       (hours && Number(hours) > 0) ||
       (mins && Number(mins) > 0)
     )
-    const nameSave = isCancellingBooking ? name : null
+    const nameSave = isBooking ? name : null
     const date1 = new Date()
     const date = new Date()
 
@@ -335,6 +334,7 @@ router.patch('/book', safeVerify, async (req, res) => {
     if (hours && Number(hours) > 0) date.setHours(date.getHours() + Number(hours))
     if (mins && Number(mins) > 0) date.setMinutes(date.getMinutes() + Number(mins))
 
+    const rows = await client.query('SELECT freeBy, origPrice FROM Rooms where id = ?', [id])
     const username = decodedToken?.username ?? 'Online booker'
     await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ? 
       where id = ?`, [token, nameSave, date, username, date1, id])
@@ -357,8 +357,9 @@ router.patch('/book', safeVerify, async (req, res) => {
       )
     }
 
-    const rows = await client.query('SELECT FROM Rooms freeBy, origPrice where id = ?', [id])
-    if (isCancellingBooking) {
+    const isEditingBooking = new Date(rows[0].freeBy).getTime() - new Date(date).getTime() > 60000 ||
+      new Date(rows[0].freeBy).getTime() - new Date(date).getTime() < -60000
+    if (!isBooking) {
       addLog('Booking cancelled', `Room ${roomName} booking cancelled by ${username}`, new Date(), rows[0].origPrice)
     } else if (isEditingBooking) {
       addLog('Booking edited', `Room ${roomName} changed by ${username}`, new Date(), `Check-out time
@@ -390,7 +391,7 @@ router.delete('/deleteroom', verify, async (req, res) => {
   try {
     const { decodedToken } = req.body
 
-    const rows = await client.query('SELECT FROM Rooms name where id = ?', [req.body.id])
+    const rows = await client.query('SELECT name FROM Rooms where id = ?', [req.body.id])
     await client.query('DELETE FROM Rooms where id = ?', [req.body.id])
 
     addLog('Room deleted', `Room ${rows[0].name} deleted by ${decodedToken?.username}`, new Date(), 'Delete')

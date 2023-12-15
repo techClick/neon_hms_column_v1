@@ -6,7 +6,7 @@ import cors from 'cors'
 import { client } from './globals/connection'
 import bcrypt from 'bcryptjs'
 import { safeVerify, verify } from './globals/verify'
-import { addLog } from './globals/logs'
+import { addLog } from './logs'
 import { roles } from './auth'
 const router = express.Router()
 router.use(cors())
@@ -111,8 +111,8 @@ router.patch('/editstaff', verify, async (req: TypedRequestBody<{
     await client.query(`UPDATE Staff SET permission = ?, username = ? WHERE 
       email = ?`, [Number(permission), username, email])
 
-    addLog('Staff edited', `Edited by ${decodedToken.username}. Edits are: ${edits}`, new Date(), `${username} (
-      ${roles[Number(permission)]}) Edited`)
+    addLog('Staff edited', `Edited by ${decodedToken.username}`, new Date(), `${username} (
+      ${roles[Number(permission)]}) Edited. Edits are: ${edits}`)
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {

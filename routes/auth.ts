@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken'
 import { client } from './globals/connection'
 import { verify } from './globals/verify'
 import bcrypt from 'bcryptjs'
-import { addLog } from './globals/logs'
+import { addLog } from './logs'
 const router = express.Router()
 
 const tokenExpTime = '10m'

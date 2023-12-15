@@ -17,6 +17,7 @@ const app = express()
 app.use(express.json({ limit: '30mb' }))
 app.use(express.urlencoded({ extended: true, limit: '30mb' }))
 dotenv.config()
+process.env.TZ = 'Africa/Lagos'
 
 const corsOptions = {
   origin: [`https://www.${process.env.CLIENT_URL.split('https://')[1] || '.'}`, process.env.CLIENT_URL],

@@ -2,7 +2,7 @@ import { networkResponse } from './globals/networkResponse'
 import express from 'express'
 import { verify } from './globals/verify'
 import { client } from './globals/connection'
-import { addLog } from './globals/logs'
+import { addLog } from './logs'
 const router = express.Router()
 
 router.get('/info', async (req, res) => {
@@ -55,7 +55,7 @@ router.patch('/setemailreceiver', verify, async (req, res) => {
   try {
     const { decodedToken, emailRec } = req.body
 
-    const rows = await client.query('SELECT FROM HotelInfo emailRec where id = 1')
+    const rows = await client.query('SELECT emailRec FROM HotelInfo where id = 1')
     await client.query(`UPDATE HotelInfo SET emailRec =
       ? where id = 1`, [emailRec])
 
