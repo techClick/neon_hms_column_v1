@@ -28,6 +28,7 @@ export const addLog = async (type: LogType, message: string, date: Date, value: 
 
 router.get('/getlogs', verify, async (req, res) => {
   try {
+    // await client.query('DROP TABLE IF EXISTS Logs')
     await client.query(`CREATE TABLE IF NOT EXISTS Logs ( id serial PRIMARY KEY, type text, message text,
       date text, value text )`)
     const rows = await client.query('SELECT id, type, message, date, value from Logs')

@@ -84,7 +84,7 @@ router.patch('/editroom', verify, async (req, res) => {
     let onHoldHere = onHold
     if (!onHold) onHoldHere = null
     const { username } = req.body.decodedToken
-    const rows = await client.query('SELECT name, origPrice from Rooms WHERE name = ?', [name])
+    const rows = await client.query('SELECT name, price from Rooms WHERE name = ?', [name])
     if (rows.length && origName !== name) {
       return res.status(400).json((networkResponse('error', 'A room with this name exists already')))
     }
@@ -141,7 +141,7 @@ router.post('/rooms', safeVerify, async (req, res) => {
     })
 
     if (!decodedToken?.username && !isStaff) {
-      addLog('Customer visit', `${rows}.length room(s) shown`, new Date(), 'Online rooms viewed')
+      addLog('Customer visit', `${rows.length} room(s) shown`, new Date(), 'Online rooms viewed')
     }
 
     res.status(200).json((networkResponse('success', rows)))
