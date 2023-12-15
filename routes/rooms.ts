@@ -1,10 +1,10 @@
-import { convertDate, convertTime2 } from './globals/dates'
+import { convertDate, convertDate2, convertTime2 } from './globals/dates'
 import { sendMail } from './globals/email'
 import { networkResponse } from './globals/networkResponse'
 import express from 'express'
-import { verify } from './globals/verify'
+import { safeVerify, verify } from './globals/verify'
 import { client } from './globals/connection'
-import jwt from 'jsonwebtoken'
+import { addLog } from './globals/logs'
 const router = express.Router()
 
 process.env.TZ = 'Africa/Lagos'
@@ -41,6 +41,8 @@ router.post('/addroom', verify, async (req, res) => {
       date, date, date, imgs, username, onHoldHere, perks])
     const rows2 = await client.query('SELECT id from Rooms WHERE name = ?', [name])
 
+    addLog('Room added', `Added by ${username}`, new Date(), `Room ${name} added. At price NGN ${price}`)
+
     const addedRoom = {
       id: rows2[0].id,
       name,
@@ -75,7 +77,9 @@ router.patch('/editroom', verify, async (req, res) => {
       imgFile: img1,
       imgFiles: imgs,
       onHold,
-      perks
+      perks,
+      edits,
+      priceEdit
     } = req.body
     const img = img1 === 'refresh' ? null : img1
     let onHoldHere = onHold
@@ -90,6 +94,14 @@ router.patch('/editroom', verify, async (req, res) => {
     await client.query(`UPDATE Rooms SET name = ?, description = ?, price = ?, origPrice = ?, img = ?,
       imgs = ?, updatedAsOf = ?, floor = ?, perks = ?, updatedBy = ?, onHold = ? where id = ?`,
     [name, description, price, origPrice, img, imgs, date, floor, perks, username, onHoldHere, id])
+
+    if (priceEdit) {
+      addLog('Price edited', `Edited by ${username}`, new Date(), `Room name is ${name}. Former price: ${
+        priceEdit}. New price ${price}`)
+    }
+    if (edits) {
+      addLog('Room edited', `Edited by ${username}`, new Date(), `Edits are: ${edits}`)
+    }
 
     const responseData = {
       id,
@@ -111,8 +123,9 @@ router.patch('/editroom', verify, async (req, res) => {
   }
 })
 
-router.get('/rooms', async (req, res) => {
+router.get('/rooms', safeVerify, async (req, res) => {
   try {
+    const { decodedToken } = req.body
     // await client.query('DROP TABLE IF EXISTS Rooms');
     await client.query(`CREATE TABLE IF NOT EXISTS Rooms
       ( id serial PRIMARY KEY, name text, description text NULL, price text, origPrice text, img MEDIUMTEXT NULL,
@@ -125,6 +138,11 @@ router.get('/rooms', async (req, res) => {
       const realPrice = Math.ceil((Number(price || 0) * (Number(process.env.INCREMENT_NUM || 0) / 100)) / 100) * 100
       rows[i] = { ...rows[i], price: realPrice.toString(), perks: JSON.parse(rows[i].perks) }
     })
+
+    if (!decodedToken?.username) {
+      addLog('Customer visit', `${rows}.length room(s) shown`, new Date(), 'Online rooms viewed')
+    }
+
     res.status(200).json((networkResponse('success', rows)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
@@ -287,7 +305,7 @@ const bookMailOptions = (to: string, name: string, details: BookEmailDetails): a
       </div>`
   }
 }
-router.patch('/book', async (req, res) => {
+router.patch('/book', safeVerify, async (req, res) => {
   try {
     const {
       id,
@@ -297,14 +315,19 @@ router.patch('/book', async (req, res) => {
       mins,
       price,
       roomName,
-      token, email, email2, isDeskBooking
+      token,
+      email,
+      email2,
+      isDeskBooking,
+      isEditingBooking,
+      decodedToken
     } = req.body
 
-    const nameSave = ((days && Number(days) > 0) ||
+    const isCancellingBooking = ((days && Number(days) > 0) ||
       (hours && Number(hours) > 0) ||
       (mins && Number(mins) > 0)
-    ) ? name : null
-
+    )
+    const nameSave = isCancellingBooking ? name : null
     const date1 = new Date()
     const date = new Date()
 
@@ -312,12 +335,7 @@ router.patch('/book', async (req, res) => {
     if (hours && Number(hours) > 0) date.setHours(date.getHours() + Number(hours))
     if (mins && Number(mins) > 0) date.setMinutes(date.getMinutes() + Number(mins))
 
-    const auth = req.get('token')
-    let username1
-    try {
-      username1 = jwt.verify(auth, process.env.SECRET_TOKEN_KEY)?.username
-    } catch {}
-    const username = username1 || 'Online booker'
+    const username = decodedToken?.username ?? 'Online booker'
     await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ? 
       where id = ?`, [token, nameSave, date, username, date1, id])
 
@@ -339,12 +357,26 @@ router.patch('/book', async (req, res) => {
       )
     }
 
+    const rows = await client.query('SELECT FROM Rooms freeBy, origPrice where id = ?', [id])
+    if (isCancellingBooking) {
+      addLog('Booking cancelled', `Room ${roomName} booking cancelled by ${username}`, new Date(), rows[0].origPrice)
+    } else if (isEditingBooking) {
+      addLog('Booking edited', `Room ${roomName} changed by ${username}`, new Date(), `Check-out time
+          changed from ${convertDate2(new Date(rows[0].freeBy))} ${convertTime2(new Date(rows[0].freeBy))}
+          to ${convertDate2(new Date(date))} ${convertTime2(new Date(date))}`)
+    } else if (isDeskBooking) {
+      addLog('Desk booking', `Room ${roomName}, booked by ${username}. For ${email || 'N/A'}`, new Date(),
+        rows[0].origPrice)
+    } else {
+      addLog('Online booking', `Room ${roomName}, booked by ${email}`, new Date(), rows[0].origPrice)
+    }
+
     const result = {
       id,
       freeBy: date,
       bookToken: token,
       bookName: nameSave,
-      updatedBy: username1,
+      updatedBy: username,
       updatedAsOf: date1
     }
 
@@ -354,9 +386,15 @@ router.patch('/book', async (req, res) => {
   }
 })
 
-router.delete('/deleteroom', async (req, res) => {
+router.delete('/deleteroom', verify, async (req, res) => {
   try {
+    const { decodedToken } = req.body
+
+    const rows = await client.query('SELECT FROM Rooms name where id = ?', [req.body.id])
     await client.query('DELETE FROM Rooms where id = ?', [req.body.id])
+
+    addLog('Room deleted', `Room ${rows[0].name} deleted by ${decodedToken?.username}`, new Date(), 'Delete')
+
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))

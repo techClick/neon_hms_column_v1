@@ -5,7 +5,9 @@ import express from 'express'
 import cors from 'cors'
 import { client } from './globals/connection'
 import bcrypt from 'bcryptjs'
-import { verify } from './globals/verify'
+import { safeVerify, verify } from './globals/verify'
+import { addLog } from './globals/logs'
+import { roles } from './auth'
 const router = express.Router()
 router.use(cors())
 
@@ -47,16 +49,17 @@ const registerMailOptions = (path: string, registerKey: string, email: string): 
   }
 }
 
-router.post('/addstaff', async (req: TypedRequestBody<{
+router.post('/addstaff', safeVerify, async (req: TypedRequestBody<{
   email: string
   password: string | null
   permission: number
   username: string
   path: string | null
+  decodedToken: Record<string, any>
 }>, res) => {
   try {
     const requestBody = req.body
-    const { email, permission, username, path } = requestBody
+    const { email, permission, username, path, decodedToken } = requestBody
     const password = requestBody.password ? await bcrypt.hash(requestBody.password, 10) : null
 
     // await client.query('DROP TABLE IF EXISTS Staff')
@@ -82,6 +85,9 @@ router.post('/addstaff', async (req: TypedRequestBody<{
       finalRes = await sendMail(registerMailOptions(path || '', registerKey, email))
     }
 
+    addLog('Staff added', `Added by ${decodedToken?.username ?? 'Tech CTO'}`, new Date(), `${username} (
+      ${roles[Number(permission)]}) added`)
+
     if (finalRes && !finalRes.accepted) {
       return res.status(500).json((networkResponse('error', 'User added but failed to send mail.')))
     }
@@ -96,12 +102,18 @@ router.patch('/editstaff', verify, async (req: TypedRequestBody<{
   email: string
   permission: string
   username: string
+  decodedToken: Record<string, any>
+  edits: string
 }>, res) => {
   try {
     const requestBody = req.body
-    const { email, permission, username } = requestBody
+    const { email, permission, username, decodedToken, edits } = requestBody
     await client.query(`UPDATE Staff SET permission = ?, username = ? WHERE 
       email = ?`, [Number(permission), username, email])
+
+    addLog('Staff edited', `Edited by ${decodedToken.username}. Edits are: ${edits}`, new Date(), `${username} (
+      ${roles[Number(permission)]}) Edited`)
+
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
@@ -110,11 +122,18 @@ router.patch('/editstaff', verify, async (req: TypedRequestBody<{
 
 router.delete('/deletestaff', verify, async (req: TypedRequestBody<{
   email: string
+  decodedToken: Record<string, any>
 }>, res) => {
   try {
     const requestBody = req.body
-    const { email } = requestBody
+    const { email, decodedToken } = requestBody
+
+    const rows = await client.query('SELECT username, permission FROM Staff WHERE email = ?', [email])
     await client.query('DELETE FROM Staff WHERE email = ?', [email])
+
+    addLog('Staff removed', `Removed by ${decodedToken.username}`, new Date(), `${rows[0].username} (
+      ${roles[Number(rows[0].permission)]}) removed`)
+
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))

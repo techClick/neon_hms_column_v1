@@ -55,6 +55,9 @@ const io = new Server(server, {
   }
 })
 
+let socketInUse: any = null
+export const getSocket = () => socketInUse
+
 io.on('connection', (socket) => {
   socket.on('book_room', (room) => {
     socket.broadcast.emit('get_booked_room', room)
@@ -76,6 +79,11 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('get_revoked_staff', username)
   })
 
+  socket.on('add_log', (room) => {
+    socket.broadcast.emit('get_added_log', room)
+  })
+
+  socketInUse = socket
   socket.on('disconnect', () => {
   })
 })

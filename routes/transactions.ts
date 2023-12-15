@@ -3,6 +3,7 @@ import { verifiedPayment } from './globals/flutterwave'
 import { networkResponse } from './globals/networkResponse'
 import express from 'express'
 import { neonClient } from './globals/connection'
+import { sendMail } from './globals/email'
 const router = express.Router()
 
 process.env.TZ = 'Africa/Lagos'
@@ -32,6 +33,14 @@ export const verifyPayment = async (txRef, id, amount) => {
   }
   return null
 }
+const noVerifyMailOptions = (txRef: string): any => {
+  return {
+    from: 1,
+    to: process.env.MY_EMAIL,
+    subject: 'WARNING: Non-verified payment',
+    html: txRef
+  }
+}
 
 router.get('/postpayment', async (req, res, next) => {
   try {
@@ -43,8 +52,11 @@ router.get('/postpayment', async (req, res, next) => {
       if (isVerified) {
         verifyStatus = 'pass'
         // setTimeout transfer here if possible
+      } else {
+        await sendMail(noVerifyMailOptions(txRef))
       }
     }
+
     res.writeHead(201, {
       Location: `${process.env.CLIENT_URL}/rooms/${verifyStatus}`
     }).end()

@@ -16,3 +16,15 @@ export const verify = (req, res: Express.Response, next): any => {
   }
   return next()
 }
+
+export const safeVerify = (req, res: Express.Response, next): any => {
+  const token = req.get('token')
+  if (!token) return next()
+  try {
+    const decodedToken = jwt.verify(token, process.env.SECRET_TOKEN_KEY)
+    req.body.decodedToken = decodedToken
+  } catch (err) {
+    return next()
+  }
+  return next()
+}

@@ -5,10 +5,12 @@ import jwt from 'jsonwebtoken'
 import { client } from './globals/connection'
 import { verify } from './globals/verify'
 import bcrypt from 'bcryptjs'
+import { addLog } from './globals/logs'
 const router = express.Router()
 
 const tokenExpTime = '10m'
 
+export const roles = ['Receptionist', 'Manager', 'Owner', 'Tech team']
 router.post('/auth', async (req: TypedRequestBody<{
   email: string
   password: string
@@ -26,6 +28,8 @@ router.post('/auth', async (req: TypedRequestBody<{
     if (!correctPassword) {
       return res.status(403).json((networkResponse('error', 'Wrong password or email')))
     }
+
+    addLog('Staff login', rows[0].username, new Date(), roles[Number(rows[0].permission)])
 
     const token = jwt.sign({ username: rows[0].username }, process.env.SECRET_TOKEN_KEY, { expiresIn: tokenExpTime })
     res.status(200).json((networkResponse('success',

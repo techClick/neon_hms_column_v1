@@ -2,6 +2,7 @@ import { networkResponse } from './globals/networkResponse'
 import express from 'express'
 import { verify } from './globals/verify'
 import { client } from './globals/connection'
+import { addLog } from './globals/logs'
 const router = express.Router()
 
 router.get('/info', async (req, res) => {
@@ -24,7 +25,17 @@ router.get('/info', async (req, res) => {
 
 router.patch('/savenumbers', verify, async (req, res) => {
   try {
-    await client.query('UPDATE HotelInfo SET numbers = ? where id = 1', [JSON.stringify(req.body.numbers)])
+    const { numbers, decodedToken } = req.body
+
+    const rows = await client.query('SELECT numbers FROM HotelInfo where id = 1')
+    await client.query('UPDATE HotelInfo SET numbers = ? where id = 1', [JSON.stringify(numbers)])
+
+    const numbersO = JSON.parse(rows[0].numbers || '[]')
+    const oldNumbers = numbersO.length ? numbersO.join(',') : 'None'
+    const newNumbers = numbers.length ? numbers.join(',') : 'None'
+    addLog('Settings changed', `Changed by ${decodedToken.username}`, new Date(), `
+      Booking numbers changed from ${oldNumbers} to ${newNumbers}`)
+
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
@@ -42,8 +53,16 @@ router.patch('/saveemails', verify, async (req, res) => {
 
 router.patch('/setemailreceiver', verify, async (req, res) => {
   try {
+    const { decodedToken, emailRec } = req.body
+
+    const rows = await client.query('SELECT FROM HotelInfo emailRec where id = 1')
     await client.query(`UPDATE HotelInfo SET emailRec =
-      ? where id = 1`, [req.body.emailRec])
+      ? where id = 1`, [emailRec])
+
+    addLog('Settings changed', `Changed by ${decodedToken.username}`, new Date(), `
+      Email recepient for payments changed from ${rows[0].emailRec ?? 'None'} to ${
+        emailRec}`)
+
     res.status(200).json((networkResponse('success', req.body.emailRec)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
