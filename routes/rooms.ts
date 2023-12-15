@@ -96,8 +96,8 @@ router.patch('/editroom', verify, async (req, res) => {
 
     const priceEdit = Number(rows[0].price) === Number(price) ? null : rows[0].price
     if (priceEdit) {
-      addLog('Price edited', `Edited by ${username}`, new Date(), `Room name is ${name}. Former price: ${
-        priceEdit}. New price ${price}`)
+      addLog('Price edited', `Edited by ${username}`, new Date(), `Room name is ${name}. Former price: NGN${
+        Number(priceEdit).toLocaleString()}. New price NGN${Number(price).toLocaleString()}`)
     }
     if (edits) {
       addLog('Room edited', `Edited by ${username}`, new Date(), `Edits are: ${edits}`)
