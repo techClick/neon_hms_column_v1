@@ -9,6 +9,7 @@ import { rooms } from './routes/rooms'
 import { info } from './routes/info'
 import { transactions } from './routes/transactions'
 import { webhook } from './routes/webhook'
+import { logs } from './routes/logs'
 import http from 'http'
 
 // change ira
@@ -42,12 +43,10 @@ const allowCors = (req, res, next) => {
 }
 app.all('*', allowCors);
 
-[clients, auth, qtAuth, rooms, info, transactions, webhook]
+[clients, auth, qtAuth, rooms, info, transactions, webhook, logs]
   .map((endPoint) => app.use('/', endPoint))
 
 const server = http.createServer(app)
-
-// test 335
 
 const io = new Server(server, {
   cors: {

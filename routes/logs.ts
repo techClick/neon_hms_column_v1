@@ -37,3 +37,5 @@ router.get('/getlogs', verify, async (req, res) => {
     res.status(500).json((networkResponse('error', error)))
   }
 })
+
+export const logs = router
