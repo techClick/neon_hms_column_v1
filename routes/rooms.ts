@@ -126,6 +126,7 @@ router.patch('/editroom', verify, async (req, res) => {
 router.post('/rooms', safeVerify, async (req, res) => {
   try {
     const { decodedToken, isStaff } = req.body
+
     // await client.query('DROP TABLE IF EXISTS Rooms');
     await client.query(`CREATE TABLE IF NOT EXISTS Rooms
       ( id serial PRIMARY KEY, name text, description text NULL, price text, origPrice text, img MEDIUMTEXT NULL,
