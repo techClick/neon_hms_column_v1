@@ -22,7 +22,7 @@ router.get('/postpayment', async (req, res, next) => {
 
 router.post('/transfer', async (req, res, next) => {
   try {
-    // const authToken = Buffer.from(`${process.env.IT_CLIENT_ID}:${process.env.IT_SECRET_KEY}`).toString('base64')
+    // const authToken = Buffer.from(`${process.env.QT_CLIENT_ID}:${process.env.QT_SECRET_KEY}`).toString('base64')
     const params = {
       transferCode: '030009998999',
       mac: '9f4e4f53c57be63e1f08d8f07a7bc1a9461e4a7d5304043daa1ef54bd727b6cde148f4fbfc5e2ad8c4a60f78dfa76304de671fbeb70657b1628f14b6b6baa5e1',

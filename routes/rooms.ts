@@ -113,7 +113,7 @@ router.patch('/editroom', verify, async (req, res) => {
 
 router.get('/rooms', async (req, res) => {
   try {
-    // await client.query('DROP TABLE IF EXISTS Rooms')
+    // await client.query('DROP TABLE IF EXISTS Rooms');
     await client.query(`CREATE TABLE IF NOT EXISTS Rooms
       ( id serial PRIMARY KEY, name text, description text NULL, price text, origPrice text, img MEDIUMTEXT NULL,
       freeBy timestamp, onHold text NULL, bookToken text NULL, bookName text NULL, createdOn timestamp,

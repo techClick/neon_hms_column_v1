@@ -7,7 +7,7 @@ process.env.TZ = 'Africa/Lagos'
 
 router.get('/qtauth', async (req, res) => {
   try {
-    const authToken = Buffer.from(`${process.env.IT_CLIENT_ID}:${process.env.IT_SECRET_KEY}`).toString('base64')
+    const authToken = Buffer.from(`${process.env.QT_CLIENT_ID}:${process.env.QT_SECRET_KEY}`).toString('base64')
     const params = {
       grant_type: 'client_credentials'
     }

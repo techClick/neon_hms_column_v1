@@ -2,6 +2,7 @@ import { convertDate } from './globals/dates'
 import { verifyPayment } from './transactions'
 import express from 'express'
 import { neonClient } from './globals/connection'
+
 const router = express.Router()
 
 router.post('/fvwebhook', async (req, res) => {
@@ -18,7 +19,7 @@ router.post('/fvwebhook', async (req, res) => {
         if (!verifiedTrans) {
           await neonClient.query(`CREATE TABLE IF NOT EXISTS WebhookFailPayMe ( txRef text, amount text,
             timestamp text, transactionId text)`)
-          await neonClient.query(`INSERT INTO WebhookFailPayMe ( txref, amount, timestamp, transactionId)
+          neonClient.query(`INSERT INTO WebhookFailPayMe ( txref, amount, timestamp, transactionId)
             VALUES (?, ?, ?, ?)`, [txRef, amount.toString(), convertDate(new Date()), id.toString()])
         }
       }, 5500)
@@ -26,7 +27,7 @@ router.post('/fvwebhook', async (req, res) => {
       setTimeout(async () => {
         await neonClient.query(`CREATE TABLE IF NOT EXISTS WebhookFailPayMe ( txRef text, amount text,
           timestamp text, transactionId text)`)
-        await neonClient.query(`INSERT INTO WebhookFailPayMe ( txref, amount, timestamp, transactionId)
+        neonClient.query(`INSERT INTO WebhookFailPayMe ( txref, amount, timestamp, transactionId)
           VALUES (?, ?, ?, ?)`, [txRef, amount.toString(), convertDate(new Date()), id.toString()])
       }, 1)
     }

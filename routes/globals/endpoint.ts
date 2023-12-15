@@ -17,7 +17,7 @@ export type CallArgs = {
   noContentType?: boolean
   contentType?: any
   auth?: string
-  addHeaders?: any
+  addHeaders?: Record<string, any>
 }
 
 export const callEndpoint = async ({
@@ -27,8 +27,8 @@ export const callEndpoint = async ({
     method,
     headers: {
       'Content-Type': contentType ?? 'application/json',
-      Authorization: auth,
-      accept: 'application/json',
+      // Authorization: auth,
+      // accept: 'application/json',
       ...addHeaders,
       body: JSON.stringify(body)
     },
@@ -38,11 +38,21 @@ export const callEndpoint = async ({
   try {
     // console.log('calling ..... ', `${api}`)
     const response = await fetch(
-      `${api}`,
-      options
+      api,
+      {
+        method,
+        headers: {
+          'Content-Type': contentType ?? 'application/json',
+          // Authorization: auth,
+          // accept: 'application/json',
+          ...addHeaders,
+          body: JSON.stringify(body)
+        },
+        body: !noStringify ? JSON.stringify(body) : body
+      }
     )
 
-    // console.log('response', response)
+    // console.log('response', response);
     if (!response) {
       return { status: 'error', data: 'Internet connection is not detected' } as IResponse
     }
