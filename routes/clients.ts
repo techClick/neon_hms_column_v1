@@ -103,14 +103,20 @@ router.patch('/editstaff', verify, async (req: TypedRequestBody<{
   permission: string
   username: string
   decodedToken: Record<string, any>
-  edits: string
 }>, res) => {
   try {
     const requestBody = req.body
-    const { email, permission, username, decodedToken, edits } = requestBody
+    const { email, permission, username, decodedToken } = requestBody
+
+    const rows = await client.query('SELECT username, permission FROM Staff WHERE email = ?', [email])
     await client.query(`UPDATE Staff SET permission = ?, username = ? WHERE 
       email = ?`, [Number(permission), username, email])
 
+    const isOldUserType = Number(permission) === Number(rows[0].permission)
+    const isOldUserName = username === rows[0].username
+    const edits = `${!isOldUserName ? `Username changed from ${rows[0].username},
+      to ${username}. ` : ''}${!isOldUserType ? `User role changed from ${roles[Number(rows[0].permission)]},
+      to ${roles[Number(permission)]}.` : ''}`
     addLog('Staff edited', `Edited by ${decodedToken.username}`, new Date(), `${username} (
       ${roles[Number(permission)]}) Edited. Edits are: ${edits}`)
 

@@ -35,6 +35,7 @@ router.post('/auth', async (req: TypedRequestBody<{
     res.status(200).json((networkResponse('success',
       { token, permission: rows[0].permission, username: rows[0].username })))
   } catch (error) {
+    console.log(error);
     res.status(500).json((networkResponse('error', error)))
   }
 })

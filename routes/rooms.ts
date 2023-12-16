@@ -77,14 +77,14 @@ router.patch('/editroom', verify, async (req, res) => {
       imgFile: img1,
       imgFiles: imgs,
       onHold,
-      perks,
-      edits
+      perks
     } = req.body
     const img = img1 === 'refresh' ? null : img1
     let onHoldHere = onHold
     if (!onHold) onHoldHere = null
     const { username } = req.body.decodedToken
-    const rows = await client.query('SELECT name, price from Rooms WHERE name = ?', [name])
+    const rows = await client.query(`SELECT name, price, floor, description, origPrice, onHold, perks
+      from Rooms WHERE name = ?`, [name])
     if (rows.length && origName !== name) {
       return res.status(400).json((networkResponse('error', 'A room with this name exists already')))
     }
@@ -99,6 +99,28 @@ router.patch('/editroom', verify, async (req, res) => {
       addLog('Price edited', `Edited by ${username}`, new Date(), `Room name is ${name}. Former price: NGN${
         Number(priceEdit).toLocaleString()}. New price NGN${Number(price).toLocaleString()}`)
     }
+
+    const {
+      name: oldName,
+      description: oldDescription,
+      floor: oldFloor,
+      perks: oldPerks,
+      onHold: oldOnHold
+    } = rows[0]
+    const isOldName = oldName === name
+    const isOldDescription = oldDescription === description
+    const isOldFloor = oldFloor === floor
+    const isOldPerks = JSON.parse(oldPerks).reduce((a, b) => a + b, 0) ===
+      JSON.parse(perks).reduce((a, b) => a + b, 0)
+    const isOldOnHold = Boolean(oldOnHold) === Boolean(onHold)
+
+    const edits = [
+      `${isOldName ? '' : `Room name changed from ${oldName} to ${name}. `}`,
+      `${isOldDescription ? '' : `${name}'s description changed. `}`,
+      `${isOldFloor ? '' : `${name}'s floor changed from floor-${oldFloor} to floor-${floor}. `}`,
+      `${isOldPerks ? '' : `${name}'s perks changed. `}`,
+      `${isOldOnHold ? '' : `${name} was ${onHold ? 'put on hold' : 'removed from hold status'}. `}`
+    ].join('')
     if (edits) {
       addLog('Room edited', `Edited by ${username}`, new Date(), `Edits are: ${edits}`)
     }
