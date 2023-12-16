@@ -342,6 +342,7 @@ router.patch('/book', safeVerify, async (req, res) => {
       email,
       email2,
       isDeskBooking,
+      isEditingBooking,
       decodedToken
     } = req.body
 
@@ -380,14 +381,12 @@ router.patch('/book', safeVerify, async (req, res) => {
       )
     }
 
-    const isEditingBooking = new Date(rows[0].freeBy).getTime() - new Date(date).getTime() > 60000 ||
-      new Date(rows[0].freeBy).getTime() - new Date(date).getTime() < -60000
     if (!isBooking) {
       addLog('Booking cancelled', `${roomName}'s booking cancelled by ${username}`, new Date(), rows[0].origPrice)
     } else if (isEditingBooking) {
-      addLog('Booking edited', `${roomName} changed by ${username}`, new Date(), `Check-out time
-          changed from ${convertDate2(new Date(rows[0].freeBy))} ${convertTime2(new Date(rows[0].freeBy))}
-          to ${convertDate2(new Date(date))} ${convertTime2(new Date(date))}`)
+      addLog('Booking edited', `${roomName} check-out time changed from ${convertDate2(new Date(rows[0]
+        .freeBy))} ${convertTime2(new Date(rows[0].freeBy))} to ${convertDate2(new Date(
+        date))} ${convertTime2(new Date(date))}`, new Date(), `By ${username}`)
     } else if (isDeskBooking) {
       addLog('Desk booking', `${roomName} booked by ${username}. For ${email || 'N/A'}`, new Date(),
         rows[0].origPrice)
