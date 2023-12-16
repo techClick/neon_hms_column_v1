@@ -6,7 +6,7 @@ import { verify } from './globals/verify'
 const router = express.Router()
 
 export type LogType = 'Desk booking' | 'Booking cancelled' | 'Room added' | 'Staff login' |
-'Staff logout' | 'Customer visit' | 'Settings changed' | 'Online booking' | 'Room edited' | 'Booking edited' |
+'Staff logout' | 'Online visitor' | 'Settings changed' | 'Online booking' | 'Room edited' | 'Booking edited' |
 'Staff added' | 'Staff removed' | 'Staff edited' | 'Price edited' | 'Room deleted'
 
 export const addLog = async (type: LogType, message: string, date: Date, value: string) => {
@@ -19,8 +19,7 @@ export const addLog = async (type: LogType, message: string, date: Date, value: 
     const rows = await client.query('SELECT id FROM Logs where date = ?', [date.toString()])
 
     const socket = getSocket()
-    socket.emit('add_log', { id: rows[0].id, type, message, date: date.toString(), value })
-    socket.broadcast.emit('add_log', { id: rows[0].id, type, message, date: date.toString(), value })
+    socket.broadcast.emit('get_added_log', { id: rows[0].id, type, message, date: date.toString(), value })
   } catch (e) {
     console.log('Log error: ', e)
   }

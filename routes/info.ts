@@ -33,8 +33,8 @@ router.patch('/savenumbers', verify, async (req, res) => {
     const numbersO = JSON.parse(rows[0].numbers || '[]')
     const oldNumbers = numbersO.length ? numbersO.join(',') : 'None'
     const newNumbers = numbers.length ? numbers.join(',') : 'None'
-    addLog('Settings changed', `Changed by ${decodedToken.username}`, new Date(), `
-      Booking numbers changed from ${oldNumbers} to ${newNumbers}`)
+    addLog('Settings changed', `Booking numbers changed from ${oldNumbers} to ${newNumbers}.`, new Date(),
+      `By ${decodedToken.username}`)
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
@@ -59,9 +59,8 @@ router.patch('/setemailreceiver', verify, async (req, res) => {
     await client.query(`UPDATE HotelInfo SET emailRec =
       ? where id = 1`, [emailRec])
 
-    addLog('Settings changed', `Changed by ${decodedToken.username}`, new Date(), `
-      Email recepient for payments changed from ${rows[0].emailRec ?? 'None'} to ${
-        emailRec}`)
+    addLog('Settings changed', `Email recepient for payments changed from ${rows[0].emailRec ?? 'None'} to ${
+      emailRec}`, new Date(), `By ${decodedToken.username}`)
 
     res.status(200).json((networkResponse('success', req.body.emailRec)))
   } catch (error) {

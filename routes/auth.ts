@@ -29,13 +29,12 @@ router.post('/auth', async (req: TypedRequestBody<{
       return res.status(403).json((networkResponse('error', 'Wrong password or email')))
     }
 
-    addLog('Staff login', rows[0].username, new Date(), roles[Number(rows[0].permission)])
+    addLog('Staff login', `${roles[Number(rows[0].permission)]} login`, new Date(), rows[0].username)
 
     const token = jwt.sign({ username: rows[0].username }, process.env.SECRET_TOKEN_KEY, { expiresIn: tokenExpTime })
     res.status(200).json((networkResponse('success',
       { token, permission: rows[0].permission, username: rows[0].username })))
   } catch (error) {
-    console.log(error);
     res.status(500).json((networkResponse('error', error)))
   }
 })
