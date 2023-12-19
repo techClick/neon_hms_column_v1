@@ -79,6 +79,10 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('get_revoked_staff', username)
   })
 
+  socket.on('add_log', (room) => {
+    socket.broadcast.emit('get_added_log', room)
+  })
+
   socketInUse = socket
   socket.on('disconnect', () => {
   })

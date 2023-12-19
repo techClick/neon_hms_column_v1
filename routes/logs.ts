@@ -5,9 +5,9 @@ import { networkResponse } from './globals/networkResponse'
 import { verify } from './globals/verify'
 const router = express.Router()
 
-export type LogType = 'Desk booking' | 'Booking cancelled' | 'Room added' | 'Staff login' |
-'Staff logout' | 'Online visitor' | 'Settings changed' | 'Online booking' | 'Room edited' | 'Booking edited' |
-'Staff added' | 'Staff removed' | 'Staff edited' | 'Price edited' | 'Room deleted'
+export type LogType = 'Desk reservation' | 'Reservation cancelled' | 'Room added' | 'Staff logged in' |
+'Staff logout' | 'Online visitor' | 'Settings change' | 'Online reservation' | 'Room change' | 'Reservation change' |
+'Staff added' | 'Staff removed' | 'Staff change' | 'Price change' | 'Room deleted'
 
 export const addLog = async (type: LogType, message: string, date: Date, value: string) => {
   try {
@@ -18,7 +18,9 @@ export const addLog = async (type: LogType, message: string, date: Date, value: 
 
     const rows = await client.query('SELECT id FROM Logs where date = ?', [date.toString()])
 
+    console.log(rows[0].id, message)
     const socket = getSocket()
+    socket.emit('get_added_log', { id: rows[0].id, type, message, date: date.toString(), value })
     socket.broadcast.emit('get_added_log', { id: rows[0].id, type, message, date: date.toString(), value })
   } catch (e) {
     console.log('Log error: ', e)

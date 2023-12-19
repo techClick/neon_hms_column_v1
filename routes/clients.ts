@@ -85,8 +85,8 @@ router.post('/addstaff', safeVerify, async (req: TypedRequestBody<{
       finalRes = await sendMail(registerMailOptions(path || '', registerKey, email))
     }
 
-    addLog('Staff added', `${username} (${roles[Number(permission)]}) added`, new Date(),
-      `By ${decodedToken?.username ?? 'Tech CTO'}`)
+    addLog('Staff added', `|${username}| &(${roles[Number(permission)]})& added by |${
+        decodedToken?.username ?? 'Tech CTO'}|`, new Date(), 'N/A')
 
     if (finalRes && !finalRes.accepted) {
       return res.status(500).json((networkResponse('error', 'User added but failed to send mail.')))
@@ -114,11 +114,11 @@ router.patch('/editstaff', verify, async (req: TypedRequestBody<{
 
     const isOldUserType = Number(permission) === Number(rows[0].permission)
     const isOldUserName = username === rows[0].username
-    const edits = `${!isOldUserName ? `Username changed from ${rows[0].username},
-      to ${username}. ` : ''}${!isOldUserType ? `User role changed from ${roles[Number(rows[0].permission)]},
-      to ${roles[Number(permission)]}.` : ''}`
-    addLog('Staff edited', `${username} (${roles[Number(permission)]}) Edited. Edits are: ${edits}`,
-      new Date(), `By ${decodedToken.username}`)
+    const edits = `${!isOldUserName ? `Username changed from &${rows[0].username}&
+      to &${username}&. ` : ''}${!isOldUserType ? `User role changed from &${roles[Number(rows[0].permission)]}&
+      to &${roles[Number(permission)]}&.` : ''}`
+    addLog('Staff change', `|${username}| &(${roles[Number(permission)]})& details changed by |${
+      decodedToken.username}|.%Changes are: ${edits}`, new Date(), 'N/A')
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
@@ -137,8 +137,8 @@ router.delete('/deletestaff', verify, async (req: TypedRequestBody<{
     const rows = await client.query('SELECT username, permission FROM Staff WHERE email = ?', [email])
     await client.query('DELETE FROM Staff WHERE email = ?', [email])
 
-    addLog('Staff removed', `${rows[0].username} (${roles[Number(rows[0].permission)]}) removed`, new Date(),
-      `By ${decodedToken.username}`)
+    addLog('Staff removed', `&${rows[0].username} (${roles[Number(rows[0].permission)]})&'s access ^revoked^ by |${
+      decodedToken.username}|`, new Date(), 'N/A')
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {

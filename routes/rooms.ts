@@ -1,4 +1,4 @@
-import { convertDate, convertDate2, convertTime2 } from './globals/dates'
+import { convertDate, convertTime2 } from './globals/dates'
 import { sendMail } from './globals/email'
 import { networkResponse } from './globals/networkResponse'
 import express from 'express'
@@ -41,7 +41,8 @@ router.post('/addroom', verify, async (req, res) => {
       date, date, date, imgs, username, onHoldHere, perks])
     const rows2 = await client.query('SELECT id from Rooms WHERE name = ?', [name])
 
-    addLog('Room added', `${name} added. At price NGN ${price}`, new Date(), `By ${username}`)
+    addLog('Room added', `$${name}$ added. At price &NGN${Number(price).toLocaleString()}& by |${username}|`,
+      new Date(), 'N/A')
 
     const addedRoom = {
       id: rows2[0].id,
@@ -96,8 +97,8 @@ router.patch('/editroom', verify, async (req, res) => {
 
     const priceEdit = Number(rows[0].price) === Number(price) ? null : rows[0].price
     if (priceEdit) {
-      addLog('Price edited', `${name}'s former price: NGN${Number(priceEdit)
-        .toLocaleString()}. New price NGN${Number(price).toLocaleString()}`, new Date(), `By ${username}`)
+      addLog('Price change', `$${name}$ former price is &NGN${Number(priceEdit)
+        .toLocaleString()}&. New price is &NGN${Number(price).toLocaleString()}& by |${username}|`, new Date(), 'N/A')
     }
 
     const {
@@ -115,14 +116,15 @@ router.patch('/editroom', verify, async (req, res) => {
     const isOldOnHold = Boolean(oldOnHold) === Boolean(onHold)
 
     const edits = [
-      `${isOldName ? '' : `Room name changed from ${oldName} to ${name}. `}`,
-      `${isOldDescription ? '' : `${name}'s description changed. `}`,
-      `${isOldFloor ? '' : `${name}'s floor changed from floor-${oldFloor} to floor-${floor}. `}`,
-      `${isOldPerks ? '' : `${name}'s perks changed. `}`,
-      `${isOldOnHold ? '' : `${name} was ${onHold ? 'put on hold' : 'removed from hold status'}. `}`
+      `${isOldName ? '' : `Room name changed from &${oldName}& to &${name}&.`}`,
+      `${isOldDescription ? '' : '&Description& changed.'}`,
+      `${isOldFloor ? '' : `Floor changed from &floor ${oldFloor}& to &floor ${floor}&.`}`,
+      `${isOldPerks ? '' : '&Perks& changed. '}`,
+      `${isOldOnHold ? '' : `Room was ${onHold ? 'put on &hold&'
+        : 'removed from &hold& status'}. `}`
     ].join('')
     if (edits) {
-      addLog('Room edited', `Edits are: ${edits}`, new Date(), `By ${username}`)
+      addLog('Room change', `$${name}$ details chaged by |${username}|. Changes are:%${edits}`, new Date(), 'N/A')
     }
 
     const responseData = {
@@ -163,7 +165,7 @@ router.post('/rooms', safeVerify, async (req, res) => {
     })
 
     if (!decodedToken?.username && !isStaff) {
-      addLog('Online visitor', `${rows.length} room(s) shown`, new Date(), 'Customer visit')
+      addLog('Online visitor', `&${rows.length}& room(s) shown`, new Date(), 'Customer visit')
     }
 
     res.status(200).json((networkResponse('success', rows)))
@@ -228,12 +230,12 @@ const bookMailOptions = (to: string, name: string, details: BookEmailDetails): a
         border: 1px solid lightgrey; border-radius: 3px; line-height: 1.6; box-sizing: border-box;'>
           ${
               !details.isDeskBooking
-              ? `You have booked a room online with
+              ? `You have reserved a room online with
                 ${' '}
                 <strong>${hotelName}</strong>.
                 <br/>
                 <div style='font-size: 15px'>Your receipt is viewable below;</div>`
-              : `You have booked a room with
+              : `You have reserved a room with
                 ${' '}
                 <strong>${hotelName}</strong>.`
           }
@@ -336,6 +338,7 @@ router.patch('/book', safeVerify, async (req, res) => {
       days,
       hours,
       mins,
+      secs,
       price,
       roomName,
       token,
@@ -354,9 +357,12 @@ router.patch('/book', safeVerify, async (req, res) => {
     const date1 = new Date()
     const date = new Date()
 
-    if (days && Number(days) > 0) date.setDate(date.getDate() + Number(days))
-    if (hours && Number(hours) > 0) date.setHours(date.getHours() + Number(hours))
-    if (mins && Number(mins) > 0) date.setMinutes(date.getMinutes() + Number(mins))
+    if (isBooking) {
+      if (days && Number(days) > 0) date.setDate(date.getDate() + Number(days))
+      if (hours && Number(hours) > 0) date.setHours(date.getHours() + Number(hours))
+      if (mins && Number(mins) > 0) date.setMinutes(date.getMinutes() + Number(mins))
+      if (secs && Number(secs) > 0) date.setSeconds(date.getSeconds() + Number(secs))
+    }
 
     const rows = await client.query('SELECT freeBy, origPrice FROM Rooms where id = ?', [id])
     const username = decodedToken?.username ?? 'Online booker'
@@ -382,16 +388,32 @@ router.patch('/book', safeVerify, async (req, res) => {
     }
 
     if (!isBooking) {
-      addLog('Booking cancelled', `${roomName}'s booking cancelled by ${username}`, new Date(), rows[0].origPrice)
+      const time = (new Date(rows[0].freeBy)).getTime() - (new Date()).getTime()
+      const remainder = time % (1000 * 60 * 60 * 24) >= 0.75 ? 1 : 0
+      const days = Math.trunc(time / (1000 * 60 * 60 * 24)) + remainder
+
+      addLog('Reservation cancelled', `$${roomName}$ reservation of ${days} night${days === 1 ? '' : 's'} cancelled
+        by |${username}|`, new Date(), ((-1 * Number(rows[0].origPrice)) * days).toString())
     } else if (isEditingBooking) {
-      addLog('Booking edited', `${roomName} check-out time changed from ${convertDate2(new Date(rows[0]
-        .freeBy))} ${convertTime2(new Date(rows[0].freeBy))} to ${convertDate2(new Date(
-        date))} ${convertTime2(new Date(date))}`, new Date(), `By ${username}`)
+      const time = (date).getTime() - (new Date(rows[0].freeBy)).getTime()
+      const days = Math.trunc(time / (1000 * 60 * 60 * 24))
+      const hrs = Math.trunc((time - (days * (1000 * 60 * 60 * 24))) / (1000 * 60 * 60))
+      let mins = Math.trunc((time - (days * (1000 * 60 * 60 * 24)) - (hrs * (1000 * 60 * 60))) /
+        (1000 * 60))
+      if (!days && !hrs && !mins) mins = (date).getTime() > (new Date(rows[0].freeBy)).getTime() ? 1 : -1
+
+      addLog('Reservation change', `$${roomName}$ reservation time ${days < 0 || hrs < 0 || mins < 0
+        ? `&reduced& by${days < 0 ? ` &${days * -1} day${days === -1 ? '' : 's'}&` : ''}${hrs < 0 ? ` ${
+        hrs * -1} hr${hrs === -1 ? '' : 's'}` : ''}${mins < 0 ? ` ${mins * -1} min${mins === -1 ? '' : 's'}`
+        : ''}` : `&extended& by${days > 0 ? ` &${days} day${days === 1 ? '' : 's'}&` : ''}${hrs > 0 ? ` ${
+        hrs} hr${hrs === 1 ? '' : 's'}` : ''}${mins > 0 ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} by |${
+        username}|`, new Date(), (days * Number(rows[0].origPrice)).toString())
     } else if (isDeskBooking) {
-      addLog('Desk booking', `${roomName} booked by ${username}. For ${email || 'N/A'}`, new Date(),
-        rows[0].origPrice)
+      addLog('Desk reservation', `$${roomName}$ reserved for &${days} night${days === 1 ? '' : 's'}& by |${
+        username}| for ${email ? `&${email}&` : 'N/A'}`, new Date(), ((Number(rows[0].origPrice)) * Number(days)).toString())
     } else {
-      addLog('Online booking', `${roomName} booked by ${email}`, new Date(), rows[0].origPrice)
+      addLog('Online reservation', `$${roomName}$ reserved by &${email}&`, new Date(), ((Number(
+        rows[0].origPrice)) * Number(days)).toString())
     }
 
     const result = {
@@ -416,7 +438,7 @@ router.delete('/deleteroom', verify, async (req, res) => {
     const rows = await client.query('SELECT name FROM Rooms where id = ?', [req.body.id])
     await client.query('DELETE FROM Rooms where id = ?', [req.body.id])
 
-    addLog('Room deleted', `${rows[0].name} deleted.`, new Date(), `By ${decodedToken?.username}`)
+    addLog('Room deleted', `&${rows[0].name}& ^deleted^ by |${decodedToken?.username}|`, new Date(), 'N/A')
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {

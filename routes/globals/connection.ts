@@ -5,7 +5,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 dotenv.config({ path: '.env.local', override: true })
 
-const conn = mysql.createConnection({
+const conn = mysql.createPool({
   host: process.env.MYS_SECRET_HOST,
   user: process.env.MYS_DBUSER,
   port: process.env.MYS_DBPORT,
@@ -15,7 +15,7 @@ const conn = mysql.createConnection({
 
 const query = util.promisify(conn.query).bind(conn)
 
-const conn2 = mysql.createConnection({
+const conn2 = mysql.createPool({
   host: process.env.MYS_SECRET_HOST,
   user: process.env.MYS_DBUSER,
   port: process.env.MYS_DBPORT,
