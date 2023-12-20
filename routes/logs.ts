@@ -18,7 +18,6 @@ export const addLog = async (type: LogType, message: string, date: Date, value: 
 
     const rows = await client.query('SELECT id FROM Logs where date = ?', [date.toString()])
 
-    console.log(rows[0].id, message)
     const socket = getSocket()
     socket.emit('get_added_log', { id: rows[0].id, type, message, date: date.toString(), value })
     socket.broadcast.emit('get_added_log', { id: rows[0].id, type, message, date: date.toString(), value })
