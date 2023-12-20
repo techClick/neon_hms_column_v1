@@ -53,7 +53,7 @@ router.get('/postpayment', async (req, res, next) => {
         verifyStatus = 'pass'
         // setTimeout transfer here if possible
       } else {
-        await sendMail(noVerifyMailOptions(txRef))
+        await sendMail(noVerifyMailOptions(txRef as string))
       }
     }
 
