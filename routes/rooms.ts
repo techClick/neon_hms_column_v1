@@ -110,21 +110,21 @@ router.patch('/editroom', verify, async (req, res) => {
     } = rows[0]
     const isOldName = oldName === name
     const isOldDescription = oldDescription === description
-    const isOldFloor = oldFloor === floor
+    const isOldFloor = oldFloor.toString() === floor.toString()
     const isOldPerks = JSON.parse(oldPerks).reduce((a, b) => a + b, 0) ===
       JSON.parse(perks).reduce((a, b) => a + b, 0)
     const isOldOnHold = Boolean(oldOnHold) === Boolean(onHold)
 
     const edits = [
-      `${isOldName ? '' : `Room name changed from &${oldName}& to &${name}&.`}`,
-      `${isOldDescription ? '' : '&Description& changed.'}`,
-      `${isOldFloor ? '' : `Floor changed from &floor ${oldFloor}& to &floor ${floor}&.`}`,
+      `${isOldName ? '' : `Room name changed from &${oldName}& to &${name}&. `}`,
+      `${isOldDescription ? '' : '&Description& changed. '}`,
+      `${isOldFloor ? '' : `Floor changed from &floor ${oldFloor}& to &floor ${floor}&. `}`,
       `${isOldPerks ? '' : '&Perks& changed. '}`,
-      `${isOldOnHold ? '' : `Room was ${onHold ? 'put on &hold&'
-        : 'removed from &hold& status'}. `}`
+      `${isOldOnHold ? '' : `Room was ${onHold ? 'put &on hold&'
+        : '&removed from hold& status'}. `}`
     ].join('')
     if (edits) {
-      addLog('Room change', `$${name}$ details chaged by |${username}|. Changes are:%${edits}`, new Date(), 'N/A')
+      addLog('Room change', `$${name}$ details &changed& by |${username}|._%_Changes are: ${edits}`, new Date(), 'N/A')
     }
 
     const responseData = {
@@ -165,7 +165,7 @@ router.post('/rooms', safeVerify, async (req, res) => {
     })
 
     if (!decodedToken?.username && !isStaff) {
-      addLog('Online visitor', `&${rows.length}& room(s) shown`, new Date(), 'Customer visit')
+      addLog('Online visitor', `&${rows.length} room${rows.length === 1 ? '' : 's'}& shown`, new Date(), 'N/A')
     }
 
     res.status(200).json((networkResponse('success', rows)))
@@ -391,9 +391,15 @@ router.patch('/book', safeVerify, async (req, res) => {
       const time = (new Date(rows[0].freeBy)).getTime() - (new Date()).getTime()
       const remainder = time % (1000 * 60 * 60 * 24) >= 0.75 ? 1 : 0
       const days = Math.trunc(time / (1000 * 60 * 60 * 24)) + remainder
+      const hrs = Math.trunc((time - (days * (1000 * 60 * 60 * 24))) / (1000 * 60 * 60))
+      let mins = Math.trunc((time - (days * (1000 * 60 * 60 * 24)) - (hrs * (1000 * 60 * 60))) /
+        (1000 * 60))
+      if (!days && !hrs && !mins) mins = (date).getTime() > (new Date(rows[0].freeBy)).getTime() ? 1 : -1
 
-      addLog('Reservation cancelled', `$${roomName}$ reservation of ${days} night${days === 1 ? '' : 's'} cancelled
-        by |${username}|`, new Date(), ((-1 * Number(rows[0].origPrice)) * days).toString())
+      addLog('Reservation cancelled', `$${roomName}$ reservation of${days ? ` &${days} night${
+        days === 1 ? '' : 's'}&` : `${hrs ? ` ${hrs} hr${hrs === 1 ? '' : 's'}` : ''}${
+        mins ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} cancelled by |${username}|`, new Date()
+      , ((-1 * Number(rows[0].origPrice)) * days).toString())
     } else if (isEditingBooking) {
       const time = (date).getTime() - (new Date(rows[0].freeBy)).getTime()
       const days = Math.trunc(time / (1000 * 60 * 60 * 24))
