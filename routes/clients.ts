@@ -118,7 +118,7 @@ router.patch('/editstaff', verify, async (req: TypedRequestBody<{
       to &${username}&. ` : ''}${!isOldUserType ? `User role changed from &${roles[Number(rows[0].permission)]}&
       to &${roles[Number(permission)]}&.` : ''}`
     addLog('Staff change', `|${username}| &(${roles[Number(permission)]})& details changed by |${
-      decodedToken.username}|._%_Changes are: ${edits}`, new Date(), 'N/A')
+      decodedToken.username}|_%_Changes: ${edits}`, new Date(), 'N/A')
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
