@@ -160,7 +160,8 @@ router.post('/rooms', safeVerify, async (req, res) => {
       bookToken, bookName, createdOn, updatedAsOf, updatedBy, perks, floor from Rooms`)
     rows.forEach((r, i) => {
       const price = rows[i].origPrice
-      const realPrice = Math.ceil((Number(price || 0) * (Number(process.env.INCREMENT_NUM || 0) / 100)) / 100) * 100
+      const realPrice = Math.ceil(((Number(price || 0) * (Number(
+        process.env.INCREMENT_PERCENTAGE || 0) / 100)) + 500) / 100) * 100
       rows[i] = { ...rows[i], price: realPrice.toString(), perks: JSON.parse(rows[i].perks) }
     })
 
@@ -422,7 +423,8 @@ router.patch('/book', safeVerify, async (req, res) => {
         username}| ${email ? `for &${email}&` : ''} ${(email && number) ? ` with number &${number}&`
         : number ? `for &${number}&` : ''}`, new Date(), ((Number(rows[0].origPrice)) * Number(days)).toString())
     } else {
-      addLog('Online reservation', `$${roomName}$ reserved by &${email}&`, new Date(), ((Number(
+      addLog('Online reservation', `$${roomName}$ reserved for &${days} night${days === 1 ? '' : 's'}& by online
+        booker. Email &${email}&`, new Date(), ((Number(
         rows[0].origPrice)) * Number(days)).toString())
     }
 
