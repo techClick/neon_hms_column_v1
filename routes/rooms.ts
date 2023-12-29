@@ -342,6 +342,8 @@ router.patch('/book', safeVerify, async (req, res) => {
       price,
       roomName,
       token,
+      number,
+      refundAmount,
       email,
       email2,
       isDeskBooking,
@@ -399,7 +401,7 @@ router.patch('/book', safeVerify, async (req, res) => {
       addLog('Reservation cancelled', `$${roomName}$ reservation of${days ? ` &${days} night${
         days === 1 ? '' : 's'}&` : `${hrs ? ` ${hrs} hr${hrs === 1 ? '' : 's'}` : ''}${
         mins ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} cancelled by |${username}|`, new Date()
-      , ((-1 * Number(rows[0].origPrice)) * days).toString())
+      , (-1 * (refundAmount || 0)).toString())
     } else if (isEditingBooking) {
       const time = (date).getTime() - (new Date(rows[0].freeBy)).getTime()
       const days = Math.trunc(time / (1000 * 60 * 60 * 24))
@@ -413,10 +415,12 @@ router.patch('/book', safeVerify, async (req, res) => {
         hrs * -1} hr${hrs === -1 ? '' : 's'}` : ''}${mins < 0 ? ` ${mins * -1} min${mins === -1 ? '' : 's'}`
         : ''}` : `&extended& by${days > 0 ? ` &${days} day${days === 1 ? '' : 's'}&` : ''}${hrs > 0 ? ` ${
         hrs} hr${hrs === 1 ? '' : 's'}` : ''}${mins > 0 ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} by |${
-        username}|`, new Date(), (days * Number(rows[0].origPrice)).toString())
+        username}|`, new Date(), days > 0 ? (days * Number(rows[0].origPrice)).toString()
+        : (-1 * (refundAmount || 0)).toString())
     } else if (isDeskBooking) {
       addLog('Desk reservation', `$${roomName}$ reserved for &${days} night${days === 1 ? '' : 's'}& by |${
-        username}| for ${email ? `&${email}&` : 'N/A'}`, new Date(), ((Number(rows[0].origPrice)) * Number(days)).toString())
+        username}| ${email ? `for &${email}&` : ''} ${(email && number) ? ` with number &${number}&`
+        : number ? `for &${number}&` : ''}`, new Date(), ((Number(rows[0].origPrice)) * Number(days)).toString())
     } else {
       addLog('Online reservation', `$${roomName}$ reserved by &${email}&`, new Date(), ((Number(
         rows[0].origPrice)) * Number(days)).toString())
