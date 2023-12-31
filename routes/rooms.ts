@@ -424,7 +424,7 @@ router.patch('/book', safeVerify, async (req, res) => {
         : number ? `for &${number}&` : ''}`, new Date(), ((Number(rows[0].origPrice)) * Number(days)).toString())
     } else {
       addLog('Online reservation', `$${roomName}$ reserved for &${days} night${days === 1 ? '' : 's'}& by online
-        booker. Email &${email}&`, new Date(), ((Number(
+        booker &${email}&`, new Date(), ((Number(
         rows[0].origPrice)) * Number(days)).toString())
     }
 
