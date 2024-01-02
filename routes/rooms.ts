@@ -158,15 +158,27 @@ router.post('/rooms', safeVerify, async (req, res) => {
       perks text, updatedAsOf timestamp, updatedBy text, imgs LONGTEXT NULL, floor text)`)
     const rows = await client.query(`SELECT id, name, description, price, origPrice, freeBy, onHold,
       bookToken, bookName, createdOn, updatedAsOf, updatedBy, perks, floor from Rooms`)
+
+    let availableRooms: number = 0
+    let onHoldRooms: number = 0
     rows.forEach((r, i) => {
       const price = rows[i].origPrice
       const realPrice = Math.ceil(((Number(price || 0) * (Number(
         process.env.INCREMENT_PERCENTAGE || 0) / 100)) + 500) / 100) * 100
       rows[i] = { ...rows[i], price: realPrice.toString(), perks: JSON.parse(rows[i].perks) }
+      const { freeBy, onHold } = rows[i]
+      if (new Date(freeBy).getTime() < new Date().getTime()) {
+        availableRooms += 1
+      }
+      if (onHold) onHoldRooms += 1
     })
+    availableRooms -= onHoldRooms
 
     if (!decodedToken?.username && !isStaff) {
-      addLog('Online visitor', `&${rows.length} room${rows.length === 1 ? '' : 's'}& shown`, new Date(), 'N/A')
+      addLog('Online visitor', `&${rows.length} room${rows.length === 1 ? '' : 's'}& shown. &${availableRooms}
+        available& room${availableRooms === 1 ? '' : 's'}${onHoldRooms > 0 ? `. &${onHoldRooms}& room${
+          onHoldRooms === 1 ? '' : 's'} &on hold&` : ''}`,
+      new Date(), 'N/A')
     }
 
     res.status(200).json((networkResponse('success', rows)))

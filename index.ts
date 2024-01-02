@@ -21,7 +21,11 @@ dotenv.config()
 process.env.TZ = 'Africa/Lagos'
 
 const corsOptions = {
-  origin: [`https://www.${process.env.CLIENT_URL.split('https://')[1] || '.'}`, process.env.CLIENT_URL],
+  origin: [
+    `https://www.${process.env.CLIENT_URL.split('https://')[1] || ''}`,
+    process.env.CLIENT_URL,
+    process.env.ENVIRONMENT === 'development' ? process.env.MOBILE_URL : ''
+  ],
   methods: 'GET,PUT,POST,PATCH,DELETE'
 }
 app.use(cors(corsOptions))
@@ -50,7 +54,11 @@ const server = http.createServer(app)
 
 const io = new Server(server, {
   cors: {
-    origin: [`https://www.${process.env.CLIENT_URL.split('https://')[1] || '.'}`, process.env.CLIENT_URL],
+    origin: [
+      `https://www.${process.env.CLIENT_URL.split('https://')[1] || ''}`,
+      process.env.CLIENT_URL,
+      process.env.ENVIRONMENT === 'development' ? process.env.MOBILE_URL : ''
+    ],
     methods: ['GET', 'POST', 'PATCH', 'DELETE']
   }
 })
