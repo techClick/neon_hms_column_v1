@@ -176,8 +176,8 @@ router.post('/rooms', safeVerify, async (req, res) => {
 
     if (!decodedToken?.username && !isStaff) {
       addLog('Online visitor', `&${rows.length} room${rows.length === 1 ? '' : 's'}& shown. &${availableRooms}
-        available& room${availableRooms === 1 ? '' : 's'}${onHoldRooms > 0 ? `. &${onHoldRooms}& room${
-          onHoldRooms === 1 ? '' : 's'} &on hold&` : ''}`,
+        available& room${availableRooms === 1 ? '' : 's'}${onHoldRooms > 0 ? `. Rooms &on hold is ${onHoldRooms}&`
+        : ''}`,
       new Date(), 'N/A')
     }
 
