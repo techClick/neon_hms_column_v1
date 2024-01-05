@@ -14,13 +14,13 @@ export const addLog = async (type: LogType, message: string, date: Date, value: 
     await client.query(`CREATE TABLE IF NOT EXISTS Logs ( id serial PRIMARY KEY, type text, message text,
       date text, value text )`)
     await client.query('INSERT INTO Logs ( type, message, date, value ) VALUES (?, ?, ?, ?)',
-      [type, message, date.toString(), value])
+      [type, message, date.toISOString(), value])
 
-    const rows = await client.query('SELECT id FROM Logs where date = ?', [date.toString()])
+    const rows = await client.query('SELECT id FROM Logs where date = ?', [date.toISOString()])
 
     const socket = getSocket()
-    socket.emit('get_added_log', { id: rows[0].id, type, message, date: date.toString(), value })
-    socket.broadcast.emit('get_added_log', { id: rows[0].id, type, message, date: date.toString(), value })
+    socket.emit('get_added_log', { id: rows[0].id, type, message, date: date.toISOString(), value })
+    socket.broadcast.emit('get_added_log', { id: rows[0].id, type, message, date: date.toISOString(), value })
   } catch (e) {
     console.log('Log error: ', e)
   }

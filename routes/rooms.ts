@@ -8,7 +8,6 @@ import { addLog } from './logs'
 const router = express.Router()
 
 process.env.TZ = 'Africa/Lagos'
-// test 2bv
 
 router.post('/addroom', verify, async (req, res) => {
   try {
@@ -38,11 +37,11 @@ router.post('/addroom', verify, async (req, res) => {
     await client.query(`INSERT INTO Rooms (name, description, price, origPrice, floor, img, freeBy, createdOn,
       updatedAsOf, imgs, updatedBy, onHold, perks) VALUES (?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name, description, price, origPrice, floor, img,
-      date, date, date, imgs, username, onHoldHere, perks])
+      date.toISOString(), date.toISOString(), date.toISOString(), imgs, username, onHoldHere, perks])
     const rows2 = await client.query('SELECT id from Rooms WHERE name = ?', [name])
 
-    addLog('Room added', `$${name}$ added. At price &NGN${Number(price).toLocaleString()}& by |${username}|`,
-      new Date(), 'N/A')
+    addLog('Room added', `$${name}$ added. At price &NGN${Number(origPrice).toLocaleString()}&
+      by |${username}|`, date, 'N/A')
 
     const addedRoom = {
       id: rows2[0].id,
@@ -52,9 +51,9 @@ router.post('/addroom', verify, async (req, res) => {
       price,
       floor,
       img: 'refresh',
-      freeBy: date,
-      createdOn: date,
-      updatedAsOf: date,
+      freeBy: date.toISOString(),
+      createdOn: date.toISOString(),
+      updatedAsOf: date.toISOString(),
       updatedBy: username,
       onHold: onHoldHere,
       perks: JSON.parse(perks)
@@ -91,14 +90,16 @@ router.patch('/editroom', verify, async (req, res) => {
     }
 
     const date = new Date()
+
     await client.query(`UPDATE Rooms SET name = ?, description = ?, price = ?, origPrice = ?, img = ?,
       imgs = ?, updatedAsOf = ?, floor = ?, perks = ?, updatedBy = ?, onHold = ? where id = ?`,
-    [name, description, price, origPrice, img, imgs, date, floor, perks, username, onHoldHere, id])
+    [name, description, price, origPrice, img, imgs, date.toISOString(), floor, perks, username, onHoldHere, id])
 
-    const priceEdit = Number(rows[0].price) === Number(price) ? null : rows[0].price
+    const priceEdit = Number(rows[0].origPrice) === Number(origPrice) ? null : rows[0].origPrice
     if (priceEdit) {
-      addLog('Price change', `$${name}$ former price is &NGN${Number(priceEdit)
-        .toLocaleString()}&. New price is &NGN${Number(price).toLocaleString()}& by |${username}|`, new Date(), 'N/A')
+      addLog('Price change', `$${name}$ former price was &NGN${Number(priceEdit)
+        .toLocaleString()}&. New price is &NGN${Number(origPrice).toLocaleString()}&.
+        By |${username}|`, date, 'N/A')
     }
 
     const {
@@ -124,7 +125,7 @@ router.patch('/editroom', verify, async (req, res) => {
         : '&removed from hold& status'}. `}`
     ].join('')
     if (edits) {
-      addLog('Room change', `$${name}$ details &changed& by |${username}|._%_Changes are: ${edits}`, new Date(), 'N/A')
+      addLog('Room change', `$${name}$ details &changed& by |${username}|._%_Changes are: ${edits}`, date, 'N/A')
     }
 
     const responseData = {
@@ -151,11 +152,11 @@ router.post('/rooms', safeVerify, async (req, res) => {
   try {
     const { decodedToken, isStaff } = req.body
 
-    // await client.query('DROP TABLE IF EXISTS Rooms');
+    // await client.query('DROP TABLE IF EXISTS Rooms')
     await client.query(`CREATE TABLE IF NOT EXISTS Rooms
       ( id serial PRIMARY KEY, name text, description text NULL, price text, origPrice text, img MEDIUMTEXT NULL,
-      freeBy timestamp, onHold text NULL, bookToken text NULL, bookName text NULL, createdOn timestamp,
-      perks text, updatedAsOf timestamp, updatedBy text, imgs LONGTEXT NULL, floor text)`)
+      freeBy text, onHold text NULL, bookToken text NULL, bookName text NULL, createdOn text,
+      perks text, updatedAsOf text, updatedBy text, imgs LONGTEXT NULL, floor text)`)
     const rows = await client.query(`SELECT id, name, description, price, origPrice, freeBy, onHold,
       bookToken, bookName, createdOn, updatedAsOf, updatedBy, perks, floor from Rooms`)
 
@@ -163,8 +164,7 @@ router.post('/rooms', safeVerify, async (req, res) => {
     let onHoldRooms: number = 0
     rows.forEach((r, i) => {
       const price = rows[i].origPrice
-      const realPrice = Math.ceil(((Number(price || 0) * (Number(
-        process.env.INCREMENT_PERCENTAGE || 0) / 100)) + 500) / 100) * 100
+      const realPrice = price
       rows[i] = { ...rows[i], price: realPrice.toString(), perks: JSON.parse(rows[i].perks) }
       const { freeBy, onHold } = rows[i]
       if (new Date(freeBy).getTime() < new Date().getTime()) {
@@ -173,10 +173,12 @@ router.post('/rooms', safeVerify, async (req, res) => {
       if (onHold) onHoldRooms += 1
     })
     availableRooms -= onHoldRooms
+    const bookedRoom = rows.length - availableRooms
 
     if (!decodedToken?.username && !isStaff) {
       addLog('Online visitor', `&${rows.length} room${rows.length === 1 ? '' : 's'}& shown. &${availableRooms}
-        available& room${availableRooms === 1 ? '' : 's'}${onHoldRooms > 0 ? `. Rooms &on hold is ${onHoldRooms}&`
+        available& room${availableRooms === 1 ? '' : 's'}${bookedRoom > 0 ? `. &${bookedRoom} room${
+        bookedRoom === 1 ? '' : 's'}& booked` : ''}${onHoldRooms > 0 ? `. Rooms &on hold is ${onHoldRooms}&`
         : ''}`,
       new Date(), 'N/A')
     }
@@ -381,8 +383,9 @@ router.patch('/book', safeVerify, async (req, res) => {
 
     const rows = await client.query('SELECT freeBy, origPrice FROM Rooms where id = ?', [id])
     const username = decodedToken?.username ?? 'Online booker'
+
     await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ? 
-      where id = ?`, [token, nameSave, date, username, date1, id])
+      where id = ?`, [token, nameSave, date.toISOString(), username, date1.toISOString(), id])
 
     if (email) {
       const bookEmailDetails: BookEmailDetails = {
@@ -408,41 +411,44 @@ router.patch('/book', safeVerify, async (req, res) => {
       const days = Math.trunc(time / (1000 * 60 * 60 * 24)) + remainder
       const hrs = Math.trunc((time - (days * (1000 * 60 * 60 * 24))) / (1000 * 60 * 60))
       let mins = Math.trunc((time - (days * (1000 * 60 * 60 * 24)) - (hrs * (1000 * 60 * 60))) /
-        (1000 * 60))
+        (1000 * 60)) + 1
+
       if (!days && !hrs && !mins) mins = (date).getTime() > (new Date(rows[0].freeBy)).getTime() ? 1 : -1
 
       addLog('Reservation cancelled', `$${roomName}$ reservation of${days ? ` &${days} night${
         days === 1 ? '' : 's'}&` : `${hrs ? ` ${hrs} hr${hrs === 1 ? '' : 's'}` : ''}${
-        mins ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} cancelled by |${username}|`, new Date()
+        mins ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} cancelled by |${username}|`, date1
       , (-1 * (refundAmount || 0)).toString())
     } else if (isEditingBooking) {
-      const time = (date).getTime() - (new Date(rows[0].freeBy)).getTime()
+      const time0 = (date).getTime() - (new Date(rows[0].freeBy)).getTime()
+      // the plus +-1 min here is due to a consisitent bug, it shouldn't be added *FIX*
+      const time = time0 < 0 ? time0 - (60 * 1000) : time0 + (60 * 1000)
       const days = Math.trunc(time / (1000 * 60 * 60 * 24))
       const hrs = Math.trunc((time - (days * (1000 * 60 * 60 * 24))) / (1000 * 60 * 60))
-      let mins = Math.trunc((time - (days * (1000 * 60 * 60 * 24)) - (hrs * (1000 * 60 * 60))) /
+      const mins = Math.trunc((time - (days * (1000 * 60 * 60 * 24)) - (hrs * (1000 * 60 * 60))) /
         (1000 * 60))
-      if (!days && !hrs && !mins) mins = (date).getTime() > (new Date(rows[0].freeBy)).getTime() ? 1 : -1
 
       addLog('Reservation change', `$${roomName}$ reservation time ${days < 0 || hrs < 0 || mins < 0
         ? `&reduced& by${days < 0 ? ` &${days * -1} day${days === -1 ? '' : 's'}&` : ''}${hrs < 0 ? ` ${
         hrs * -1} hr${hrs === -1 ? '' : 's'}` : ''}${mins < 0 ? ` ${mins * -1} min${mins === -1 ? '' : 's'}`
         : ''}` : `&extended& by${days > 0 ? ` &${days} day${days === 1 ? '' : 's'}&` : ''}${hrs > 0 ? ` ${
         hrs} hr${hrs === 1 ? '' : 's'}` : ''}${mins > 0 ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} by |${
-        username}|`, new Date(), days > 0 ? (days * Number(rows[0].origPrice)).toString()
+        username}|`, date1, days > 0 ? (days * Number(rows[0].origPrice)).toString()
         : (-1 * (refundAmount || 0)).toString())
     } else if (isDeskBooking) {
       addLog('Desk reservation', `$${roomName}$ reserved for &${days} night${days === 1 ? '' : 's'}& by |${
-        username}| ${email ? `for &${email}&` : ''} ${(email && number) ? ` with number &${number}&`
-        : number ? `for &${number}&` : ''}`, new Date(), ((Number(rows[0].origPrice)) * Number(days)).toString())
+        username}| for &${nameSave}& ${email ? `on &${email}&` : ''} ${(email && number) ? ` and &${
+        number}&` : number ? `on &${number}&` : ''}`, date1, ((Number(rows[0].origPrice)) *
+        Number(days)).toString())
     } else {
       addLog('Online reservation', `$${roomName}$ reserved for &${days} night${days === 1 ? '' : 's'}& by online
-        booker &${email}&`, new Date(), ((Number(
+        booker &${nameSave} on &${email}&`, date1, ((Number(
         rows[0].origPrice)) * Number(days)).toString())
     }
 
     const result = {
       id,
-      freeBy: date,
+      freeBy: date.toISOString(),
       bookToken: token,
       bookName: nameSave,
       updatedBy: username,

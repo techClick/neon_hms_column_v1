@@ -68,7 +68,6 @@ router.post('/addstaff', safeVerify, async (req: TypedRequestBody<{
       forgotKey text NULL )`)
 
     const rows = await client.query('SELECT email from Staff where email = ?', [email.toLowerCase()])
-    console.log(rows)
     if (rows.length) {
       return res.status(403).json((networkResponse('error', 'User with this email exists already')))
     }
