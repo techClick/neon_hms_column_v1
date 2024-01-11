@@ -164,7 +164,8 @@ router.post('/rooms', safeVerify, async (req, res) => {
     let onHoldRooms: number = 0
     rows.forEach((r, i) => {
       const price = rows[i].origPrice
-      const realPrice = price
+      const addition = Number(price) >= 50000 ? 500 : 300
+      const realPrice = Number(price) + addition
       rows[i] = { ...rows[i], price: realPrice.toString(), perks: JSON.parse(rows[i].perks) }
       const { freeBy, onHold } = rows[i]
       if (new Date(freeBy).getTime() < new Date().getTime()) {
@@ -173,7 +174,7 @@ router.post('/rooms', safeVerify, async (req, res) => {
       if (onHold) onHoldRooms += 1
     })
     availableRooms -= onHoldRooms
-    const bookedRoom = rows.length - availableRooms
+    const bookedRoom = rows.length - (availableRooms + onHoldRooms)
 
     if (!decodedToken?.username && !isStaff) {
       addLog('Online visitor', `&${rows.length} room${rows.length === 1 ? '' : 's'}& shown. &${availableRooms}
@@ -235,7 +236,7 @@ const bookMailOptions = (to: string, name: string, details: BookEmailDetails): a
   return {
     from: 1,
     to,
-    subject: 'Your Reservation Receipt',
+    subject: `Reservation Receipt for ${details.room}`,
     html: `Hi ${name},
       <br/>
       <br/>
@@ -347,114 +348,117 @@ const bookMailOptions = (to: string, name: string, details: BookEmailDetails): a
 }
 router.patch('/book', safeVerify, async (req, res) => {
   try {
-    const {
-      id,
-      name,
-      days,
-      hours,
-      mins,
-      secs,
-      price,
-      roomName,
-      token,
-      number,
-      refundAmount,
-      email,
-      email2,
-      isDeskBooking,
-      isEditingBooking,
-      decodedToken
-    } = req.body
+    const { bookingDetails, decodedToken } = req.body
+    const result = []
 
-    const isBooking = ((days && Number(days) > 0) ||
-      (hours && Number(hours) > 0) ||
-      (mins && Number(mins) > 0)
-    )
-    const nameSave = isBooking ? name : null
-    const date1 = new Date()
-    const date = new Date()
-
-    if (isBooking) {
-      if (days && Number(days) > 0) date.setDate(date.getDate() + Number(days))
-      if (hours && Number(hours) > 0) date.setHours(date.getHours() + Number(hours))
-      if (mins && Number(mins) > 0) date.setMinutes(date.getMinutes() + Number(mins))
-      if (secs && Number(secs) > 0) date.setSeconds(date.getSeconds() + Number(secs))
-    }
-
-    const rows = await client.query('SELECT freeBy, origPrice FROM Rooms where id = ?', [id])
-    const username = decodedToken?.username ?? 'Online booker'
-
-    await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ? 
-      where id = ?`, [token, nameSave, date.toISOString(), username, date1.toISOString(), id])
-
-    if (email) {
-      const bookEmailDetails: BookEmailDetails = {
-        name: nameSave,
+    for (let i = 0; i < bookingDetails.length; i += 1) {
+      const {
+        id,
+        name,
         days,
-        checkIn: convertDate(date1),
-        checkInTime: convertTime2(date1),
-        checkOut: convertDate(date),
-        checkOutTime: convertTime2(date),
+        hours,
+        mins,
+        secs,
         price,
-        room: roomName,
+        roomName,
         token,
-        isDeskBooking
-      }
-      await sendMail(
-        bookMailOptions(`${email}${email2 ? `, ${email2}` : ''}`, nameSave.split(' ')[0], bookEmailDetails)
+        number,
+        refundAmount,
+        email,
+        email2,
+        isDeskBooking,
+        isEditingBooking
+      } = bookingDetails[i]
+
+      const isBooking = ((days && Number(days) > 0) ||
+        (hours && Number(hours) > 0) ||
+        (mins && Number(mins) > 0)
       )
+      const nameSave = isBooking ? name : null
+      const date1 = new Date()
+      const date = new Date()
+
+      if (isBooking) {
+        if (days && Number(days) > 0) date.setDate(date.getDate() + Number(days))
+        if (hours && Number(hours) > 0) date.setHours(date.getHours() + Number(hours))
+        if (mins && Number(mins) > 0) date.setMinutes(date.getMinutes() + Number(mins))
+        if (secs && Number(secs) > 0) date.setSeconds(date.getSeconds() + Number(secs))
+      }
+
+      const rows = await client.query('SELECT freeBy, origPrice FROM Rooms where id = ?', [id])
+      const username = decodedToken?.username ?? 'Online booker'
+
+      await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ? 
+        where id = ?`, [token, nameSave, date.toISOString(), username, date1.toISOString(), id])
+
+      if (email) {
+        const bookEmailDetails: BookEmailDetails = {
+          name: nameSave,
+          days,
+          checkIn: convertDate(date1),
+          checkInTime: convertTime2(date1),
+          checkOut: convertDate(date),
+          checkOutTime: convertTime2(date),
+          price,
+          room: roomName,
+          token,
+          isDeskBooking
+        }
+        await sendMail(
+          bookMailOptions(`${email}${email2 ? `, ${email2}` : ''}`, nameSave.split(' ')[0], bookEmailDetails)
+        )
+      }
+
+      if (!isBooking) {
+        const time = (new Date(rows[0].freeBy)).getTime() - (new Date()).getTime()
+        const remainder = time % (1000 * 60 * 60 * 24) >= 0.75 ? 1 : 0
+        const days = Math.trunc(time / (1000 * 60 * 60 * 24)) + remainder
+        const hrs = Math.trunc((time - (days * (1000 * 60 * 60 * 24))) / (1000 * 60 * 60))
+        let mins = Math.trunc((time - (days * (1000 * 60 * 60 * 24)) - (hrs * (1000 * 60 * 60))) /
+          (1000 * 60)) + 1
+
+        if (!days && !hrs && !mins) mins = (date).getTime() > (new Date(rows[0].freeBy)).getTime() ? 1 : -1
+
+        addLog('Reservation cancelled', `$${roomName}$ reservation of${days ? ` &${days} night${
+          days === 1 ? '' : 's'}&` : `${hrs ? ` ${hrs} hr${hrs === 1 ? '' : 's'}` : ''}${
+          mins ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} cancelled by |${username}|`, date1
+        , (-1 * (refundAmount || 0)).toString())
+      } else if (isEditingBooking) {
+        const time0 = (date).getTime() - (new Date(rows[0].freeBy)).getTime()
+        // the plus +-1 min here is due to a consisitent bug, it shouldn't be added *FIX*
+        const time = time0 < 0 ? time0 - (60 * 1000) : time0 + (60 * 1000)
+        const days = Math.trunc(time / (1000 * 60 * 60 * 24))
+        const hrs = Math.trunc((time - (days * (1000 * 60 * 60 * 24))) / (1000 * 60 * 60))
+        const mins = Math.trunc((time - (days * (1000 * 60 * 60 * 24)) - (hrs * (1000 * 60 * 60))) /
+          (1000 * 60))
+
+        addLog('Reservation change', `$${roomName}$ reservation time ${days < 0 || hrs < 0 || mins < 0
+          ? `&reduced& by${days < 0 ? ` &${days * -1} day${days === -1 ? '' : 's'}&` : ''}${hrs < 0 ? ` ${
+          hrs * -1} hr${hrs === -1 ? '' : 's'}` : ''}${mins < 0 ? ` ${mins * -1} min${mins === -1 ? '' : 's'}`
+          : ''}` : `&extended& by${days > 0 ? ` &${days} day${days === 1 ? '' : 's'}&` : ''}${hrs > 0 ? ` ${
+          hrs} hr${hrs === 1 ? '' : 's'}` : ''}${mins > 0 ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} by |${
+          username}|`, date1, days > 0 ? (days * Number(rows[0].origPrice)).toString()
+          : (-1 * (refundAmount || 0)).toString())
+      } else if (isDeskBooking) {
+        addLog('Desk reservation', `$${roomName}$ reserved for &${days} night${days === 1 ? '' : 's'}& by |${
+          username}| for &${nameSave}& ${email ? `on &${email}&` : ''} ${(email && number) ? ` and &${
+          number}&` : number ? `on &${number}&` : ''}`, date1, ((Number(rows[0].origPrice)) *
+          Number(days)).toString())
+      } else {
+        addLog('Online reservation', `$${roomName}$ reserved for &${days} night${Number(days) === 1 ? '' : 's'}&
+          by online booker &${nameSave}& on &${email}&`, date1, ((Number(
+          rows[0].origPrice)) * Number(days)).toString())
+      }
+
+      result.push({
+        id,
+        freeBy: date.toISOString(),
+        bookToken: token,
+        bookName: nameSave,
+        updatedBy: username,
+        updatedAsOf: date1
+      })
     }
-
-    if (!isBooking) {
-      const time = (new Date(rows[0].freeBy)).getTime() - (new Date()).getTime()
-      const remainder = time % (1000 * 60 * 60 * 24) >= 0.75 ? 1 : 0
-      const days = Math.trunc(time / (1000 * 60 * 60 * 24)) + remainder
-      const hrs = Math.trunc((time - (days * (1000 * 60 * 60 * 24))) / (1000 * 60 * 60))
-      let mins = Math.trunc((time - (days * (1000 * 60 * 60 * 24)) - (hrs * (1000 * 60 * 60))) /
-        (1000 * 60)) + 1
-
-      if (!days && !hrs && !mins) mins = (date).getTime() > (new Date(rows[0].freeBy)).getTime() ? 1 : -1
-
-      addLog('Reservation cancelled', `$${roomName}$ reservation of${days ? ` &${days} night${
-        days === 1 ? '' : 's'}&` : `${hrs ? ` ${hrs} hr${hrs === 1 ? '' : 's'}` : ''}${
-        mins ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} cancelled by |${username}|`, date1
-      , (-1 * (refundAmount || 0)).toString())
-    } else if (isEditingBooking) {
-      const time0 = (date).getTime() - (new Date(rows[0].freeBy)).getTime()
-      // the plus +-1 min here is due to a consisitent bug, it shouldn't be added *FIX*
-      const time = time0 < 0 ? time0 - (60 * 1000) : time0 + (60 * 1000)
-      const days = Math.trunc(time / (1000 * 60 * 60 * 24))
-      const hrs = Math.trunc((time - (days * (1000 * 60 * 60 * 24))) / (1000 * 60 * 60))
-      const mins = Math.trunc((time - (days * (1000 * 60 * 60 * 24)) - (hrs * (1000 * 60 * 60))) /
-        (1000 * 60))
-
-      addLog('Reservation change', `$${roomName}$ reservation time ${days < 0 || hrs < 0 || mins < 0
-        ? `&reduced& by${days < 0 ? ` &${days * -1} day${days === -1 ? '' : 's'}&` : ''}${hrs < 0 ? ` ${
-        hrs * -1} hr${hrs === -1 ? '' : 's'}` : ''}${mins < 0 ? ` ${mins * -1} min${mins === -1 ? '' : 's'}`
-        : ''}` : `&extended& by${days > 0 ? ` &${days} day${days === 1 ? '' : 's'}&` : ''}${hrs > 0 ? ` ${
-        hrs} hr${hrs === 1 ? '' : 's'}` : ''}${mins > 0 ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} by |${
-        username}|`, date1, days > 0 ? (days * Number(rows[0].origPrice)).toString()
-        : (-1 * (refundAmount || 0)).toString())
-    } else if (isDeskBooking) {
-      addLog('Desk reservation', `$${roomName}$ reserved for &${days} night${days === 1 ? '' : 's'}& by |${
-        username}| for &${nameSave}& ${email ? `on &${email}&` : ''} ${(email && number) ? ` and &${
-        number}&` : number ? `on &${number}&` : ''}`, date1, ((Number(rows[0].origPrice)) *
-        Number(days)).toString())
-    } else {
-      addLog('Online reservation', `$${roomName}$ reserved for &${days} night${days === 1 ? '' : 's'}& by online
-        booker &${nameSave} on &${email}&`, date1, ((Number(
-        rows[0].origPrice)) * Number(days)).toString())
-    }
-
-    const result = {
-      id,
-      freeBy: date.toISOString(),
-      bookToken: token,
-      bookName: nameSave,
-      updatedBy: username,
-      updatedAsOf: date1
-    }
-
     res.status(200).json((networkResponse('success', result)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
