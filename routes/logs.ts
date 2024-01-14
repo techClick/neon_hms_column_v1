@@ -1,5 +1,5 @@
-import { getSocket } from '..'
-import { client } from './globals/connection'
+import { getSocket, getSocketRoom } from '..'
+import { clientTmp } from './globals/connection'
 import express from 'express'
 import { networkResponse } from './globals/networkResponse'
 import { verify } from './globals/verify'
@@ -9,8 +9,9 @@ export type LogType = 'Desk reservation' | 'Reservation cancelled' | 'Room added
 'Staff logout' | 'Online visitor' | 'Settings change' | 'Online reservation' | 'Room change' | 'Reservation change' |
 'Staff added' | 'Staff removed' | 'Staff change' | 'Price change' | 'Room deleted'
 
-export const addLog = async (type: LogType, message: string, date: Date, value: string) => {
+export const addLog = async (id: number, type: LogType, message: string, date: Date, value: string) => {
   try {
+    const client = clientTmp[id]
     await client.query(`CREATE TABLE IF NOT EXISTS Logs ( id serial PRIMARY KEY, type text, message text,
       date text, value text )`)
     await client.query('INSERT INTO Logs ( type, message, date, value ) VALUES (?, ?, ?, ?)',
@@ -19,8 +20,9 @@ export const addLog = async (type: LogType, message: string, date: Date, value: 
     const rows = await client.query('SELECT id FROM Logs where date = ?', [date.toISOString()])
 
     const socket = getSocket()
-    socket.emit('get_added_log', { id: rows[0].id, type, message, date: date.toISOString(), value })
-    socket.broadcast.emit('get_added_log', { id: rows[0].id, type, message, date: date.toISOString(), value })
+    const socketRoom = getSocketRoom()
+    socket.to(socketRoom).emit('get_added_log', { id: rows[0].id, type, message, date: date.toISOString(), value })
+    socket.broadcast.to(socketRoom).emit('get_added_log', { id: rows[0].id, type, message, date: date.toISOString(), value })
   } catch (e) {
     console.log('Log error: ', e)
   }
@@ -28,6 +30,9 @@ export const addLog = async (type: LogType, message: string, date: Date, value: 
 
 router.get('/getlogs', verify, async (req, res) => {
   try {
+    const id = Number(req.get('hDId'))
+    const client = clientTmp[id]
+
     // await client.query('DROP TABLE IF EXISTS Logs')
     await client.query(`CREATE TABLE IF NOT EXISTS Logs ( id serial PRIMARY KEY, type text, message text,
       date text, value text )`)

@@ -3,7 +3,7 @@ import { sendMail } from './globals/email'
 import { networkResponse } from './globals/networkResponse'
 import express from 'express'
 import { safeVerify, verify } from './globals/verify'
-import { client } from './globals/connection'
+import { clientTmp } from './globals/connection'
 import { addLog } from './logs'
 const router = express.Router()
 
@@ -23,6 +23,9 @@ router.post('/addroom', verify, async (req, res) => {
       perks
     } = req.body
 
+    const id = Number(req.get('hDId'))
+    const client = clientTmp[id]
+
     const rows = await client.query('SELECT name from Rooms WHERE name = ?', [name])
     if (rows.length) {
       return res.status(403).json((networkResponse('error', 'A room with this name exists already')))
@@ -40,7 +43,7 @@ router.post('/addroom', verify, async (req, res) => {
       date.toISOString(), date.toISOString(), date.toISOString(), imgs, username, onHoldHere, perks])
     const rows2 = await client.query('SELECT id from Rooms WHERE name = ?', [name])
 
-    addLog('Room added', `$${name}$ added. At price &NGN${Number(origPrice).toLocaleString()}&
+    addLog(id, 'Room added', `$${name}$ added. At price &NGN${Number(origPrice).toLocaleString()}&
       by |${username}|`, date, 'N/A')
 
     const addedRoom = {
@@ -79,10 +82,15 @@ router.patch('/editroom', verify, async (req, res) => {
       onHold,
       perks
     } = req.body
+
+    const hDId = Number(req.get('hDId'))
+    const client = clientTmp[hDId]
+
     const img = img1 === 'refresh' ? null : img1
     let onHoldHere = onHold
     if (!onHold) onHoldHere = null
     const { username } = req.body.decodedToken
+
     const rows = await client.query(`SELECT name, price, floor, description, origPrice, onHold, perks
       from Rooms WHERE name = ?`, [name])
     if (rows.length && origName !== name) {
@@ -97,7 +105,7 @@ router.patch('/editroom', verify, async (req, res) => {
 
     const priceEdit = Number(rows[0].origPrice) === Number(origPrice) ? null : rows[0].origPrice
     if (priceEdit) {
-      addLog('Price change', `$${name}$ former price was &NGN${Number(priceEdit)
+      addLog(hDId, 'Price change', `$${name}$ former price was &NGN${Number(priceEdit)
         .toLocaleString()}&. New price is &NGN${Number(origPrice).toLocaleString()}&.
         By |${username}|`, date, 'N/A')
     }
@@ -125,7 +133,7 @@ router.patch('/editroom', verify, async (req, res) => {
         : '&removed from hold& status'}. `}`
     ].join('')
     if (edits) {
-      addLog('Room change', `$${name}$ details &changed& by |${username}|._%_Changes are: ${edits}`, date, 'N/A')
+      addLog(hDId, 'Room change', `$${name}$ details &changed& by |${username}|._%_Changes are: ${edits}`, date, 'N/A')
     }
 
     const responseData = {
@@ -152,6 +160,9 @@ router.post('/rooms', safeVerify, async (req, res) => {
   try {
     const { decodedToken, isStaff } = req.body
 
+    const id = Number(req.get('hDId'))
+    const client = clientTmp[id]
+
     // await client.query('DROP TABLE IF EXISTS Rooms')
     await client.query(`CREATE TABLE IF NOT EXISTS Rooms
       ( id serial PRIMARY KEY, name text, description text NULL, price text, origPrice text, img MEDIUMTEXT NULL,
@@ -177,7 +188,7 @@ router.post('/rooms', safeVerify, async (req, res) => {
     const bookedRoom = rows.length - (availableRooms + onHoldRooms)
 
     if (!decodedToken?.username && !isStaff) {
-      addLog('Online visitor', `&${rows.length} room${rows.length === 1 ? '' : 's'}& shown. &${availableRooms}
+      addLog(id, 'Online visitor', `&${rows.length} room${rows.length === 1 ? '' : 's'}& shown. &${availableRooms}
         available& room${availableRooms === 1 ? '' : 's'}${bookedRoom > 0 ? `. &${bookedRoom} room${
         bookedRoom === 1 ? '' : 's'}& booked` : ''}${onHoldRooms > 0 ? `. Rooms &on hold is ${onHoldRooms}&`
         : ''}`,
@@ -186,12 +197,15 @@ router.post('/rooms', safeVerify, async (req, res) => {
 
     res.status(200).json((networkResponse('success', rows)))
   } catch (error) {
+    console.log('HERE', error)
     res.status(500).json((networkResponse('error', error)))
   }
 })
 
 router.get('/roomimages', async (req, res) => {
   try {
+    const id = Number(req.get('hDId'))
+    const client = clientTmp[id]
     const rows = await client.query('SELECT img from Rooms')
     res.status(200).json((networkResponse('success', rows)))
   } catch (error) {
@@ -202,6 +216,10 @@ router.get('/roomimages', async (req, res) => {
 router.post('/roomimage', async (req, res) => {
   try {
     const { id } = req.body
+
+    const hDId = Number(req.get('hDId'))
+    const client = clientTmp[hDId]
+
     const rows = await client.query('SELECT img from Rooms where id = ?', [id])
     res.status(200).json((networkResponse('success', rows[0].img)))
   } catch (error) {
@@ -212,6 +230,10 @@ router.post('/roomimage', async (req, res) => {
 router.post('/bulkimages', async (req, res) => {
   try {
     const { id } = req.body
+
+    const hDId = Number(req.get('hDId'))
+    const client = clientTmp[hDId]
+
     const rows = await client.query('SELECT imgs from Rooms where id = ?', [id])
     res.status(200).json((networkResponse('success', JSON.parse(rows[0].imgs || '[]'))))
   } catch (error) {
@@ -219,7 +241,6 @@ router.post('/bulkimages', async (req, res) => {
   }
 })
 
-const hotelName = process.env.HOTEL_NAME
 type BookEmailDetails = {
   name: string
   days: string
@@ -232,7 +253,7 @@ type BookEmailDetails = {
   token: string
   isDeskBooking: boolean
 }
-const bookMailOptions = (to: string, name: string, details: BookEmailDetails): any => {
+const bookMailOptions = (hotelName: string, to: string, name: string, details: BookEmailDetails): any => {
   return {
     from: 1,
     to,
@@ -351,6 +372,10 @@ router.patch('/book', safeVerify, async (req, res) => {
     const { bookingDetails, decodedToken } = req.body
     const result = []
 
+    const hDId = Number(req.get('hDId'))
+    const hotelName = req.get('hDName')
+    const client = clientTmp[hDId]
+
     for (let i = 0; i < bookingDetails.length; i += 1) {
       const {
         id,
@@ -405,7 +430,7 @@ router.patch('/book', safeVerify, async (req, res) => {
           isDeskBooking
         }
         await sendMail(
-          bookMailOptions(`${email}${email2 ? `, ${email2}` : ''}`, nameSave.split(' ')[0], bookEmailDetails)
+          bookMailOptions(hotelName, `${email}${email2 ? `, ${email2}` : ''}`, nameSave.split(' ')[0], bookEmailDetails)
         )
       }
 
@@ -419,7 +444,7 @@ router.patch('/book', safeVerify, async (req, res) => {
 
         if (!days && !hrs && !mins) mins = (date).getTime() > (new Date(rows[0].freeBy)).getTime() ? 1 : -1
 
-        addLog('Reservation cancelled', `$${roomName}$ reservation of${days ? ` &${days} night${
+        addLog(hDId, 'Reservation cancelled', `$${roomName}$ reservation of${days ? ` &${days} night${
           days === 1 ? '' : 's'}&` : `${hrs ? ` ${hrs} hr${hrs === 1 ? '' : 's'}` : ''}${
           mins ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} cancelled by |${username}|`, date1
         , (-1 * (refundAmount || 0)).toString())
@@ -432,7 +457,7 @@ router.patch('/book', safeVerify, async (req, res) => {
         const mins = Math.trunc((time - (days * (1000 * 60 * 60 * 24)) - (hrs * (1000 * 60 * 60))) /
           (1000 * 60))
 
-        addLog('Reservation change', `$${roomName}$ reservation time ${days < 0 || hrs < 0 || mins < 0
+        addLog(hDId, 'Reservation change', `$${roomName}$ reservation time ${days < 0 || hrs < 0 || mins < 0
           ? `&reduced& by${days < 0 ? ` &${days * -1} day${days === -1 ? '' : 's'}&` : ''}${hrs < 0 ? ` ${
           hrs * -1} hr${hrs === -1 ? '' : 's'}` : ''}${mins < 0 ? ` ${mins * -1} min${mins === -1 ? '' : 's'}`
           : ''}` : `&extended& by${days > 0 ? ` &${days} day${days === 1 ? '' : 's'}&` : ''}${hrs > 0 ? ` ${
@@ -440,12 +465,12 @@ router.patch('/book', safeVerify, async (req, res) => {
           username}|`, date1, days > 0 ? (days * Number(rows[0].origPrice)).toString()
           : (-1 * (refundAmount || 0)).toString())
       } else if (isDeskBooking) {
-        addLog('Desk reservation', `$${roomName}$ reserved for &${days} night${days === 1 ? '' : 's'}& by |${
+        addLog(hDId, 'Desk reservation', `$${roomName}$ reserved for &${days} night${days === 1 ? '' : 's'}& by |${
           username}| for &${nameSave}& ${email ? `on &${email}&` : ''} ${(email && number) ? ` and &${
           number}&` : number ? `on &${number}&` : ''}`, date1, ((Number(rows[0].origPrice)) *
           Number(days)).toString())
       } else {
-        addLog('Online reservation', `$${roomName}$ reserved for &${days} night${Number(days) === 1 ? '' : 's'}&
+        addLog(hDId, 'Online reservation', `$${roomName}$ reserved for &${days} night${Number(days) === 1 ? '' : 's'}&
           by online booker &${nameSave}& on &${email}&`, date1, ((Number(
           rows[0].origPrice)) * Number(days)).toString())
       }
@@ -469,10 +494,13 @@ router.delete('/deleteroom', verify, async (req, res) => {
   try {
     const { decodedToken } = req.body
 
+    const id = Number(req.get('hDId'))
+    const client = clientTmp[id]
+
     const rows = await client.query('SELECT name FROM Rooms where id = ?', [req.body.id])
     await client.query('DELETE FROM Rooms where id = ?', [req.body.id])
 
-    addLog('Room deleted', `&${rows[0].name}& ^deleted^ by |${decodedToken?.username}|`, new Date(), 'N/A')
+    addLog(id, 'Room deleted', `&${rows[0].name}& ^deleted^ by |${decodedToken?.username}|`, new Date(), 'N/A')
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {

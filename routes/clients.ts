@@ -1,9 +1,8 @@
-import type { TypedRequestBody } from './globals/types'
 import { sendMail } from './globals/email'
 import { networkResponse } from './globals/networkResponse'
 import express from 'express'
 import cors from 'cors'
-import { client } from './globals/connection'
+import { clientTmp } from './globals/connection'
 import bcrypt from 'bcryptjs'
 import { safeVerify, verify } from './globals/verify'
 import { addLog } from './logs'
@@ -11,8 +10,7 @@ import { roles } from './auth'
 const router = express.Router()
 router.use(cors())
 
-const hotelName = process.env.HOTEL_NAME
-const registerMailOptions = (path: string, registerKey: string, email: string): any => {
+const registerMailOptions = (hotelName: string, path: string, registerKey: string, email: string): any => {
   return {
     from: 0,
     to: email,
@@ -49,18 +47,15 @@ const registerMailOptions = (path: string, registerKey: string, email: string): 
   }
 }
 
-router.post('/addstaff', safeVerify, async (req: TypedRequestBody<{
-  email: string
-  password: string | null
-  permission: number
-  username: string
-  path: string | null
-  decodedToken: Record<string, any>
-}>, res) => {
+router.post('/addstaff', safeVerify, async (req, res) => {
   try {
     const requestBody = req.body
     const { email, permission, username, path, decodedToken } = requestBody
     const password = requestBody.password ? await bcrypt.hash(requestBody.password, 10) : null
+
+    const id = Number(req.get('hDId') || 1)
+    const hotelName = req.get('hDName')
+    const client = clientTmp[id]
 
     // await client.query('DROP TABLE IF EXISTS Staff')
     await client.query(`CREATE TABLE IF NOT EXISTS Staff ( id serial PRIMARY KEY, email text
@@ -81,10 +76,10 @@ router.post('/addstaff', safeVerify, async (req: TypedRequestBody<{
       const registerKey = Math.random().toString(36).slice(2, 12)
       await client.query('UPDATE Staff SET forgotKey = ? WHERE email= ?',
         [registerKey, email])
-      finalRes = await sendMail(registerMailOptions(path || '', registerKey, email))
+      finalRes = await sendMail(registerMailOptions(hotelName, path || '', registerKey, email))
     }
 
-    addLog('Staff added', `|${username}| &(${roles[Number(permission)]})& added by |${
+    addLog(id, 'Staff added', `|${username}| &(${roles[Number(permission)]})& added by |${
         decodedToken?.username ?? 'Tech CTO'}|`, new Date(), 'N/A')
 
     if (finalRes && !finalRes.accepted) {
@@ -97,15 +92,13 @@ router.post('/addstaff', safeVerify, async (req: TypedRequestBody<{
   }
 })
 
-router.patch('/editstaff', verify, async (req: TypedRequestBody<{
-  email: string
-  permission: string
-  username: string
-  decodedToken: Record<string, any>
-}>, res) => {
+router.patch('/editstaff', verify, async (req, res) => {
   try {
     const requestBody = req.body
     const { email, permission, username, decodedToken } = requestBody
+
+    const id = Number(req.get('hDId'))
+    const client = clientTmp[id]
 
     const rows = await client.query('SELECT username, permission FROM Staff WHERE email = ?', [email])
     await client.query(`UPDATE Staff SET permission = ?, username = ? WHERE 
@@ -116,7 +109,7 @@ router.patch('/editstaff', verify, async (req: TypedRequestBody<{
     const edits = `${!isOldUserName ? `Username changed from &${rows[0].username}&
       to &${username}&. ` : ''}${!isOldUserType ? `User role changed from &${roles[Number(rows[0].permission)]}&
       to &${roles[Number(permission)]}&.` : ''}`
-    addLog('Staff change', `|${username}| &(${roles[Number(permission)]})& details changed by |${
+    addLog(id, 'Staff change', `|${username}| &(${roles[Number(permission)]})& details changed by |${
       decodedToken.username}|_%_Changes: ${edits}`, new Date(), 'N/A')
 
     res.status(200).json((networkResponse('success', true)))
@@ -125,18 +118,18 @@ router.patch('/editstaff', verify, async (req: TypedRequestBody<{
   }
 })
 
-router.delete('/deletestaff', verify, async (req: TypedRequestBody<{
-  email: string
-  decodedToken: Record<string, any>
-}>, res) => {
+router.delete('/deletestaff', verify, async (req, res) => {
   try {
     const requestBody = req.body
     const { email, decodedToken } = requestBody
 
+    const id = Number(req.get('hDId'))
+    const client = clientTmp[id]
+
     const rows = await client.query('SELECT username, permission FROM Staff WHERE email = ?', [email])
     await client.query('DELETE FROM Staff WHERE email = ?', [email])
 
-    addLog('Staff removed', `&${rows[0].username} (${roles[Number(rows[0].permission)]})&'s access ^revoked^ by |${
+    addLog(id, 'Staff removed', `&${rows[0].username} (${roles[Number(rows[0].permission)]})&'s access ^revoked^ by |${
       decodedToken.username}|`, new Date(), 'N/A')
 
     res.status(200).json((networkResponse('success', true)))
@@ -146,7 +139,7 @@ router.delete('/deletestaff', verify, async (req: TypedRequestBody<{
 })
 
 let saveForgotKeyTimeout: any
-const forgotKeyMailOptions = (path: string, forgotKey: string, email: string): any => {
+const forgotKeyMailOptions = (hotelName, path: string, forgotKey: string, email: string): any => {
   return {
     from: 0,
     to: email,
@@ -185,14 +178,15 @@ const forgotKeyMailOptions = (path: string, forgotKey: string, email: string): a
   }
 }
 
-router.post('/forgot', async (req: TypedRequestBody<{
-  email: string
-  path: string
-  isRegister: boolean | null
-}>, res) => {
+router.post('/forgot', async (req, res) => {
   try {
     const requestBody = req.body
     const { email, path, isRegister } = requestBody
+
+    const id = Number(req.get('hDId'))
+    const hotelName = req.get('hDName')
+    const client = clientTmp[id]
+
     const rows = await client.query('SELECT email, password, forgotKey from Staff WHERE email = ?', [email])
     if (!rows?.length) {
       return res.status(403).json((networkResponse('error', 'Email is not registered.')))
@@ -219,9 +213,9 @@ router.post('/forgot', async (req: TypedRequestBody<{
       saveForgotKeyTimeout = setTimeout(async () => {
         await client.query('UPDATE Staff SET forgotKey = NULL WHERE email = ?', [email])
       }, 1000 * 60 * 10)
-      await sendMail(forgotKeyMailOptions(path, forgotKey, email))
+      await sendMail(forgotKeyMailOptions(hotelName, path, forgotKey, email))
     } else {
-      await sendMail(registerMailOptions(path, forgotKey, email))
+      await sendMail(registerMailOptions(hotelName, path, forgotKey, email))
     }
 
     res.status(200).json((networkResponse('success', true)))
@@ -230,7 +224,7 @@ router.post('/forgot', async (req: TypedRequestBody<{
   }
 })
 
-const resetPassMailOptions = (email: string) => {
+const resetPassMailOptions = (hotelName, email: string) => {
   return {
     from: 0,
     to: email,
@@ -249,16 +243,15 @@ const resetPassMailOptions = (email: string) => {
   }
 }
 
-router.post('/setpassword', async (req: TypedRequestBody<{
-  email: string
-  password: string
-  key: string
-  isRegister: boolean | null
-}>, res) => {
+router.post('/setpassword', async (req, res) => {
   try {
     const requestBody = req.body
     const { email, key, isRegister } = requestBody
     const password = await bcrypt.hash(requestBody.password, 10)
+
+    const id = Number(req.get('hDId'))
+    const hotelName = req.get('hDName')
+    const client = clientTmp[id]
 
     const rows = await client.query('SELECT email from Staff WHERE email = ?', [email])
     if (!rows.length) {
@@ -282,7 +275,7 @@ router.post('/setpassword', async (req: TypedRequestBody<{
     await client.query('UPDATE Staff SET password = ?, forgotKey = NULL WHERE email = ?',
       [password, email])
 
-    if (!isRegister) await sendMail(resetPassMailOptions(email))
+    if (!isRegister) await sendMail(resetPassMailOptions(hotelName, email))
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {

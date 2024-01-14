@@ -10,6 +10,7 @@ import { info } from './routes/info'
 import { transactions } from './routes/transactions'
 import { webhook } from './routes/webhook'
 import { logs } from './routes/logs'
+import { master } from './routes/master'
 import http from 'http'
 
 // change ira
@@ -47,10 +48,11 @@ const allowCors = (req, res, next) => {
 }
 app.all('*', allowCors);
 
-[clients, auth, qtAuth, rooms, info, transactions, webhook, logs]
+[clients, auth, qtAuth, rooms, info, transactions, webhook, logs, master]
   .map((endPoint) => app.use('/', endPoint))
 
 const server = http.createServer(app)
+// server.setTimeout(400000)
 
 const io = new Server(server, {
   cors: {
@@ -65,30 +67,37 @@ const io = new Server(server, {
 
 let socketInUse: any = null
 export const getSocket = () => socketInUse
+let socketRoom: string = 'no_join'
+export const getSocketRoom = () => socketRoom
 
 io.on('connection', (socket) => {
+  socket.on('join_room', (room) => {
+    socketRoom = room
+    socket.join(room)
+  })
+
   socket.on('book_room', (room) => {
-    socket.broadcast.emit('get_booked_room', room)
+    socket.broadcast.to(socketRoom).emit('get_booked_room', room)
   })
 
   socket.on('add_room', (room) => {
-    socket.broadcast.emit('get_added_room', room)
+    socket.broadcast.to(socketRoom).emit('get_added_room', room)
   })
 
   socket.on('edit_room', (room) => {
-    socket.broadcast.emit('get_edited_room', room)
+    socket.broadcast.to(socketRoom).emit('get_edited_room', room)
   })
 
   socket.on('delete_room', (id) => {
-    socket.broadcast.emit('get_deleted_room', id)
+    socket.broadcast.to(socketRoom).emit('get_deleted_room', id)
   })
 
   socket.on('revoke_staff', (username) => {
-    socket.broadcast.emit('get_revoked_staff', username)
+    socket.broadcast.to(socketRoom).emit('get_revoked_staff', username)
   })
 
   socket.on('add_log', (room) => {
-    socket.broadcast.emit('get_added_log', room)
+    socket.broadcast.to(socketRoom).emit('get_added_log', room)
   })
 
   socketInUse = socket

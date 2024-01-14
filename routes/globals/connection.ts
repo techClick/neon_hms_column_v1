@@ -4,27 +4,30 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 dotenv.config({ path: '.env.local', override: true })
+const query = []
 
-const conn = mysql.createPool({
-  host: process.env.MYS_SECRET_HOST,
-  user: process.env.MYS_DBUSER,
-  port: process.env.MYS_DBPORT,
-  password: process.env.MYS_SECRET_PASSWORD,
-  database: process.env.MYS_DB
+for (let i = 1; i < 2; i += 1) {
+  const conn0 = mysql.createPool({
+    host: process.env.MYS_SECRET_HOST,
+    user: process.env.MYS_DBUSER,
+    port: process.env.MYS_DBPORT,
+    password: process.env.MYS_SECRET_PASSWORD,
+    database: `hoteldb${i}`
+  })
+
+  query.push(util.promisify(conn0.query).bind(conn0))
+}
+
+const conn1 = mysql.createPool({
+  host: process.env.MYS_SECRET_HOST2,
+  user: process.env.MYS_DBUSER2,
+  port: process.env.MYS_DBPORT2,
+  password: process.env.MYS_SECRET_PASSWORD2,
+  database: process.env.MYS_DB2
 })
 
-const query = util.promisify(conn.query).bind(conn)
+const query2 = util.promisify(conn1.query).bind(conn1)
 
-const conn2 = mysql.createPool({
-  host: process.env.MYS_SECRET_HOST,
-  user: process.env.MYS_DBUSER,
-  port: process.env.MYS_DBPORT,
-  password: process.env.MYS_SECRET_PASSWORD,
-  database: process.env.MYS_DB
-})
-
-const query2 = util.promisify(conn2.query).bind(conn2)
-
-const client = { query }
+const clientTmp = [{}, ...query].map((q) => { return { query: q } })
 const neonClient = { query: query2 }
-export { client, neonClient }
+export { clientTmp, neonClient }

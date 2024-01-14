@@ -1,5 +1,5 @@
 import { convertDate } from './dates'
-import { client, neonClient } from './connection'
+import { neonClient } from './connection'
 import Flutterwave from 'flutterwave-node-v3'
 
 const flw = new Flutterwave(process.env.FV_PUBLIC_KEY, process.env.FV_SECRET_KEY)
@@ -52,14 +52,9 @@ export const transferToHotel =
         return false
       }
 
-      const result = await client.query(`SELECT increment from Rooms where name=${roomName}`)
-
-      if (!result?.rows?.[0]?.increment) {
-        return false
-      }
-      const amountCalc = amountTmp - result.rows[0].increment
+      const amountCalc = amountTmp
       const amountToSendHotel = amountCalc - (amountCalc * (Number(process.env.COMMISION || 0) / 100))
-      console.log('amountToSendHotel', amountToSendHotel, amountCalc, result.rows[0].increment)
+      console.log('amountToSendHotel', amountToSendHotel, amountCalc)
 
       const details = {
         account_bank: process.env.HOTEL_ACC_BANK,
