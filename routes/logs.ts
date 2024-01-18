@@ -1,4 +1,4 @@
-import { getSocket, getSocketRoom } from '..'
+import { getSocket } from '..'
 import { clientTmp } from './globals/connection'
 import express from 'express'
 import { networkResponse } from './globals/networkResponse'
@@ -20,9 +20,8 @@ export const addLog = async (id: number, type: LogType, message: string, date: D
     const rows = await client.query('SELECT id FROM Logs where date = ?', [date.toISOString()])
 
     const socket = getSocket()
-    const socketRoom = getSocketRoom()
-    socket.to(socketRoom).emit('get_added_log', { id: rows[0].id, type, message, date: date.toISOString(), value })
-    socket.broadcast.to(socketRoom).emit('get_added_log', { id: rows[0].id, type, message, date: date.toISOString(), value })
+    socket.to(`room${id}`).emit('get_added_log', { id: rows[0].id, type, message, date: date.toISOString(), value })
+    socket.broadcast.to(`room${id}`).emit('get_added_log', { id: rows[0].id, type, message, date: date.toISOString(), value })
   } catch (e) {
     console.log('Log error: ', e)
   }

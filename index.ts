@@ -25,6 +25,10 @@ const corsOptions = {
   origin: [
     `https://www.${process.env.CLIENT_URL.split('https://')[1] || ''}`,
     process.env.CLIENT_URL,
+    'https://www.lodgefirst.com',
+    'https://lodgefirst.com',
+    'https://www.lodgerbee.com',
+    'https://lodgerbee.com',
     process.env.ENVIRONMENT === 'development' ? process.env.MOBILE_URL : ''
   ],
   methods: 'GET,PUT,POST,PATCH,DELETE'
@@ -59,6 +63,10 @@ const io = new Server(server, {
     origin: [
       `https://www.${process.env.CLIENT_URL.split('https://')[1] || ''}`,
       process.env.CLIENT_URL,
+      'https://www.lodgefirst.com',
+      'https://lodgefirst.com',
+      'https://www.lodgerbee.com',
+      'https://lodgerbee.com',
       process.env.ENVIRONMENT === 'development' ? process.env.MOBILE_URL : ''
     ],
     methods: ['GET', 'POST', 'PATCH', 'DELETE']
@@ -67,37 +75,34 @@ const io = new Server(server, {
 
 let socketInUse: any = null
 export const getSocket = () => socketInUse
-let socketRoom: string = 'no_join'
-export const getSocketRoom = () => socketRoom
 
 io.on('connection', (socket) => {
   socket.on('join_room', (room) => {
-    socketRoom = room
     socket.join(room)
   })
 
-  socket.on('book_room', (room) => {
-    socket.broadcast.to(socketRoom).emit('get_booked_room', room)
+  socket.on('book_room', ({ roomId, room }) => {
+    socket.broadcast.to(roomId).emit('get_booked_room', room)
   })
 
-  socket.on('add_room', (room) => {
-    socket.broadcast.to(socketRoom).emit('get_added_room', room)
+  socket.on('add_room', ({ roomId, room }) => {
+    socket.broadcast.to(roomId).emit('get_added_room', room)
   })
 
-  socket.on('edit_room', (room) => {
-    socket.broadcast.to(socketRoom).emit('get_edited_room', room)
+  socket.on('edit_room', ({ roomId, room }) => {
+    socket.broadcast.to(roomId).emit('get_edited_room', room)
   })
 
-  socket.on('delete_room', (id) => {
-    socket.broadcast.to(socketRoom).emit('get_deleted_room', id)
+  socket.on('delete_room', ({ roomId, id }) => {
+    socket.broadcast.to(roomId).emit('get_deleted_room', id)
   })
 
-  socket.on('revoke_staff', (username) => {
-    socket.broadcast.to(socketRoom).emit('get_revoked_staff', username)
+  socket.on('revoke_staff', ({ roomId, username }) => {
+    socket.broadcast.to(roomId).emit('get_revoked_staff', username)
   })
 
-  socket.on('add_log', (room) => {
-    socket.broadcast.to(socketRoom).emit('get_added_log', room)
+  socket.on('add_log', ({ roomId, room }) => {
+    socket.broadcast.to(roomId).emit('get_added_log', room)
   })
 
   socketInUse = socket

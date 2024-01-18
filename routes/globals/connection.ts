@@ -6,24 +6,24 @@ dotenv.config()
 dotenv.config({ path: '.env.local', override: true })
 const query = []
 
-for (let i = 1; i < 2; i += 1) {
+for (let i = 1; i < 3; i += 1) {
   const conn0 = mysql.createPool({
-    host: process.env.MYS_SECRET_HOST,
-    user: process.env.MYS_DBUSER,
-    port: process.env.MYS_DBPORT,
+    host: process.env.MYS_HOST,
+    user: process.env.MYS_SECRET_DBUSER,
+    port: 3306,
     password: process.env.MYS_SECRET_PASSWORD,
-    database: `hoteldb${i}`
+    database: `neonhmsc_hoteldb${i}`
   })
 
   query.push(util.promisify(conn0.query).bind(conn0))
 }
 
 const conn1 = mysql.createPool({
-  host: process.env.MYS_SECRET_HOST2,
-  user: process.env.MYS_DBUSER2,
-  port: process.env.MYS_DBPORT2,
-  password: process.env.MYS_SECRET_PASSWORD2,
-  database: process.env.MYS_DB2
+  host: process.env.MYS_HOST,
+  user: process.env.MYS_SECRET_DBUSER,
+  port: 3306,
+  password: process.env.MYS_SECRET_PASSWORD,
+  database: 'neonhmsc_lodgegroup'
 })
 
 const query2 = util.promisify(conn1.query).bind(conn1)

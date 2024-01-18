@@ -36,10 +36,21 @@ router.post('/gethotel', async (req, res) => {
   try {
     const { name } = req.body
 
-    const rows = await neonClient.query('SELECT * from Hotels where name = ?', [name])
+    const rows = await neonClient.query('SELECT * from Hotels where nameSave = ?',
+      [name.toLowerCase().split(' ').join('')])
     if (!rows.length) {
-      return res.status(403).json((networkResponse('error', 'No such hotel')))
+      return res.status(403).json((networkResponse('error', 'Name not found')))
     }
+    res.status(200).json((networkResponse('success', rows)))
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.get('/gethotels', async (req, res) => {
+  try {
+    const rows = await neonClient.query(`SELECT id, nameSave, email,
+      name, address, phoneNumber, linkedin, facebook from Hotels`)
     res.status(200).json((networkResponse('success', rows)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
