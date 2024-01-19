@@ -53,7 +53,7 @@ router.post('/addstaff', safeVerify, async (req, res) => {
     const { email, permission, username, path, decodedToken } = requestBody
     const password = requestBody.password ? await bcrypt.hash(requestBody.password, 10) : null
 
-    const id = Number(req.get('hDId') || 1)
+    const id = Number(req.get('hDId'))
     const hotelName = req.get('hDName')
     const client = clientTmp[id]
 

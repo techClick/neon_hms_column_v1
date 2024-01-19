@@ -110,7 +110,7 @@ io.on('connection', (socket) => {
   })
 })
 
-const port = process.env.PORT || 8000
+const port = process.env.PORT || 8200
 
 server.listen(port, () => {
   console.log(`Listening on port ${port}`)

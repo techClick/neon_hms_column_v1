@@ -15,5 +15,6 @@
   //   "lib": ["DOM"],
   //   "noImplicitAny": false
   },
-  "include": [".eslintrc.js", "babel.config.js", "*.ts", "routes/*.ts", "routes/globals/*.ts", "index.ts"]
+  "include": [".eslintrc.js", "babel.config.js", "webpack.config.js", "*.ts", "routes/*.ts"
+    , "routes/globals/*.ts", "index.ts"]
 }
