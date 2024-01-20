@@ -37,8 +37,8 @@ jobs:
         run: |
           touch build/.env
           cp .env build/.env
-          echo -e "\nCLIENT_URL=${{ vars.CLIENT_URL }}" >> build/.env
-          echo ENVIRONMENT=${{ vars.ENVIRONMENT }} >> build/.env
+          echo -e "\nENVIRONMENT=${{ vars.ENVIRONMENT }}" >> build/.env
+          echo CLIENT_URL=${{ vars.CLIENT_URL }} >> build/.env
           echo MYS_HOST=${{ vars.HOST }} >> build/.env
           echo MYS_SECRET_DBUSER=${{ secrets.DBUSER }} >> build/.env
           echo MYS_SECRET_PASSWORD=${{ secrets.DBPASS }} >> build/.env

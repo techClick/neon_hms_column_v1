@@ -175,7 +175,8 @@ router.post('/rooms', safeVerify, async (req, res) => {
     let onHoldRooms: number = 0
     rows.forEach((r, i) => {
       const price = rows[i].origPrice
-      const addition = Number(price) >= 50000 ? 500 : 300
+      // const addition = Number(price) >= 50000 ? 500 : 300
+      const addition = Math.ceil((Number(price) * (4 / 100)) / 100) * 100
       const realPrice = Number(price) + addition
       rows[i] = { ...rows[i], price: realPrice.toString(), perks: JSON.parse(rows[i].perks) }
       const { freeBy, onHold } = rows[i]

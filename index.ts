@@ -117,7 +117,7 @@ server.listen(port, () => {
 })
 
 app.get('/', (req, res) => {
-  res.status(200).json(({ ree: `TS_NODE_2005 https://www.${process.env.CLIENT_URL.split('https://')[1]}` }))
+  res.status(200).json(({ ree: `TS_NODE_3215 https://www.${process.env.CLIENT_URL.split('https://')[1]}` }))
 })
 
 export { server }

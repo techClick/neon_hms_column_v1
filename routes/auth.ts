@@ -36,7 +36,6 @@ router.post('/auth', async (req, res) => {
     res.status(200).json((networkResponse('success',
       { token, permission: rows[0].permission, username: rows[0].username })))
   } catch (error) {
-    console.log(error)
     res.status(500).json((networkResponse('error', error)))
   }
 })
@@ -44,7 +43,8 @@ router.post('/auth', async (req, res) => {
 router.get('/verify', verify, (req: TypedRequestBody<{
   decodedToken: any
 }>, res) => {
-  res.status(200).json((networkResponse('success', req.body.decodedToken?.exp)))
+  const { exp } = req.body.decodedToken
+  res.status(200).json((networkResponse('success', exp)))
 })
 
 router.get('/refresh', verify, (req: TypedRequestBody<{
