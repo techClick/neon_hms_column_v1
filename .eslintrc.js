@@ -37,6 +37,7 @@ module.exports = {
       "@typescript-eslint/consistent-type-assertions": 0,
       "@typescript-eslint/await-thenable": 0,
       "@typescript-eslint/return-await": 0,
-      "@typescript-eslint/no-floating-promises": 0
+      "@typescript-eslint/no-floating-promises": 0,
+      "@typescript-eslint/ban-types": 0
     }
 }

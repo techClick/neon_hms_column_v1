@@ -59,8 +59,7 @@ router.post('/addstaff', safeVerify, async (req, res) => {
 
     // await client.query('DROP TABLE IF EXISTS Staff')
     await client.query(`CREATE TABLE IF NOT EXISTS Staff ( id serial PRIMARY KEY, email text
-      , password text NULL, permission integer, username text,
-      forgotKey text NULL )`)
+      , password text NULL, permission integer, username text, forgotKey text NULL )`)
 
     const rows = await client.query('SELECT email from Staff where email = ?', [email.toLowerCase()])
     if (rows.length) {

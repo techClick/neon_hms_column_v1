@@ -73,8 +73,8 @@ const io = new Server(server, {
   }
 })
 
-let socketInUse: any = null
-export const getSocket = () => socketInUse
+let socketFunction: Function
+export const getSocketFunction = () => socketFunction
 
 io.on('connection', (socket) => {
   socket.on('join_room', (room) => {
@@ -101,11 +101,10 @@ io.on('connection', (socket) => {
     socket.broadcast.to(roomId).emit('get_revoked_staff', username)
   })
 
-  socket.on('add_log', ({ roomId, room }) => {
-    socket.broadcast.to(roomId).emit('get_added_log', room)
-  })
+  socketFunction = ({ roomId, log }) => {
+    io.to(roomId).emit('get_added_log', log)
+  }
 
-  socketInUse = socket
   socket.on('disconnect', () => {
   })
 })

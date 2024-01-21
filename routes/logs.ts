@@ -1,8 +1,8 @@
-import { getSocket } from '..'
 import { clientTmp } from './globals/connection'
 import express from 'express'
 import { networkResponse } from './globals/networkResponse'
 import { verify } from './globals/verify'
+import { getSocketFunction } from '..'
 const router = express.Router()
 
 export type LogType = 'Desk reservation' | 'Reservation cancelled' | 'Room added' | 'Staff logged in' |
@@ -19,9 +19,10 @@ export const addLog = async (id: number, type: LogType, message: string, date: D
 
     const rows = await client.query('SELECT id FROM Logs where date = ?', [date.toISOString()])
 
-    const socket = getSocket()
-    socket.to(`room${id}`).emit('get_added_log', { id: rows[0].id, type, message, date: date.toISOString(), value })
-    socket.broadcast.to(`room${id}`).emit('get_added_log', { id: rows[0].id, type, message, date: date.toISOString(), value })
+    const socketEmitFunc = getSocketFunction()
+    const log = { id: rows[0].id, type, message, date: date.toISOString(), value }
+    const roomId = `room${id}`
+    socketEmitFunc({ roomId, log })
   } catch (e) {
     console.log('Log error: ', e)
   }

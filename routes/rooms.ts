@@ -132,6 +132,7 @@ router.patch('/editroom', verify, async (req, res) => {
       `${isOldOnHold ? '' : `Room was ${onHold ? 'put &on hold&'
         : '&removed from hold& status'}. `}`
     ].join('')
+
     if (edits) {
       addLog(hDId, 'Room change', `$${name}$ details &changed& by |${username}|._%_Changes are: ${edits}`, date, 'N/A')
     }
@@ -166,17 +167,17 @@ router.post('/rooms', safeVerify, async (req, res) => {
     // await client.query('DROP TABLE IF EXISTS Rooms')
     await client.query(`CREATE TABLE IF NOT EXISTS Rooms
       ( id serial PRIMARY KEY, name text, description text NULL, price text, origPrice text, img MEDIUMTEXT NULL,
-      freeBy text, onHold text NULL, bookToken text NULL, bookName text NULL, createdOn text,
-      perks text, updatedAsOf text, updatedBy text, imgs LONGTEXT NULL, floor text)`)
-    const rows = await client.query(`SELECT id, name, description, price, origPrice, freeBy, onHold,
-      bookToken, bookName, createdOn, updatedAsOf, updatedBy, perks, floor from Rooms`)
+      freeBy text, onHold text NULL, bookToken text NULL, bookName text NULL, createdOn text, bookerNumber text NULL,
+      bookerEmail text NULL, perks text, updatedAsOf text, updatedBy text, imgs LONGTEXT NULL, floor text)`)
+    const rows = await client.query(`SELECT id, name, description, price, origPrice, freeBy, onHold, bookerNumber,
+      bookerEmail, bookToken, bookName, createdOn, updatedAsOf, updatedBy, perks, floor from Rooms`)
 
     let availableRooms: number = 0
     let onHoldRooms: number = 0
     rows.forEach((r, i) => {
       const price = rows[i].origPrice
       // const addition = Number(price) >= 50000 ? 500 : 300
-      const addition = Math.ceil((Number(price) * (4 / 100)) / 100) * 100
+      const addition = (Math.ceil((Number(price) * (4 / 100)) / 100) * 100) + 500
       const realPrice = Number(price) + addition
       rows[i] = { ...rows[i], price: realPrice.toString(), perks: JSON.parse(rows[i].perks) }
       const { freeBy, onHold } = rows[i]
@@ -198,7 +199,6 @@ router.post('/rooms', safeVerify, async (req, res) => {
 
     res.status(200).json((networkResponse('success', rows)))
   } catch (error) {
-    console.log('HERE', error)
     res.status(500).json((networkResponse('error', error)))
   }
 })
@@ -414,8 +414,9 @@ router.patch('/book', safeVerify, async (req, res) => {
       const rows = await client.query('SELECT freeBy, origPrice FROM Rooms where id = ?', [id])
       const username = decodedToken?.username ?? 'Online booker'
 
-      await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ? 
-        where id = ?`, [token, nameSave, date.toISOString(), username, date1.toISOString(), id])
+      await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ?, 
+        bookerEmail = ?, bookerNumber = ? where id = ?`, [token, nameSave, date.toISOString(), username,
+        date1.toISOString(), email, number, id])
 
       if (email) {
         const bookEmailDetails: BookEmailDetails = {
@@ -482,7 +483,9 @@ router.patch('/book', safeVerify, async (req, res) => {
         bookToken: token,
         bookName: nameSave,
         updatedBy: username,
-        updatedAsOf: date1
+        updatedAsOf: date1,
+        bookerNumber: number,
+        bookerEmail: email
       })
     }
     res.status(200).json((networkResponse('success', result)))
