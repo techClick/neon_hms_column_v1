@@ -25,11 +25,14 @@ router.post('/addhotel', async (req, res) => {
       return res.status(403).json((networkResponse('error', 'Information exists already')))
     }
 
+    const date = new Date()
+    date.setFullYear(date.getFullYear() + 1)
+
     await neonClient.query(`INSERT INTO Hotels (nameSave, name, address, phoneNumber, linkedin, facebook, twitter,
       instagram, accNumber, accName, accCode1, accCode2, updatedBy, updatedAsOf, email, logo, expires ) VALUES (?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name, address, phoneNumber, linkedin,
       facebook, twitter, instagram, accNumber, accName, accCode1, accCode2, 'Tech CTO', new Date().toISOString(),
-      email.toLowerCase(), logo, new Date().toISOString()])
+      email.toLowerCase(), logo, date.toISOString()])
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
