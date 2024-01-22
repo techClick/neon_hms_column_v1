@@ -30,7 +30,7 @@ router.post('/addhotel', async (req, res) => {
 
     await neonClient.query(`INSERT INTO Hotels (nameSave, name, address, phoneNumber, linkedin, facebook, twitter,
       instagram, accNumber, accName, accCode1, accCode2, updatedBy, updatedAsOf, email, logo, expires ) VALUES (?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name, address, phoneNumber, linkedin,
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name, address, phoneNumber, linkedin,
       facebook, twitter, instagram, accNumber, accName, accCode1, accCode2, 'Tech CTO', new Date().toISOString(),
       email.toLowerCase(), logo, date.toISOString()])
 
