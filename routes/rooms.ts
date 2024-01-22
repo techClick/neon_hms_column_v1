@@ -134,7 +134,7 @@ router.patch('/editroom', verify, async (req, res) => {
     ].join('')
 
     if (edits) {
-      addLog(hDId, 'Room change', `$${name}$ details &changed& by |${username}|._%_Changes are: ${edits}`, date, 'N/A')
+      addLog(hDId, 'Room change', `$${name}$ details &changed& by |${username}|. Changes are: ${edits}`, date, 'N/A')
     }
 
     const responseData = {
