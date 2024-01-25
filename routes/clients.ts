@@ -212,9 +212,9 @@ router.post('/forgot', async (req, res) => {
       saveForgotKeyTimeout = setTimeout(async () => {
         await client.query('UPDATE Staff SET forgotKey = NULL WHERE email = ?', [email])
       }, 1000 * 60 * 10)
-      await sendMail(forgotKeyMailOptions(hotelName, path, forgotKey, email))
+      await sendMail(hotelName, forgotKeyMailOptions(hotelName, path, forgotKey, email))
     } else {
-      await sendMail(registerMailOptions(hotelName, path, forgotKey, email))
+      await sendMail(hotelName, registerMailOptions(hotelName, path, forgotKey, email))
     }
 
     res.status(200).json((networkResponse('success', true)))

@@ -25,12 +25,12 @@ let mailOptions = {
     </div>`
 }
 
-const froms = [
-  `"${process.env.HOTEL_NAME} - Neon HMS" ${process.env.EMAIL_SENDER}`,
-  `"${process.env.HOTEL_NAME} - Reservations" ${process.env.EMAIL_SENDER}`
+const froms = (hotelName: string) => [
+  `"${hotelName} - LodgeFirst" ${process.env.EMAIL_SENDER}`,
+  `"${hotelName} - Reservations" ${process.env.EMAIL_SENDER}`
 ]
-export const sendMail = async (options?: typeof mailOptions): Promise<any> => {
-  if (options) options = { ...options, from: froms[options.from || 0] }
+export const sendMail = async (hotelName: string, options?: typeof mailOptions): Promise<any> => {
+  if (options) options = { ...options, from: froms(hotelName)[options.from || 0] }
   mailOptions = { ...mailOptions, ...options }
   const res = await transporter.sendMail(mailOptions)
   return res

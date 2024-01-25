@@ -432,6 +432,7 @@ router.patch('/book', safeVerify, async (req, res) => {
           isDeskBooking
         }
         await sendMail(
+          hotelName,
           bookMailOptions(hotelName, `${email}${email2 ? `, ${email2}` : ''}`, nameSave.split(' ')[0], bookEmailDetails)
         )
       }
