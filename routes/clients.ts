@@ -274,7 +274,7 @@ router.post('/setpassword', async (req, res) => {
     await client.query('UPDATE Staff SET password = ?, forgotKey = NULL WHERE email = ?',
       [password, email])
 
-    if (!isRegister) await sendMail(resetPassMailOptions(hotelName, email))
+    if (!isRegister) await sendMail(hotelName, resetPassMailOptions(hotelName, email))
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {

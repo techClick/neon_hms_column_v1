@@ -414,9 +414,14 @@ router.patch('/book', safeVerify, async (req, res) => {
       const rows = await client.query('SELECT freeBy, origPrice FROM Rooms where id = ?', [id])
       const username = decodedToken?.username ?? 'Online booker'
 
-      await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ?, 
-        bookerEmail = ?, bookerNumber = ? where id = ?`, [token, nameSave, date.toISOString(), username,
-        date1.toISOString(), email, number.toString(), id])
+      if (isEditingBooking) {
+        await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ?, 
+          where id = ?`, [token, nameSave, date.toISOString(), username, date1.toISOString(), id])
+      } else {
+        await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ?, 
+          bookerEmail = ?, bookerNumber = ? where id = ?`, [token, nameSave, date.toISOString(), username,
+          date1.toISOString(), email, number.toString(), id])
+      }
 
       if (email) {
         const bookEmailDetails: BookEmailDetails = {
