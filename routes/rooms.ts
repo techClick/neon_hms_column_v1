@@ -416,7 +416,7 @@ router.patch('/book', safeVerify, async (req, res) => {
 
       await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ?, 
         bookerEmail = ?, bookerNumber = ? where id = ?`, [token, nameSave, date.toISOString(), username,
-        date1.toISOString(), email, number, id])
+        date1.toISOString(), email, number.toString(), id])
 
       if (email) {
         const bookEmailDetails: BookEmailDetails = {
