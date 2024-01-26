@@ -57,8 +57,8 @@ router.get('/postpayment', async (req, res, next) => {
       }
     }
 
-    res.writeHead(201, {
-      Location: `https://lodgerbee.com/rooms/${verifyStatus}`
+    res.writeHead(301, {
+      Location: `${process.env.CLIENT_URL}/rooms/${verifyStatus}`
     }).end()
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))

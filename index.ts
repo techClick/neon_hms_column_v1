@@ -13,8 +13,6 @@ import { logs } from './routes/logs'
 import { master } from './routes/master'
 import http from 'http'
 
-// change ira
-
 const app = express()
 app.use(express.json({ limit: '30mb' }))
 app.use(express.urlencoded({ extended: true, limit: '30mb' }))
