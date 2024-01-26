@@ -420,7 +420,7 @@ router.patch('/book', safeVerify, async (req, res) => {
       } else {
         await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ?, 
           bookerEmail = ?, bookerNumber = ? where id = ?`, [token, nameSave, date.toISOString(), username,
-          date1.toISOString(), email, number.toString(), id])
+          date1.toISOString(), email, number?.toString(), id])
       }
 
       if (email) {
