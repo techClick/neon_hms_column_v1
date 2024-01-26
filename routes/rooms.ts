@@ -415,7 +415,7 @@ router.patch('/book', safeVerify, async (req, res) => {
       const username = decodedToken?.username ?? 'Online booker'
 
       if (isEditingBooking) {
-        await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ?, 
+        await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ? 
           where id = ?`, [token, nameSave, date.toISOString(), username, date1.toISOString(), id])
       } else {
         await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ?, 
@@ -483,7 +483,7 @@ router.patch('/book', safeVerify, async (req, res) => {
           rows[0].origPrice)) * Number(days)).toString())
       }
 
-      result.push({
+      const result0 = {
         id,
         freeBy: date.toISOString(),
         bookToken: token,
@@ -492,7 +492,10 @@ router.patch('/book', safeVerify, async (req, res) => {
         updatedAsOf: date1,
         bookerNumber: number,
         bookerEmail: email
-      })
+      }
+      if (!number) delete result0.bookerNumber
+      if (!email) delete result0.bookerEmail
+      result.push(result0)
     }
     res.status(200).json((networkResponse('success', result)))
   } catch (error) {
