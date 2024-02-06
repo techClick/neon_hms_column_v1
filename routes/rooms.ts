@@ -459,7 +459,7 @@ router.patch('/book', safeVerify, async (req, res) => {
       } else if (isEditingBooking) {
         const time0 = (date).getTime() - (new Date(rows[0].freeBy)).getTime()
         // the plus -1 min here is due to a consisitent bug, it shouldn't be added *FIX*
-        const time = time0 < 0 ? time0 - (60 * 1000) : time0
+        const time = time0 // time0 < 0 ? time0 - (60 * 1000) : time0
         const days = Math.trunc(time / (1000 * 60 * 60 * 24))
         const hrs = Math.trunc((time - (days * (1000 * 60 * 60 * 24))) / (1000 * 60 * 60))
         const mins = Math.trunc((time - (days * (1000 * 60 * 60 * 24)) - (hrs * (1000 * 60 * 60))) /
