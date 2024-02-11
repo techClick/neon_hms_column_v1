@@ -385,6 +385,8 @@ router.patch('/book', safeVerify, async (req, res) => {
         hours,
         mins,
         secs,
+        milliSecs,
+        bookDate,
         price,
         roomName,
         token,
@@ -398,17 +400,20 @@ router.patch('/book', safeVerify, async (req, res) => {
 
       const isBooking = ((days && Number(days) > 0) ||
         (hours && Number(hours) > 0) ||
-        (mins && Number(mins) > 0)
+        (mins && Number(mins) > 0) || (secs && Number(secs) > 0)
       )
       const nameSave = isBooking ? name : null
       const date1 = new Date()
-      const date = new Date()
+      const date = bookDate ? new Date(bookDate) : new Date()
 
       if (isBooking) {
         if (days && Number(days) > 0) date.setDate(date.getDate() + Number(days))
         if (hours && Number(hours) > 0) date.setHours(date.getHours() + Number(hours))
         if (mins && Number(mins) > 0) date.setMinutes(date.getMinutes() + Number(mins))
         if (secs && Number(secs) > 0) date.setSeconds(date.getSeconds() + Number(secs))
+        if (milliSecs && Number(milliSecs) > 0) {
+          date.setMilliseconds(date.getMilliseconds() + Number(milliSecs))
+        }
       }
 
       const rows = await client.query('SELECT freeBy, origPrice FROM Rooms where id = ?', [id])
@@ -457,10 +462,7 @@ router.patch('/book', safeVerify, async (req, res) => {
           mins ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} cancelled by |${username}|`, date1
         , (-1 * (refundAmount || 0)).toString())
       } else if (isEditingBooking) {
-        const time0 = (date).getTime() - (new Date(rows[0].freeBy)).getTime()
-        // the plus -1 min here is due to a consisitent bug, it shouldn't be added *FIX*
-        // right now the bug is gone; *CHECK*
-        const time = time0 // time0 < 0 ? time0 - (60 * 1000) : time0
+        const time = (date).getTime() - (new Date(rows[0].freeBy)).getTime()
         const days = Math.trunc(time / (1000 * 60 * 60 * 24))
         const hrs = Math.trunc((time - (days * (1000 * 60 * 60 * 24))) / (1000 * 60 * 60))
         const mins = Math.trunc((time - (days * (1000 * 60 * 60 * 24)) - (hrs * (1000 * 60 * 60))) /
