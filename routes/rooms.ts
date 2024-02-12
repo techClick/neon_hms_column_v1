@@ -398,6 +398,8 @@ router.patch('/book', safeVerify, async (req, res) => {
         isEditingBooking
       } = bookingDetails[i]
 
+      console.log('NUMBER IS', number, email)
+
       const isBooking = ((days && Number(days) > 0) ||
         (hours && Number(hours) > 0) ||
         (mins && Number(mins) > 0) || (secs && Number(secs) > 0)
