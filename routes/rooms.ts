@@ -398,8 +398,6 @@ router.patch('/book', safeVerify, async (req, res) => {
         isEditingBooking
       } = bookingDetails[i]
 
-      console.log('NUMBER IS', number, email)
-
       const isBooking = ((days && Number(days) > 0) ||
         (hours && Number(hours) > 0) ||
         (mins && Number(mins) > 0) || (secs && Number(secs) > 0)
@@ -421,14 +419,9 @@ router.patch('/book', safeVerify, async (req, res) => {
       const rows = await client.query('SELECT freeBy, origPrice FROM Rooms where id = ?', [id])
       const username = decodedToken?.username ?? 'Online booker'
 
-      if (isEditingBooking) {
-        await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ? 
-          where id = ?`, [token, nameSave, date.toISOString(), username, date1.toISOString(), id])
-      } else {
-        await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ?, 
-          bookerEmail = ?, bookerNumber = ? where id = ?`, [token, nameSave, date.toISOString(), username,
-          date1.toISOString(), email, number?.toString(), id])
-      }
+      await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ?, 
+        bookerEmail = ?, bookerNumber = ? where id = ?`, [token, nameSave, date.toISOString(), username,
+        date1.toISOString(), email, number?.toString(), id])
 
       if (email) {
         const bookEmailDetails: BookEmailDetails = {
@@ -478,10 +471,11 @@ router.patch('/book', safeVerify, async (req, res) => {
           username}|`, date1, days > 0 ? (days * Number(rows[0].origPrice)).toString()
           : (-1 * (refundAmount || 0)).toString())
       } else if (isDeskBooking) {
+        const price0 = ((Number(rows[0].origPrice)) * Number(days)) - (-1 * (refundAmount || 0))
+        const price = price0 < 0 ? ((Number(rows[0].origPrice)) * Number(days)) : price0
         addLog(hDId, 'Desk reservation', `$${roomName}$ reserved for &${days} night${days === 1 ? '' : 's'}& by |${
           username}| for &${nameSave}& ${email ? `on &${email}&` : ''} ${(email && number) ? ` and &${
-          number}&` : number ? `on &${number}&` : ''}`, date1, ((Number(rows[0].origPrice)) *
-          Number(days)).toString())
+          number}&` : number ? `on &${number}&` : ''}`, date1, price.toString())
       } else {
         addLog(hDId, 'Online reservation', `$${roomName}$ reserved for &${days} night${Number(days) === 1 ? '' : 's'}&
           by online booker &${nameSave}& on &${email}&`, date1, ((Number(
@@ -498,8 +492,6 @@ router.patch('/book', safeVerify, async (req, res) => {
         bookerNumber: number,
         bookerEmail: email
       }
-      if (!number) delete result0.bookerNumber
-      if (!email) delete result0.bookerEmail
       result.push(result0)
     }
     res.status(200).json((networkResponse('success', result)))
