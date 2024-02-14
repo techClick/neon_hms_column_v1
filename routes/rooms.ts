@@ -471,8 +471,7 @@ router.patch('/book', safeVerify, async (req, res) => {
           username}|`, date1, days > 0 ? (days * Number(rows[0].origPrice)).toString()
           : (-1 * (refundAmount || 0)).toString())
       } else if (isDeskBooking) {
-        const price0 = ((Number(rows[0].origPrice)) * Number(days)) - (-1 * (refundAmount || 0))
-        const price = price0 < 0 ? ((Number(rows[0].origPrice)) * Number(days)) : price0
+        const price = (Number(rows[0].origPrice)) * Number(days)
         addLog(hDId, 'Desk reservation', `$${roomName}$ reserved for &${days} night${days === 1 ? '' : 's'}& by |${
           username}| for &${nameSave}& ${email ? `on &${email}&` : ''} ${(email && number) ? ` and &${
           number}&` : number ? `on &${number}&` : ''}`, date1, price.toString())
