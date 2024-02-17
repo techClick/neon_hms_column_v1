@@ -99,6 +99,10 @@ io.on('connection', (socket) => {
     socket.broadcast.to(roomId).emit('get_revoked_staff', username)
   })
 
+  socket.on('new_prefs', ({ roomId, prefs }) => {
+    socket.broadcast.to(roomId).emit('get_new_prefs', prefs)
+  })
+
   socketFunction = ({ roomId, log }) => {
     io.to(roomId).emit('get_added_log', log)
   }

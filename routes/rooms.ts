@@ -454,7 +454,7 @@ router.patch('/book', safeVerify, async (req, res) => {
 
         addLog(hDId, 'Reservation cancelled', `$${roomName}$ reservation of${days ? ` &${days} night${
           days === 1 ? '' : 's'}&` : `${hrs ? ` ${hrs} hr${hrs === 1 ? '' : 's'}` : ''}${
-          mins ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} cancelled by |${username}|`, date1
+          mins ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} ^cancelled^ by |${username}|`, date1
         , (-1 * (refundAmount || 0)).toString())
       } else if (isEditingBooking) {
         const time = (date).getTime() - (new Date(rows[0].freeBy)).getTime()
@@ -464,7 +464,7 @@ router.patch('/book', safeVerify, async (req, res) => {
           (1000 * 60))
 
         addLog(hDId, 'Reservation change', `$${roomName}$ reservation time ${days < 0 || hrs < 0 || mins < 0
-          ? `&reduced& by${days < 0 ? ` &${days * -1} day${days === -1 ? '' : 's'}&` : ''}${hrs < 0 ? ` ${
+          ? `^reduced^ by${days < 0 ? ` &${days * -1} day${days === -1 ? '' : 's'}&` : ''}${hrs < 0 ? ` ${
           hrs * -1} hr${hrs === -1 ? '' : 's'}` : ''}${mins < 0 ? ` ${mins * -1} min${mins === -1 ? '' : 's'}`
           : ''}` : `&extended& by${days > 0 ? ` &${days} day${days === 1 ? '' : 's'}&` : ''}${hrs > 0 ? ` ${
           hrs} hr${hrs === 1 ? '' : 's'}` : ''}${mins > 0 ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} by |${

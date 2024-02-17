@@ -44,4 +44,19 @@ router.get('/getlogs', verify, async (req, res) => {
   }
 })
 
+router.post('/addbranchlog', verify, async (req, res) => {
+  try {
+    const id = Number(req.get('hDId'))
+    const { type, value, decodedToken } = req.body
+    const { username } = decodedToken
+
+    addLog(id, type, `!${type}! ${Number(value) < 0 ? '^balance^' : '&balance&'} entered by |${
+      username}|`, new Date(), value)
+
+    res.status(200).json((networkResponse('success', true)))
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
 export const logs = router
