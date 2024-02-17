@@ -64,7 +64,7 @@ router.post('/gethotel', async (req, res) => {
 
 router.get('/gethotels', async (req, res) => {
   try {
-    const rows = await neonClient.query(`SELECT ${RowNames.replace('logo, ', '')} from Hotels`)
+    const rows = await neonClient.query(`SELECT id, ${RowNames.replace('logo, ', '')} from Hotels`)
     res.status(200).json((networkResponse('success', rows)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
