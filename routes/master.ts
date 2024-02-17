@@ -55,7 +55,6 @@ router.post('/gethotel', async (req, res) => {
       return res.status(403).json((networkResponse('error', 'Name not found')))
     }
 
-    console.log(rows)
     rows[0].prefs = JSON.parse(rows[0].prefs)
     res.status(200).json((networkResponse('success', rows)))
   } catch (error) {
