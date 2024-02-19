@@ -71,7 +71,11 @@ const io = new Server(server, {
   }
 })
 
-let socketFunction: Function
+type SocketFunction = {
+  addedLog: Function
+}
+
+let socketFunction: SocketFunction
 export const getSocketFunction = () => socketFunction
 
 io.on('connection', (socket) => {
@@ -103,8 +107,18 @@ io.on('connection', (socket) => {
     socket.broadcast.to(roomId).emit('get_new_prefs', prefs)
   })
 
-  socketFunction = ({ roomId, log }) => {
-    io.to(roomId).emit('get_added_log', log)
+  socket.on('delete_log', ({ roomId, logId }) => {
+    socket.broadcast.to(roomId).emit('get_deleted_log', logId)
+  })
+
+  socket.on('update_log', ({ roomId, log }) => {
+    socket.broadcast.to(roomId).emit('get_updated_log', log)
+  })
+
+  socketFunction = {
+    addedLog: ({ roomId, log }) => {
+      io.to(roomId).emit('get_added_log', log)
+    }
   }
 
   socket.on('disconnect', () => {
