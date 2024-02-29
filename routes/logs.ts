@@ -8,7 +8,7 @@ const router = express.Router()
 export type LogType = 'Desk reservation' | 'Reservation cancelled' | 'Room added' | 'Staff logged in' |
 'Staff logout' | 'Online visitor' | 'Settings change' | 'Online reservation' | 'Room change' | 'Reservation change' |
 'Staff added' | 'Staff removed' | 'Staff change' | 'Price change' | 'Room deleted' | 'Audit change' |
-'Audit deleted' | 'Front-Desk Walk in'
+'Audit deleted' | 'Walk in'
 
 export const addLog = async (id: number, type: LogType, message: string, date: Date, value: string) => {
   try {
@@ -103,9 +103,7 @@ router.post('/addlog', verify, async (req, res) => {
     const { log } = req.body
     const { type, message, value } = log
 
-    setTimeout(() => {
-      addLog(id, type, message, new Date(), value)
-    }, 100)
+    addLog(id, type, message, new Date(), value)
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {

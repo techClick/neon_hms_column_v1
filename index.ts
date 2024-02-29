@@ -103,8 +103,8 @@ io.on('connection', (socket) => {
     socket.broadcast.to(roomId).emit('get_revoked_staff', username)
   })
 
-  socket.on('new_prefs', ({ roomId, prefs }) => {
-    socket.broadcast.to(roomId).emit('get_new_prefs', prefs)
+  socket.on('new_branches', ({ roomId, branches }) => {
+    socket.broadcast.to(roomId).emit('get_new_branches', branches)
   })
 
   socket.on('delete_log', ({ roomId, logId }) => {
