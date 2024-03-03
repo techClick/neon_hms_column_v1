@@ -10,21 +10,29 @@ export type LogType = 'Desk reservation' | 'Reservation cancelled' | 'Room added
 'Staff added' | 'Staff removed' | 'Staff change' | 'Price change' | 'Room deleted' | 'Audit change' |
 'Audit deleted' | 'Walk in'
 
-export const addLog = async (id: number, type: LogType, message: string, date: Date, value: string) => {
+export const addLog = async (
+  id: number, type: LogType, message: string, date: Date, value: string, updatedAsOf?: string) => {
   try {
     const client = clientTmp[id]
     await client.query(`CREATE TABLE IF NOT EXISTS Logs ( id serial PRIMARY KEY, type text, message text,
-      date text, value text )`)
-    await client.query('INSERT INTO Logs ( type, message, date, value ) VALUES (?, ?, ?, ?)',
-      [type, message, date.toISOString(), value])
+      date text, value text, updatedBy text NULL, updatedAsOf text )`)
+    await client.query(`INSERT INTO Logs ( type, message, date, value, updatedBy, updatedAsOf )
+      VALUES (?, ?, ?, ?, ?, ?)`, [type, message, date.toISOString(), value, 'N/A',
+      updatedAsOf || date.toISOString()])
 
-    const rows = await client.query('SELECT * FROM Logs where date = ?', [date.toISOString()])
+    const result = await client.query('SELECT MAX(id) from Logs')
+    const allLogsLength: string = result[0]['MAX(id)'].toString()
+
+    const rows = await client.query('SELECT * FROM Logs where id = ?', [allLogsLength])
 
     const socketEmitFunc = getSocketFunction()
     const roomId = `room${id}`
     socketEmitFunc.addedLog({ roomId, log: rows[0] })
+
+    return allLogsLength
   } catch (e) {
     console.log('Log error: ', e)
+    return ''
   }
 }
 
@@ -35,7 +43,8 @@ router.get('/getlogs', verify, async (req, res) => {
 
     // await client.query('DROP TABLE IF EXISTS Logs')
     await client.query(`CREATE TABLE IF NOT EXISTS Logs ( id serial PRIMARY KEY, type text, message text,
-      date text, value text )`)
+      date text, value text, updatedBy text NULL, updatedAsOf text )`)
+
     const rows = await client.query('SELECT * from Logs')
 
     res.status(200).json((networkResponse('success', rows)))
@@ -47,13 +56,13 @@ router.get('/getlogs', verify, async (req, res) => {
 router.post('/addbranchlog', verify, async (req, res) => {
   try {
     const id = Number(req.get('hDId'))
-    const { type, value, decodedToken } = req.body
+    const { type, value, message, date, decodedToken } = req.body
     const { username } = decodedToken
 
-    addLog(id, type, `!${type}! ${Number(value) < 0 ? '^balance^' : '&balance&'} entered by |${
-      username}|`, new Date(), value)
+    const lastId = await addLog(id, type, `!${type}! ${Number(value) < 0 ? '^balance^' : '&balance&'} entered by |${
+      username}|. For: &${message}&`, new Date(date), value, new Date().toISOString())
 
-    res.status(200).json((networkResponse('success', true)))
+    res.status(200).json((networkResponse('success', lastId)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }
@@ -85,7 +94,8 @@ router.post('/editlog', verify, async (req, res) => {
     const { editId, value, addLogMessage } = req.body
     const client = clientTmp[id]
 
-    await client.query('UPDATE Logs SET value = ? where id = ?', [value, editId])
+    await client.query('UPDATE Logs SET value = ? updatedAsOf = ? where id = ?',
+      [value, new Date().toISOString(), editId])
 
     setTimeout(() => {
       addLog(id, 'Audit change', addLogMessage, new Date(), 'N/A')
@@ -103,7 +113,7 @@ router.post('/addlog', verify, async (req, res) => {
     const { log } = req.body
     const { type, message, value } = log
 
-    addLog(id, type, message, new Date(), value)
+    await addLog(id, type, message, new Date(), value)
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
