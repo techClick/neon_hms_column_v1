@@ -3,7 +3,7 @@ import { sendMail } from './globals/email'
 import { networkResponse } from './globals/networkResponse'
 import express from 'express'
 import { safeVerify, verify } from './globals/verify'
-import { clientTmp } from './globals/connection'
+import { client } from './globals/connection'
 import { addLog } from './logs'
 const router = express.Router()
 
@@ -24,9 +24,8 @@ router.post('/addroom', verify, async (req, res) => {
     } = req.body
 
     const id = Number(req.get('hDId'))
-    const client = clientTmp[id]
 
-    const rows = await client.query('SELECT name from Rooms WHERE name = ?', [name])
+    const rows = await client.query(`SELECT name from ${`Rooms${id}`} WHERE name = ?`, [name])
     if (rows.length) {
       return res.status(403).json((networkResponse('error', 'A room with this name exists already')))
     }
@@ -37,11 +36,11 @@ router.post('/addroom', verify, async (req, res) => {
     const { username } = req.body.decodedToken
     const date = new Date()
 
-    await client.query(`INSERT INTO Rooms (name, description, price, origPrice, floor, img, freeBy, createdOn,
+    await client.query(`INSERT INTO ${`Rooms${id}`} (name, description, price, origPrice, floor, img, freeBy, createdOn,
       updatedAsOf, imgs, updatedBy, onHold, perks) VALUES (?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name, description, price, origPrice, floor, img,
       date.toISOString(), date.toISOString(), date.toISOString(), imgs, username, onHoldHere, perks])
-    const rows2 = await client.query('SELECT id from Rooms WHERE name = ?', [name])
+    const rows2 = await client.query(`SELECT id from ${`Rooms${id}`} WHERE name = ?`, [name])
 
     addLog(id, 'Room added', `$${name}$ added. At price &NGN${Number(origPrice).toLocaleString()}&
       by |${username}|`, date, 'N/A')
@@ -84,7 +83,6 @@ router.patch('/editroom', verify, async (req, res) => {
     } = req.body
 
     const hDId = Number(req.get('hDId'))
-    const client = clientTmp[hDId]
 
     const img = img1 === 'refresh' ? null : img1
     let onHoldHere = onHold
@@ -92,14 +90,14 @@ router.patch('/editroom', verify, async (req, res) => {
     const { username } = req.body.decodedToken
 
     const rows = await client.query(`SELECT name, price, floor, description, origPrice, onHold, perks
-      from Rooms WHERE name = ?`, [name])
+      from ${`Rooms${id}`} WHERE name = ?`, [name])
     if (rows.length && origName !== name) {
       return res.status(400).json((networkResponse('error', 'A room with this name exists already')))
     }
 
     const date = new Date()
 
-    await client.query(`UPDATE Rooms SET name = ?, description = ?, price = ?, origPrice = ?, img = ?,
+    await client.query(`UPDATE ${`Rooms${id}`} SET name = ?, description = ?, price = ?, origPrice = ?, img = ?,
       imgs = ?, updatedAsOf = ?, floor = ?, perks = ?, updatedBy = ?, onHold = ? where id = ?`,
     [name, description, price, origPrice, img, imgs, date.toISOString(), floor, perks, username, onHoldHere, id])
 
@@ -162,15 +160,30 @@ router.post('/rooms', safeVerify, async (req, res) => {
     const { decodedToken, isStaff } = req.body
 
     const id = Number(req.get('hDId'))
-    const client = clientTmp[id]
 
-    // await client.query('DROP TABLE IF EXISTS Rooms')
-    await client.query(`CREATE TABLE IF NOT EXISTS Rooms
+    // await client.query(`DROP TABLE IF EXISTS ${`Rooms${id}`}`)
+    // const rows0 = await client.query('SELECT * FROM Rooms')
+    // for (let i = 0; i < rows0.length; i += 1) {
+    //   const r = rows0[i]
+    //   await client.query(`CREATE TABLE IF NOT EXISTS ${`Rooms${id}`}
+    //     ( id serial PRIMARY KEY, name text, description text NULL, price text, origPrice text, img MEDIUMTEXT NULL,
+    //     freeBy text, onHold text NULL, bookToken text NULL, bookName text NULL, createdOn text, bookerNumber text NULL,
+    //     bookerEmail text NULL, perks text, updatedAsOf text, updatedBy text, imgs LONGTEXT NULL, floor text)`)
+
+    //   await client.query(`INSERT INTO ${`Rooms${id}`} (name, description, price, origPrice, floor, img, freeBy, createdOn,
+    //     updatedAsOf, imgs, updatedBy, onHold, perks, bookToken, bookName, bookerNumber, bookerEmail) VALUES (?, ?,
+    //     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [r.name, r.description, r.price, r.origPrice, r.floor, r.img,
+    //     r.freeBy, r.createdOn, r.updatedAsOf, r.imgs, r.updatedBy, r.onHold, r.perks, r.bookToken, r.bookName,
+    //     r.bookerNumber, r.bookerEmail])
+    // }
+
+    // await client.query(`DROP TABLE IF EXISTS ${`Rooms${id}`}`)
+    await client.query(`CREATE TABLE IF NOT EXISTS ${`Rooms${id}`}
       ( id serial PRIMARY KEY, name text, description text NULL, price text, origPrice text, img MEDIUMTEXT NULL,
       freeBy text, onHold text NULL, bookToken text NULL, bookName text NULL, createdOn text, bookerNumber text NULL,
       bookerEmail text NULL, perks text, updatedAsOf text, updatedBy text, imgs LONGTEXT NULL, floor text)`)
     const rows = await client.query(`SELECT id, name, description, price, origPrice, freeBy, onHold, bookerNumber,
-      bookerEmail, bookToken, bookName, createdOn, updatedAsOf, updatedBy, perks, floor from Rooms`)
+      bookerEmail, bookToken, bookName, createdOn, updatedAsOf, updatedBy, perks, floor from ${`Rooms${id}`}`)
 
     let availableRooms: number = 0
     let onHoldRooms: number = 0
@@ -206,8 +219,7 @@ router.post('/rooms', safeVerify, async (req, res) => {
 router.get('/roomimages', async (req, res) => {
   try {
     const id = Number(req.get('hDId'))
-    const client = clientTmp[id]
-    const rows = await client.query('SELECT img from Rooms')
+    const rows = await client.query(`SELECT img from ${`Rooms${id}`}`)
     res.status(200).json((networkResponse('success', rows)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
@@ -219,9 +231,8 @@ router.post('/roomimage', async (req, res) => {
     const { id } = req.body
 
     const hDId = Number(req.get('hDId'))
-    const client = clientTmp[hDId]
 
-    const rows = await client.query('SELECT img from Rooms where id = ?', [id])
+    const rows = await client.query(`SELECT img from ${`Rooms${hDId}`} where id = ?`, [id])
     res.status(200).json((networkResponse('success', rows[0].img)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
@@ -233,9 +244,8 @@ router.post('/bulkimages', async (req, res) => {
     const { id } = req.body
 
     const hDId = Number(req.get('hDId'))
-    const client = clientTmp[hDId]
 
-    const rows = await client.query('SELECT imgs from Rooms where id = ?', [id])
+    const rows = await client.query(`SELECT imgs from ${`Rooms${hDId}`} where id = ?`, [id])
     res.status(200).json((networkResponse('success', JSON.parse(rows[0].imgs || '[]'))))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
@@ -375,7 +385,6 @@ router.patch('/book', safeVerify, async (req, res) => {
 
     const hDId = Number(req.get('hDId'))
     const hotelName = req.get('hDName')
-    const client = clientTmp[hDId]
 
     for (let i = 0; i < bookingDetails.length; i += 1) {
       const {
@@ -416,10 +425,10 @@ router.patch('/book', safeVerify, async (req, res) => {
         }
       }
 
-      const rows = await client.query('SELECT freeBy, origPrice FROM Rooms where id = ?', [id])
+      const rows = await client.query(`SELECT freeBy, origPrice FROM ${`Rooms${hDId}`} where id = ?`, [id])
       const username = decodedToken?.username ?? 'Online booker'
 
-      await client.query(`UPDATE Rooms SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ?, 
+      await client.query(`UPDATE ${`Rooms${hDId}`} SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ?, 
         bookerEmail = ?, bookerNumber = ? where id = ?`, [token, nameSave, date.toISOString(), username,
         date1.toISOString(), email, number?.toString(), id])
 
@@ -504,10 +513,9 @@ router.delete('/deleteroom', verify, async (req, res) => {
     const { decodedToken } = req.body
 
     const id = Number(req.get('hDId'))
-    const client = clientTmp[id]
 
-    const rows = await client.query('SELECT name FROM Rooms where id = ?', [req.body.id])
-    await client.query('DELETE FROM Rooms where id = ?', [req.body.id])
+    const rows = await client.query(`SELECT name FROM ${`Rooms${id}`} where id = ?`, [req.body.id])
+    await client.query(`DELETE FROM ${`Rooms${id}`} where id = ?`, [req.body.id])
 
     addLog(id, 'Room deleted', `&${rows[0].name}& ^deleted^ by |${decodedToken?.username}|`, new Date(), 'N/A')
 

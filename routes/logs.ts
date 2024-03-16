@@ -1,4 +1,4 @@
-import { clientTmp } from './globals/connection'
+import { client } from './globals/connection'
 import express from 'express'
 import { networkResponse } from './globals/networkResponse'
 import { verify } from './globals/verify'
@@ -13,17 +13,16 @@ export type LogType = 'Desk reservation' | 'Reservation cancelled' | 'Room added
 export const addLog = async (
   id: number, type: LogType, message: string, date: Date, value: string, updatedAsOf?: string) => {
   try {
-    const client = clientTmp[id]
-    await client.query(`CREATE TABLE IF NOT EXISTS Logs ( id serial PRIMARY KEY, type text, message text,
-      date text, value text, updatedBy text NULL, updatedAsOf text )`)
-    await client.query(`INSERT INTO Logs ( type, message, date, value, updatedBy, updatedAsOf )
+    await client.query(`CREATE TABLE IF NOT EXISTS ${`Logs${id}`} ( id serial PRIMARY KEY, type text, message text,
+      date text, value text, updatedBy text NULL, updatedAsOf text, field1 text NULL, field2 text NULL )`)
+    await client.query(`INSERT INTO ${`Logs${id}`} ( type, message, date, value, updatedBy, updatedAsOf )
       VALUES (?, ?, ?, ?, ?, ?)`, [type, message, date.toISOString(), value, 'N/A',
       updatedAsOf || date.toISOString()])
 
-    const result = await client.query('SELECT MAX(id) from Logs')
+    const result = await client.query(`SELECT MAX(id) from ${`Logs${id}`}`)
     const allLogsLength: string = result[0]['MAX(id)'].toString()
 
-    const rows = await client.query('SELECT * FROM Logs where id = ?', [allLogsLength])
+    const rows = await client.query(`SELECT * FROM ${`Logs${id}`} where id = ?`, [allLogsLength])
 
     const socketEmitFunc = getSocketFunction()
     const roomId = `room${id}`
@@ -39,13 +38,23 @@ export const addLog = async (
 router.get('/getlogs', verify, async (req, res) => {
   try {
     const id = Number(req.get('hDId'))
-    const client = clientTmp[id]
+
+    // await client.query(`DROP TABLE IF EXISTS ${`Logs${id}`}`)
+
+    // const rows0 = await client.query('SELECT * FROM Logs')
+    // rows0.forEach(async (r) => {
+    //   await client.query(`CREATE TABLE IF NOT EXISTS ${`Logs${id}`} ( id serial PRIMARY KEY, type text, message text,
+    //     date text, value text, updatedBy text NULL, updatedAsOf text, field1 text NULL, field2 text NULL )`)
+    //   await client.query(`INSERT INTO ${`Logs${id}`} ( type, message, date, value, updatedBy, updatedAsOf )
+    //     VALUES (?, ?, ?, ?, ?, ?)`, [r.type, r.message, r.date, r.value, 'N/A',
+    //     r.updatedAsOf || r.date.toISOString()])
+    // })
 
     // await client.query('DROP TABLE IF EXISTS Logs')
-    await client.query(`CREATE TABLE IF NOT EXISTS Logs ( id serial PRIMARY KEY, type text, message text,
+    await client.query(`CREATE TABLE IF NOT EXISTS ${`Logs${id}`} ( id serial PRIMARY KEY, type text, message text,
       date text, value text, updatedBy text NULL, updatedAsOf text )`)
 
-    const rows = await client.query('SELECT * from Logs')
+    const rows = await client.query(`SELECT * from ${`Logs${id}`}`)
 
     res.status(200).json((networkResponse('success', rows)))
   } catch (error) {
@@ -60,7 +69,7 @@ router.post('/addbranchlog', verify, async (req, res) => {
     const { username } = decodedToken
 
     const lastId = await addLog(id, type, `!${type}! ${Number(value) < 0 ? '^balance^' : '&balance&'} entered by |${
-      username}|. For: &${message}&`, new Date(date), value, new Date().toISOString())
+      username}| for &${message}&`, new Date(date), value, new Date().toISOString())
 
     res.status(200).json((networkResponse('success', lastId)))
   } catch (error) {
@@ -73,9 +82,8 @@ router.post('/deletelog', verify, async (req, res) => {
     const id = Number(req.get('hDId'))
     const { dId: deleteId, value, type, decodedToken } = req.body
     const { username } = decodedToken
-    const client = clientTmp[id]
 
-    await client.query('DELETE FROM Logs WHERE id = ?', [deleteId])
+    await client.query(`DELETE FROM ${`Logs${id}`} WHERE id = ?`, [deleteId])
 
     setTimeout(() => {
       addLog(id, 'Audit deleted', `&${type}& audit of value &P&${value}&P& ^deleted^ by |${
@@ -92,9 +100,8 @@ router.post('/editlog', verify, async (req, res) => {
   try {
     const id = Number(req.get('hDId'))
     const { editId, value, addLogMessage } = req.body
-    const client = clientTmp[id]
 
-    await client.query('UPDATE Logs SET value = ? updatedAsOf = ? where id = ?',
+    await client.query(`UPDATE ${`Logs${id}`} SET value = ? updatedAsOf = ? where id = ?`,
       [value, new Date().toISOString(), editId])
 
     setTimeout(() => {

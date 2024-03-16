@@ -2,7 +2,7 @@ import { sendMail } from './globals/email'
 import { networkResponse } from './globals/networkResponse'
 import express from 'express'
 import cors from 'cors'
-import { clientTmp } from './globals/connection'
+import { neonClient } from './globals/connection'
 import bcrypt from 'bcryptjs'
 import { safeVerify, verify } from './globals/verify'
 import { addLog } from './logs'
@@ -55,26 +55,27 @@ router.post('/addstaff', safeVerify, async (req, res) => {
 
     const id = Number(req.get('hDId'))
     const hotelName = req.get('hDName')
-    const client = clientTmp[id]
 
-    // await client.query('DROP TABLE IF EXISTS Staff')
-    await client.query(`CREATE TABLE IF NOT EXISTS Staff ( id serial PRIMARY KEY, email text
-      , password text NULL, permission integer, username text, forgotKey text NULL )`)
+    // await neonClient.query('DROP TABLE IF EXISTS Staff')
+    await neonClient.query(`CREATE TABLE IF NOT EXISTS Staff
+    ( id serial PRIMARY KEY, email text, password text, permission integer, forgotKey text NULL,
+      hotelId text, username text, field1 text NULL, field2 text NULL)`)
 
-    const rows = await client.query('SELECT email from Staff where email = ?', [email.toLowerCase()])
+    const rows = await neonClient.query('SELECT email from Staff where email = ? and hotelId = ?',
+      [email.toLowerCase(), id])
     if (rows.length) {
       return res.status(403).json((networkResponse('error', 'User with this email exists already')))
     }
 
-    await client.query(`INSERT INTO Staff (email, password, permission, username)
-      VALUES (?, ?, ?, ?)`,
-    [email.toLowerCase(), password, permission, username])
+    await neonClient.query(`INSERT INTO Staff (email, password, permission, username, hotelId)
+      VALUES (?, ?, ?, ?, ?)`,
+    [email.toLowerCase(), password, permission, username, id])
 
     let finalRes: any = null
     if (!password) {
       const registerKey = Math.random().toString(36).slice(2, 12)
-      await client.query('UPDATE Staff SET forgotKey = ? WHERE email= ?',
-        [registerKey, email])
+      await neonClient.query('UPDATE Staff SET forgotKey = ? WHERE email= ? and hotelId = ?',
+        [registerKey, email, id])
       finalRes = await sendMail(registerMailOptions(hotelName, path || '', registerKey, email))
     }
 
@@ -97,11 +98,11 @@ router.patch('/editstaff', verify, async (req, res) => {
     const { email, permission, username, decodedToken } = requestBody
 
     const id = Number(req.get('hDId'))
-    const client = clientTmp[id]
 
-    const rows = await client.query('SELECT username, permission FROM Staff WHERE email = ?', [email])
-    await client.query(`UPDATE Staff SET permission = ?, username = ? WHERE 
-      email = ?`, [Number(permission), username, email])
+    const rows = await neonClient.query(`SELECT username, permission FROM Staff WHERE email = ?
+      and hotelId = ?`, [email, id])
+    await neonClient.query(`UPDATE Staff SET permission = ?, username = ? WHERE 
+      email = ? and hotelId = ?`, [Number(permission), username, email, id])
 
     const isOldUserType = Number(permission) === Number(rows[0].permission)
     const isOldUserName = username === rows[0].username
@@ -123,10 +124,10 @@ router.delete('/deletestaff', verify, async (req, res) => {
     const { email, decodedToken } = requestBody
 
     const id = Number(req.get('hDId'))
-    const client = clientTmp[id]
 
-    const rows = await client.query('SELECT username, permission FROM Staff WHERE email = ?', [email])
-    await client.query('DELETE FROM Staff WHERE email = ?', [email])
+    const rows = await neonClient.query(`SELECT username, permission FROM Staff WHERE email = ?
+      and hotelId = ?`, [email, id])
+    await neonClient.query('DELETE FROM Staff WHERE email = ? and hotelId = ?', [email, id])
 
     addLog(id, 'Staff removed', `&${rows[0].username} (${roles[Number(rows[0].permission)]})&'s access ^revoked^ by |${
       decodedToken.username}|`, new Date(), 'N/A')
@@ -184,9 +185,9 @@ router.post('/forgot', async (req, res) => {
 
     const id = Number(req.get('hDId'))
     const hotelName = req.get('hDName')
-    const client = clientTmp[id]
 
-    const rows = await client.query('SELECT email, password, forgotKey from Staff WHERE email = ?', [email])
+    const rows = await neonClient.query(`SELECT email, password, forgotKey from Staff WHERE email = ?
+      and hotelId = ?`, [email, id])
     if (!rows?.length) {
       return res.status(403).json((networkResponse('error', 'Email is not registered.')))
     }
@@ -203,14 +204,14 @@ router.post('/forgot', async (req, res) => {
 
     const forgotKey = rows[0].forgotKey || Math.random().toString(36).slice(2, 12)
     if (!rows[0].forgotKey) {
-      await client.query('UPDATE Staff SET forgotKey = ? WHERE email = ?',
-        [forgotKey, email])
+      await neonClient.query('UPDATE Staff SET forgotKey = ? WHERE email = ? and hotelId = ?',
+        [forgotKey, email, id])
     }
 
     if (!isRegister) {
       clearTimeout(saveForgotKeyTimeout)
       saveForgotKeyTimeout = setTimeout(async () => {
-        await client.query('UPDATE Staff SET forgotKey = NULL WHERE email = ?', [email])
+        await neonClient.query('UPDATE Staff SET forgotKey = NULL WHERE email = ? and hotelId = ?', [email, id])
       }, 1000 * 60 * 10)
       await sendMail(hotelName, forgotKeyMailOptions(hotelName, path, forgotKey, email))
     } else {
@@ -250,35 +251,33 @@ router.post('/setpassword', async (req, res) => {
 
     const id = Number(req.get('hDId'))
     const hotelName = req.get('hDName')
-    const client = clientTmp[id]
 
-    const rows = await client.query('SELECT email from Staff WHERE email = ?', [email])
+    const rows = await neonClient.query('SELECT email from Staff WHERE email = ? and hotelId = ?', [email, id])
     if (!rows.length) {
       return res.status(403).json((networkResponse('error', 'Email is not registered.')))
     }
 
-    const rows2 = await client.query('SELECT forgotKey FROM Staff WHERE email = ?', [email])
+    const rows2 = await neonClient.query('SELECT forgotKey FROM Staff WHERE email = ? and hotelId = ?', [email, id])
     if (!rows2?.length) {
       return res.status(401).json(
         (networkResponse('error', 'Email is not recognized. Please use the email that received the link.'))
       )
     }
 
-    const rows3 = await client.query('SELECT forgotKey FROM Staff WHERE forgotKey = ?', [key])
+    const rows3 = await neonClient.query('SELECT forgotKey FROM Staff WHERE forgotKey = ? and hotelId = ?', [key, id])
     if (!rows3?.length) {
       return res.status(401).json(
         (networkResponse('error', 'Link is wrong or expired. Please begin forgot password process again.'))
       )
     }
 
-    await client.query('UPDATE Staff SET password = ?, forgotKey = NULL WHERE email = ?',
-      [password, email])
+    await neonClient.query('UPDATE Staff SET password = ?, forgotKey = NULL WHERE email = ? and hotelId = ?',
+      [password, email, id])
 
     if (!isRegister) await sendMail(hotelName, resetPassMailOptions(hotelName, email))
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
-    console.log(error)
     res.status(500).json((networkResponse('error', error)))
   }
 })

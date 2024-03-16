@@ -103,16 +103,24 @@ io.on('connection', (socket) => {
     socket.broadcast.to(roomId).emit('get_revoked_staff', username)
   })
 
-  socket.on('new_branches', ({ roomId, branches }) => {
-    socket.broadcast.to(roomId).emit('get_new_branches', branches)
-  })
-
   socket.on('delete_log', ({ roomId, logId }) => {
     socket.broadcast.to(roomId).emit('get_deleted_log', logId)
   })
 
   socket.on('update_log', ({ roomId, log }) => {
     socket.broadcast.to(roomId).emit('get_updated_log', log)
+  })
+
+  socket.on('update_branchFiles', ({ roomId }) => {
+    socket.broadcast.to(roomId).emit('get_updated_branchFiles')
+  })
+
+  socket.on('update_branch', ({ roomId, branch }) => {
+    socket.broadcast.to(roomId).emit('get_updated_branch', branch)
+  })
+
+  socket.on('delete_branch', ({ roomId, branch }) => {
+    socket.broadcast.to(roomId).emit('get_deleted_branch', branch)
   })
 
   socketFunction = {
