@@ -11,6 +11,7 @@ import { transactions } from './routes/transactions'
 import { webhook } from './routes/webhook'
 import { logs } from './routes/logs'
 import { master } from './routes/master'
+import { insights } from './routes/insights'
 import http from 'http'
 
 const app = express()
@@ -50,7 +51,7 @@ const allowCors = (req, res, next) => {
 }
 app.all('*', allowCors);
 
-[clients, auth, qtAuth, rooms, info, transactions, webhook, logs, master]
+[clients, auth, qtAuth, rooms, info, transactions, webhook, logs, master, insights]
   .map((endPoint) => app.use('/', endPoint))
 
 const server = http.createServer(app)

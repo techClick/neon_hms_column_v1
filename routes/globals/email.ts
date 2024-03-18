@@ -27,7 +27,8 @@ let mailOptions = {
 
 const froms = (hotelName: string) => [
   `"${hotelName} - LodgeFirst" ${process.env.EMAIL_SENDER}`,
-  `"${hotelName} - Reservations" ${process.env.EMAIL_SENDER}`
+  `"${hotelName} - Reservations" ${process.env.EMAIL_SENDER}`,
+  `"${hotelName} - Reports" ${process.env.EMAIL_SENDER}`
 ]
 export const sendMail = async (hotelName: string, options?: typeof mailOptions): Promise<any> => {
   if (options) options = { ...options, from: froms(hotelName)[options.from || 0] }
