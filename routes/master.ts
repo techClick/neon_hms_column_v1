@@ -90,7 +90,7 @@ router.post('/setbranches', async (req, res) => {
 router.get('/getbranchfiles', async (req, res) => {
   try {
     const hDId = Number(req.get('hDId'))
-    console.log(hDId, req.get('hDId'))
+
     // await neonClient.query('UPDATE Hotels SET branches = ? where id = ?', ['[]', hDId])
     // await neonClient.query('UPDATE Hotels SET branchFiles = ? where id = ?', ['{}', hDId])
     const rows = await neonClient.query('SELECT branchFiles, branches from Hotels where id = ?',

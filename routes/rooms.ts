@@ -160,7 +160,6 @@ router.post('/rooms', safeVerify, async (req, res) => {
     const { decodedToken, isStaff } = req.body
 
     const id = Number(req.get('hDId'))
-    console.log('ROOMS', id)
 
     // await client.query(`DROP TABLE IF EXISTS ${`Rooms${id}`}`)
     // const rows0 = await client.query('SELECT * FROM Rooms')
