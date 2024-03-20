@@ -21,5 +21,10 @@ module.exports = {
   },
   optimization: {
     minimize: false
-  }
+  },
+  externals: [
+    {
+      pdfkit: 'commonjs2 pdfkit'
+    }
+  ]
 }

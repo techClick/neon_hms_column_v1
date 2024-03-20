@@ -76,7 +76,7 @@ router.post('/addstaff', safeVerify, async (req, res) => {
       const registerKey = Math.random().toString(36).slice(2, 12)
       await neonClient.query('UPDATE Staff SET forgotKey = ? WHERE email= ? and hotelId = ?',
         [registerKey, email, id])
-      finalRes = await sendMail(registerMailOptions(hotelName, path || '', registerKey, email))
+      finalRes = await sendMail(hotelName, registerMailOptions(hotelName, path || '', registerKey, email))
     }
 
     addLog(id, 'Staff added', `|${username}| &(${roles[Number(permission)]})& added by |${

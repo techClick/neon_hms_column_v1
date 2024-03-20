@@ -38,6 +38,7 @@
     "build2": "esbuild index.ts --bundle --platform=node --outfile=build/index.js",
     "build": "webpack --config webpack.config.js",
     "start": "nodemon index.ts",
+    "startDev": "node build/index.js",
     "test": "jest"
   },
   "devDependencies": {

@@ -160,6 +160,7 @@ router.post('/rooms', safeVerify, async (req, res) => {
     const { decodedToken, isStaff } = req.body
 
     const id = Number(req.get('hDId'))
+    console.log('ROOMS', id)
 
     // await client.query(`DROP TABLE IF EXISTS ${`Rooms${id}`}`)
     // const rows0 = await client.query('SELECT * FROM Rooms')
@@ -504,6 +505,7 @@ router.patch('/book', safeVerify, async (req, res) => {
     }
     res.status(200).json((networkResponse('success', result)))
   } catch (error) {
+    console.log(error)
     res.status(500).json((networkResponse('error', error)))
   }
 })

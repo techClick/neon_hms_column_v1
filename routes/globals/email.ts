@@ -33,6 +33,11 @@ const froms = (hotelName: string) => [
 export const sendMail = async (hotelName: string, options?: typeof mailOptions): Promise<any> => {
   if (options) options = { ...options, from: froms(hotelName)[options.from || 0] }
   mailOptions = { ...mailOptions, ...options }
-  const res = await transporter.sendMail(mailOptions)
+  let res
+  try {
+    res = await transporter.sendMail(mailOptions)
+  } catch (err) {
+    console.log('Mail error', err)
+  }
   return res
 }
