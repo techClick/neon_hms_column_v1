@@ -13,14 +13,21 @@ const tokenExpTime = '10m'
 export const roles = ['Worker', 'Front desk', 'Front desk 2', 'Sub Manager', 'Manager', 'Owner', 'Tech team']
 router.post('/auth', async (req, res) => {
   try {
-    const { email, password } = req.body
+    const { email, password, hotelId: selectedHotelId } = req.body
     if (!email || !password) return res.status(400).json((networkResponse('error', 'Bad request')))
 
     await neonClient.query(`CREATE TABLE IF NOT EXISTS Staff
       ( id serial PRIMARY KEY, email text, password text, permission integer, forgotKey text NULL,
         username text, hotelId text, field1 text NULL, field2 text NULL)`)
-    const rows = await neonClient.query('SELECT * FROM Staff WHERE email = ?',
-      [email.toLowerCase()])
+
+    let rows
+    if (selectedHotelId) {
+      rows = await neonClient.query('SELECT * FROM Staff WHERE email = ? and hotelId = ?',
+        [email.toLowerCase(), selectedHotelId])
+    } else {
+      rows = await neonClient.query('SELECT * FROM Staff WHERE email = ?',
+        [email.toLowerCase()])
+    }
     if (!rows.length) return res.status(403).json((networkResponse('error', 'Wrong password or email')))
 
     const correctPassword = await bcrypt.compare(password, rows[0].password)
