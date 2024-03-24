@@ -65,16 +65,16 @@ router.post('/addTMPhotel', async (req, res) => {
       branches text, fields LONGTEXT, branchFiles LONGTEXT, plan text NULL, country text, region text, branch text NULL,
       username text, expires text)`)
 
-    const rows1 = await neonClient.query('SELECT name from Hotels where name = ? and email = ? and branch = ?',
-      [name, email.toLowerCase(), branch])
+    const rows1 = await neonClient.query('SELECT name from Hotels where nameSave = ? and email = ? and branch = ?',
+      [name.toLowerCase().split(' ').join(''), email.toLowerCase(), branch])
     if (rows1.length) {
       return res.status(403).json((networkResponse('error', 'Information exists already')))
     }
-    const rows = await neonClient.query('SELECT name from HotelsTMP where name = ? and email= ? and branch = ?',
-      [name, email.toLowerCase(), branch])
+    const rows = await neonClient.query('SELECT name from HotelsTMP where nameSave = ? and email= ? and branch = ?',
+      [name.toLowerCase().split(' ').join(''), email.toLowerCase(), branch])
     if (rows.length) {
-      await neonClient.query('DELETE from HotelsTMP where name = ? and email= ? and branch = ?',
-        [name, email.toLowerCase(), branch])
+      await neonClient.query('DELETE from HotelsTMP where nameSave = ? and email= ? and branch = ?',
+        [name.toLowerCase().split(' ').join(''), email.toLowerCase(), branch])
     }
 
     const date = new Date()
@@ -92,7 +92,15 @@ router.post('/addTMPhotel', async (req, res) => {
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
-    console.log(error)
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.get('/sendmail', async (req, res) => {
+  try {
+    await sendMail('EMAIL TEST', verifyHotelMailOptions('EMAIL TEST', '1', 'ikechianya1@gmail.com'))
+    res.status(200).json((networkResponse('success', true)))
+  } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }
 })
@@ -168,7 +176,7 @@ router.post('/transferTMPhotel', async (req, res) => {
       body: {
         email,
         password,
-        permission: '5',
+        permission: 5,
         username,
         path: process.env.CLIENT_URL,
         decodedToken: { username }
@@ -293,6 +301,27 @@ router.post('/deletebranchfile', async (req, res) => {
     const branchFiles = JSON.parse(rows[0].branchFiles) as BranchFiles
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete branchFiles[branch][sheetName]
+
+    await neonClient.query('UPDATE Hotels SET branchFiles = ? where id = ?',
+      [JSON.stringify(branchFiles), hDId])
+
+    res.status(200).json((networkResponse('success', true)))
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.post('/deletebranchfiles', async (req, res) => {
+  try {
+    const hDId = Number(req.get('hDId'))
+    const { branch } = req.body
+
+    const rows = await neonClient.query('SELECT branchFiles from Hotels where id = ?',
+      [hDId])
+
+    const branchFiles = JSON.parse(rows[0].branchFiles) as BranchFiles
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    delete branchFiles[branch]
 
     await neonClient.query('UPDATE Hotels SET branchFiles = ? where id = ?',
       [JSON.stringify(branchFiles), hDId])

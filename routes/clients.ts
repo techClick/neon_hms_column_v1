@@ -236,7 +236,7 @@ router.post('/getloginbranches', async (req, res) => {
     const rows1 = await neonClient.query(`SELECT * FROM Hotels Where Id IN (${hotelIds.join(', ')})`,
       [email, password])
 
-    const hotels = rows1.map((r) => { return { name: `${r.name}${r.branch ? `-${r.branch}` : ''}`, id: r.id } })
+    const hotels = rows1.map((r) => { return { name: `${r.name}${r.branch ? ` - ${r.branch}` : ''}`, id: r.id } })
 
     res.status(200).json((networkResponse('success', hotels)))
   } catch (error) {

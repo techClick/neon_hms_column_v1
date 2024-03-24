@@ -4,7 +4,9 @@ dotenv.config()
 dotenv.config({ path: '.env.local', override: true })
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'depro1.fcomet.com',
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.EMAIL_SENDER,
     pass: process.env.EMAIL_SECRET_PASSWORD
