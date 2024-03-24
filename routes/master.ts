@@ -12,7 +12,7 @@ instagram, accNumber, accName, field1, field2, updatedBy, updatedAsOf, email, lo
 displayEmail, prefs, branches, branchFiles, fields, plan, country, region, branch, expires, username`
 
 const verifyHotelMailOptions = (hotelName: string, verifyKey: string, email: string): any => {
-  const { client_URL: clientURL } = process.env
+  const { CLIENT_URL: clientURL } = process.env
   return {
     from: 0,
     to: email,
