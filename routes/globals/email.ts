@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
   }
 })
 
-let mailOptions = {
+const origMailOptions = {
   from: `"Neon HotelManager" ${process.env.EMAIL_SENDER}` || 1,
   to: 'ikechianya1@gmail.com',
   subject: 'Default message',
@@ -32,9 +32,9 @@ const froms = (hotelName: string) => [
   `"${hotelName} - Reservations" ${process.env.EMAIL_SENDER}`,
   `"${hotelName} - Reports" ${process.env.EMAIL_SENDER}`
 ]
-export const sendMail = async (hotelName: string, options?: typeof mailOptions): Promise<any> => {
+export const sendMail = async (hotelName: string, options?: typeof origMailOptions): Promise<any> => {
   if (options) options = { ...options, from: froms(hotelName)[options.from || 0] }
-  mailOptions = { ...mailOptions, ...options }
+  const mailOptions = { ...origMailOptions, ...options }
   let res
   try {
     res = await transporter.sendMail(mailOptions)

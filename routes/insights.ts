@@ -32,15 +32,16 @@ router.post('/sendinsightspdf', verify, async (req, res) => {
     const hDName = req.get('hDName')
     const { email, insights } = req.body
 
-    pdf.pipe(fs.createWriteStream(`insights${id}.pdf`))
+    await pdf.pipe(fs.createWriteStream(`insights${id}.pdf`))
+    console.log(insights.length)
     for (let i = 0; i < insights.length; i += 1) {
-      pdf.addPage({ size: [800, insights[i].height + 100] })
-      pdf.image(insights[i].img, 0, 50, {
+      await pdf.addPage({ size: [800, insights[i].height + 100] })
+      await pdf.image(insights[i].img, 0, 50, {
         fit: [1000, insights[i].height],
         align: 'center',
         valign: 'center'
       })
-      pdf.text(`${hDName.toUpperCase()} REPORT`, 30, 30)
+      await pdf.text(`${hDName.toUpperCase()} REPORT`, 30, 30)
     }
     await pdf.end()
 

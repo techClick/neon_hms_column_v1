@@ -39,7 +39,6 @@ router.post('/auth', async (req, res) => {
       , new Date(), 'N/A')
 
     const token = jwt.sign({ username: rows[0].username }, process.env.SECRET_TOKEN_KEY, { expiresIn: tokenExpTime })
-    console.log('Auth', rows)
     res.status(200).json((networkResponse('success',
       { token, permission: rows[0].permission, username: rows[0].username, hotelId: rows[0].hotelId })))
   } catch (error) {
