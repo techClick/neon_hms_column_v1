@@ -22,7 +22,6 @@ router.get('/info', async (req, res) => {
     }
     res.status(200).json((networkResponse('success', { users: rows2, info: rows[0] })))
   } catch (error) {
-    console.log(error)
     res.status(500).json((networkResponse('error', error)))
   }
 })
@@ -85,6 +84,24 @@ router.patch('/savedisplaynumber', verify, async (req, res) => {
     await client.query(`UPDATE ${`HotelInfo${id}`} SET displayNumber =
       ? where id = 1`, [req.body.displayNumber])
     res.status(200).json((networkResponse('success', req.body.displayNumber)))
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.patch('/savecurrency', verify, async (req, res) => {
+  try {
+    const { newCurrency, decodedToken } = req.body
+
+    const id = Number(req.get('hDId'))
+    const currency = decodeURIComponent(req.get('hDCurrency') || '')
+
+    await neonClient.query('UPDATE Hotels SET currency = ? where id = ?', [newCurrency, id])
+
+    addLog(id, 'Settings change', `Currency changed from &${currency}& to &${decodeURIComponent(newCurrency)}& by ${
+      decodedToken.username}`, new Date(), 'N/A')
+
+    res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }

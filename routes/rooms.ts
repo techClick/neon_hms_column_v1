@@ -24,6 +24,13 @@ router.post('/addroom', verify, async (req, res) => {
     } = req.body
 
     const id = Number(req.get('hDId'))
+    const currency = decodeURIComponent(req.get('hDCurrency') || '')
+
+    await client.query(`CREATE TABLE IF NOT EXISTS ${`Rooms${id}`}
+      ( id serial PRIMARY KEY, name text, description text NULL, price text, origPrice text, img MEDIUMTEXT NULL,
+      freeBy text, onHold text NULL, bookToken text NULL, bookName text NULL, createdOn text, bookerNumber text NULL,
+      bookerEmail text NULL, perks text, updatedAsOf text, updatedBy text, imgs LONGTEXT NULL,
+      advanceBooks text, field1 text NULL, field2 text NULL, floor text)`)
 
     const rows = await client.query(`SELECT name from ${`Rooms${id}`} WHERE name = ?`, [name])
     if (rows.length) {
@@ -37,12 +44,13 @@ router.post('/addroom', verify, async (req, res) => {
     const date = new Date()
 
     await client.query(`INSERT INTO ${`Rooms${id}`} (name, description, price, origPrice, floor, img, freeBy, createdOn,
-      updatedAsOf, imgs, updatedBy, onHold, perks) VALUES (?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name, description, price, origPrice, floor, img,
-      date.toISOString(), date.toISOString(), date.toISOString(), imgs, username, onHoldHere, perks])
+      updatedAsOf, imgs, updatedBy, onHold, perks, advanceBooks) VALUES (?, ?,
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name, description, price, origPrice, floor, img,
+      date.toISOString(), date.toISOString(), date.toISOString(), imgs, username, onHoldHere, perks, JSON
+        .stringify([])])
     const rows2 = await client.query(`SELECT id from ${`Rooms${id}`} WHERE name = ?`, [name])
 
-    addLog(id, 'Room added', `$${name}$ added. At price &NGN${Number(origPrice).toLocaleString()}&
+    addLog(id, 'Room added', `$${name}$ added. At price &${currency}${Number(origPrice).toLocaleString()}&
       by |${username}|`, date, 'N/A')
 
     const addedRoom = {
@@ -83,6 +91,7 @@ router.patch('/editroom', verify, async (req, res) => {
     } = req.body
 
     const hDId = Number(req.get('hDId'))
+    const currency = decodeURIComponent(req.get('hDCurrency') || '')
 
     const img = img1 === 'refresh' ? null : img1
     let onHoldHere = onHold
@@ -103,8 +112,8 @@ router.patch('/editroom', verify, async (req, res) => {
 
     const priceEdit = Number(rows[0].origPrice) === Number(origPrice) ? null : rows[0].origPrice
     if (priceEdit) {
-      addLog(hDId, 'Price change', `$${name}$ former price was &NGN${Number(priceEdit)
-        .toLocaleString()}&. New price is &NGN${Number(origPrice).toLocaleString()}&.
+      addLog(hDId, 'Price change', `$${name}$ former price was &${currency}${Number(priceEdit)
+        .toLocaleString()}&. New price is &${currency}${Number(origPrice).toLocaleString()}&.
         By |${username}|`, date, 'N/A')
     }
 
@@ -162,28 +171,15 @@ router.post('/rooms', safeVerify, async (req, res) => {
     const id = Number(req.get('hDId'))
 
     // await client.query(`DROP TABLE IF EXISTS ${`Rooms${id}`}`)
-    // const rows0 = await client.query('SELECT * FROM Rooms')
-    // for (let i = 0; i < rows0.length; i += 1) {
-    //   const r = rows0[i]
-    //   await client.query(`CREATE TABLE IF NOT EXISTS ${`Rooms${id}`}
-    //     ( id serial PRIMARY KEY, name text, description text NULL, price text, origPrice text, img MEDIUMTEXT NULL,
-    //     freeBy text, onHold text NULL, bookToken text NULL, bookName text NULL, createdOn text, bookerNumber text NULL,
-    //     bookerEmail text NULL, perks text, updatedAsOf text, updatedBy text, imgs LONGTEXT NULL, floor text)`)
-
-    //   await client.query(`INSERT INTO ${`Rooms${id}`} (name, description, price, origPrice, floor, img, freeBy, createdOn,
-    //     updatedAsOf, imgs, updatedBy, onHold, perks, bookToken, bookName, bookerNumber, bookerEmail) VALUES (?, ?,
-    //     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [r.name, r.description, r.price, r.origPrice, r.floor, r.img,
-    //     r.freeBy, r.createdOn, r.updatedAsOf, r.imgs, r.updatedBy, r.onHold, r.perks, r.bookToken, r.bookName,
-    //     r.bookerNumber, r.bookerEmail])
-    // }
-
-    // await client.query(`DROP TABLE IF EXISTS ${`Rooms${id}`}`)
     await client.query(`CREATE TABLE IF NOT EXISTS ${`Rooms${id}`}
-      ( id serial PRIMARY KEY, name text, description text NULL, price text, origPrice text, img MEDIUMTEXT NULL,
-      freeBy text, onHold text NULL, bookToken text NULL, bookName text NULL, createdOn text, bookerNumber text NULL,
-      bookerEmail text NULL, perks text, updatedAsOf text, updatedBy text, imgs LONGTEXT NULL, floor text)`)
+    ( id serial PRIMARY KEY, name text, description text NULL, price text, origPrice text, img MEDIUMTEXT NULL,
+    freeBy text, onHold text NULL, bookToken text NULL, bookName text NULL, createdOn text, bookerNumber text NULL,
+    bookerEmail text NULL, perks text, updatedAsOf text, updatedBy text, imgs LONGTEXT NULL,
+    advanceBooks text, field1 text NULL, field2 text NULL, floor text)`)
+
     const rows = await client.query(`SELECT id, name, description, price, origPrice, freeBy, onHold, bookerNumber,
-      bookerEmail, bookToken, bookName, createdOn, updatedAsOf, updatedBy, perks, floor from ${`Rooms${id}`}`)
+      bookerEmail, bookToken, bookName, createdOn, updatedAsOf, updatedBy, perks, floor,
+      advanceBooks from ${`Rooms${id}`}`)
 
     let availableRooms: number = 0
     let onHoldRooms: number = 0
@@ -192,7 +188,12 @@ router.post('/rooms', safeVerify, async (req, res) => {
       // const addition = Number(price) >= 50000 ? 500 : 300
       const addition = (Math.ceil((Number(price) * (4 / 100)) / 100) * 100) + 500
       const realPrice = Number(price) + addition
-      rows[i] = { ...rows[i], price: realPrice.toString(), perks: JSON.parse(rows[i].perks) }
+      rows[i] = {
+        ...rows[i],
+        price: realPrice.toString(),
+        perks: JSON.parse(rows[i].perks),
+        advanceBooks: JSON.parse(rows[i].advanceBooks)
+      }
       const { freeBy, onHold } = rows[i]
       if (new Date(freeBy).getTime() < new Date().getTime()) {
         availableRooms += 1

@@ -33,6 +33,7 @@ export const verifyPayment = async (txRef, id, amount) => {
   }
   return null
 }
+
 const noVerifyMailOptions = (txRef: string): any => {
   return {
     from: 1,
@@ -42,7 +43,7 @@ const noVerifyMailOptions = (txRef: string): any => {
   }
 }
 
-router.get('/postpayment', async (req, res, next) => {
+router.get('/postpayment', async (req, res) => {
   try {
     const { amount, status, tx_ref: txRef, transaction_id: transId } = req.query
 
@@ -60,6 +61,52 @@ router.get('/postpayment', async (req, res, next) => {
     res.writeHead(301, {
       Location: `${process.env.CLIENT_URL}/rooms/${verifyStatus}`
     }).end()
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+export const verifySubscription = async (txRef, id, amount) => {
+  try {
+    const isVerifiedPayment = await verifiedPayment(id, amount)
+    if (isVerifiedPayment) {
+      await neonClient.query(`CREATE TABLE IF NOT EXISTS Subscriptions ( id serial PRIMARY KEY, txRef text,
+        amount text, timestamp text, transactionId text)`)
+
+      const rows = await neonClient.query('SELECT txRef FROM Subscriptions where txRef = ?', [txRef.trim()])
+      if (rows[0]?.txref) {
+        return true
+      }
+      await neonClient.query(`INSERT INTO Subscriptions ( txref, amount, timestamp, transactionId) VALUES (?,
+        ?, ?, ?)`, [txRef.trim(), amount.toString(), convertDate(new Date()), id.toString()])
+      return true
+    } else {
+      await neonClient.query(`CREATE TABLE IF NOT EXISTS NoVerifySubscriptions ( id serial PRIMARY KEY, txRef text,
+        amount text, timestamp text, transactionId text)`)
+      await neonClient.query(`INSERT INTO NoVerifySubscriptions ( txref, amount, timestamp, transactionId)
+        VALUES (?, ?, ?, ?)`, [txRef.trim(), amount.toString(), convertDate(new Date()), id.toString()])
+    }
+  } catch (error) {
+    return `VerifySub ERROR HERE__${error}`
+  }
+  return false
+}
+
+router.post('/verifysubscription', async (req, res) => {
+  try {
+    const { amount, status, tx_ref: txRef, transaction_id: transId } = req.body.trans
+
+    let verifyStatus: any = 'fail'
+    if (status === 'successful') {
+      const isVerified = await verifySubscription(txRef, transId.toString(), Number(amount))
+      if (isVerified) {
+        verifyStatus = 'pass'
+      } else {
+        sendMail('LodgeFirst', noVerifyMailOptions(txRef as string))
+      }
+    }
+
+    res.status(200).json((networkResponse('success', verifyStatus)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }

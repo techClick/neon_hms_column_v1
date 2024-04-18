@@ -77,6 +77,25 @@ router.post('/addbranchlog', verify, async (req, res) => {
   }
 })
 
+router.post('/deletelogtype', verify, async (req, res) => {
+  try {
+    const id = Number(req.get('hDId'))
+    const { type, decodedToken } = req.body
+    const { username } = decodedToken
+
+    await client.query(`DELETE FROM ${`Logs${id}`} WHERE type = ?`, [type])
+
+    setTimeout(() => {
+      addLog(id, 'Audit deleted', `Audits of &${type}& type ^deleted^ by |${
+        username}|`, new Date(), 'N/A')
+    }, 100)
+
+    res.status(200).json((networkResponse('success', true)))
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
 router.post('/deletelog', verify, async (req, res) => {
   try {
     const id = Number(req.get('hDId'))
@@ -101,7 +120,7 @@ router.post('/editlog', verify, async (req, res) => {
     const id = Number(req.get('hDId'))
     const { editId, value, addLogMessage } = req.body
 
-    await client.query(`UPDATE ${`Logs${id}`} SET value = ? updatedAsOf = ? where id = ?`,
+    await client.query(`UPDATE ${`Logs${id}`} SET value = ?, updatedAsOf = ? where id = ?`,
       [value, new Date().toISOString(), editId])
 
     setTimeout(() => {

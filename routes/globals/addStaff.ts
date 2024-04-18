@@ -48,7 +48,6 @@ export const addStaffTmp = async (req, id, hotelName) => {
     const { email, permission, username, path, decodedToken } = requestBody
     const password = requestBody.password ? await bcrypt.hash(requestBody.password, 10) : null
 
-    console.log('Add staff', permission)
     // await neonClient.query('DROP TABLE IF EXISTS Staff')
     await neonClient.query(`CREATE TABLE IF NOT EXISTS Staff
     ( id serial PRIMARY KEY, email text, password text, permission integer, forgotKey text NULL,

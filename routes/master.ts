@@ -78,7 +78,7 @@ router.post('/addTMPhotel', async (req, res) => {
     }
 
     const date = new Date()
-    date.setFullYear(date.getFullYear() + 1)
+    date.setDate(date.getDate() + 27)
 
     await neonClient.query(`INSERT INTO HotelsTMP (${RowNames}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name, address, phoneNumber,
@@ -129,7 +129,7 @@ router.post('/addhotel', async (req, res) => {
     }
 
     const date = new Date()
-    date.setFullYear(date.getFullYear() + 1)
+    date.setDate(date.getDate() + 27)
 
     await neonClient.query(`INSERT INTO Hotels (${RowNames}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name, address, phoneNumber,
@@ -205,6 +205,9 @@ router.post('/gethotel', async (req, res) => {
     if (!rows.length) {
       return res.status(403).json((networkResponse('error', 'Client not found')))
     }
+
+    await neonClient.query('UPDATE Hotels SET updatedAsOf = ? WHERE id = ?',
+      [new Date().toISOString(), id])
 
     rows[0].prefs = JSON.parse(rows[0].prefs)
     rows[0].branches = JSON.parse(rows[0].branches)
@@ -326,6 +329,19 @@ router.post('/deletebranchfiles', async (req, res) => {
     await neonClient.query('UPDATE Hotels SET branchFiles = ? where id = ?',
       [JSON.stringify(branchFiles), hDId])
 
+    res.status(200).json((networkResponse('success', true)))
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.post('/extendsubscription', async (req, res) => {
+  try {
+    const hDId = Number(req.get('hDId'))
+    const { expires } = req.body
+
+    await neonClient.query('UPDATE Hotels SET expires = ? where id = ?',
+      [expires, hDId])
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))

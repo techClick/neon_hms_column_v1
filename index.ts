@@ -108,6 +108,10 @@ io.on('connection', (socket) => {
     socket.broadcast.to(roomId).emit('get_deleted_log', logId)
   })
 
+  socket.on('delete_log_type', ({ roomId, type }) => {
+    socket.broadcast.to(roomId).emit('get_deleted_log_type', type)
+  })
+
   socket.on('update_log', ({ roomId, log }) => {
     socket.broadcast.to(roomId).emit('get_updated_log', log)
   })
@@ -122,6 +126,10 @@ io.on('connection', (socket) => {
 
   socket.on('delete_branch', ({ roomId, branch }) => {
     socket.broadcast.to(roomId).emit('get_deleted_branch', branch)
+  })
+
+  socket.on('update_hotel_expiry', ({ roomId, expires }) => {
+    socket.broadcast.to(roomId).emit('get_updated_hotel_expiry', expires)
   })
 
   socketFunction = {

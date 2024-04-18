@@ -42,7 +42,9 @@ jobs:
           echo MYS_HOST=${{ vars.HOST }} >> build/.env
           echo MYS_SECRET_DBUSER=${{ secrets.DBUSER }} >> build/.env
           echo MYS_SECRET_PASSWORD=${{ secrets.DBPASS }} >> build/.env
-          echo WEBHOOK_GITHUB_SIGNATURE=${{ secrets.WEBHOOK_GITHUB_SIGNATURE }} >> build/.env
+          echo FV_PUBLIC_KEY=${{ secrets.FW_PUBLIC_KEY }} >> build/.env
+          echo FV_SECRET_KEY=${{ secrets.FW_SECRET_KEY }} >> build/.env
+          echo FV_WEBHOOK_SECRET_HASH=${{ secrets.WEBHOOK_GITHUB_SIGNATURE }} >> build/.env
 
       - name: Set timezone
         uses: zcong1993/setup-timezone@master
