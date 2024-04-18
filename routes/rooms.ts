@@ -28,9 +28,9 @@ router.post('/addroom', verify, async (req, res) => {
 
     await client.query(`CREATE TABLE IF NOT EXISTS ${`Rooms${id}`}
       ( id serial PRIMARY KEY, name text, description text NULL, price text, origPrice text, img MEDIUMTEXT NULL,
-      freeBy text, onHold text NULL, bookToken text NULL, bookName text NULL, createdOn text, bookerNumber text NULL,
+      onHold text NULL, bookToken text NULL, bookName text NULL, createdOn text, bookerNumber text NULL,
       bookerEmail text NULL, perks text, updatedAsOf text, updatedBy text, imgs LONGTEXT NULL,
-      advanceBooks text, field1 text NULL, field2 text NULL, floor text)`)
+      books text, field1 text NULL, field2 text NULL, floor text)`)
 
     const rows = await client.query(`SELECT name from ${`Rooms${id}`} WHERE name = ?`, [name])
     if (rows.length) {
@@ -43,10 +43,10 @@ router.post('/addroom', verify, async (req, res) => {
     const { username } = req.body.decodedToken
     const date = new Date()
 
-    await client.query(`INSERT INTO ${`Rooms${id}`} (name, description, price, origPrice, floor, img, freeBy, createdOn,
-      updatedAsOf, imgs, updatedBy, onHold, perks, advanceBooks) VALUES (?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name, description, price, origPrice, floor, img,
-      date.toISOString(), date.toISOString(), date.toISOString(), imgs, username, onHoldHere, perks, JSON
+    await client.query(`INSERT INTO ${`Rooms${id}`} (name, description, price, origPrice, floor, img, createdOn,
+      updatedAsOf, imgs, updatedBy, onHold, perks, books) VALUES (?, ?,
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name, description, price, origPrice, floor, img,
+      date.toISOString(), date.toISOString(), imgs, username, onHoldHere, perks, JSON
         .stringify([])])
     const rows2 = await client.query(`SELECT id from ${`Rooms${id}`} WHERE name = ?`, [name])
 
@@ -61,7 +61,7 @@ router.post('/addroom', verify, async (req, res) => {
       price,
       floor,
       img: 'refresh',
-      freeBy: date.toISOString(),
+      books: [],
       createdOn: date.toISOString(),
       updatedAsOf: date.toISOString(),
       updatedBy: username,
@@ -70,6 +70,7 @@ router.post('/addroom', verify, async (req, res) => {
     }
     res.status(200).json((networkResponse('success', addedRoom)))
   } catch (error) {
+    console.log(error)
     res.status(500).json((networkResponse('error', error)))
   }
 })
@@ -173,13 +174,13 @@ router.post('/rooms', safeVerify, async (req, res) => {
     // await client.query(`DROP TABLE IF EXISTS ${`Rooms${id}`}`)
     await client.query(`CREATE TABLE IF NOT EXISTS ${`Rooms${id}`}
     ( id serial PRIMARY KEY, name text, description text NULL, price text, origPrice text, img MEDIUMTEXT NULL,
-    freeBy text, onHold text NULL, bookToken text NULL, bookName text NULL, createdOn text, bookerNumber text NULL,
+    onHold text NULL, bookToken text NULL, bookName text NULL, createdOn text, bookerNumber text NULL,
     bookerEmail text NULL, perks text, updatedAsOf text, updatedBy text, imgs LONGTEXT NULL,
-    advanceBooks text, field1 text NULL, field2 text NULL, floor text)`)
+    books text, field1 text NULL, field2 text NULL, floor text)`)
 
-    const rows = await client.query(`SELECT id, name, description, price, origPrice, freeBy, onHold, bookerNumber,
+    const rows = await client.query(`SELECT id, name, description, price, origPrice, onHold, bookerNumber,
       bookerEmail, bookToken, bookName, createdOn, updatedAsOf, updatedBy, perks, floor,
-      advanceBooks from ${`Rooms${id}`}`)
+      books from ${`Rooms${id}`}`)
 
     let availableRooms: number = 0
     let onHoldRooms: number = 0
@@ -192,10 +193,10 @@ router.post('/rooms', safeVerify, async (req, res) => {
         ...rows[i],
         price: realPrice.toString(),
         perks: JSON.parse(rows[i].perks),
-        advanceBooks: JSON.parse(rows[i].advanceBooks)
+        books: JSON.parse(rows[i].books)
       }
-      const { freeBy, onHold } = rows[i]
-      if (new Date(freeBy).getTime() < new Date().getTime()) {
+      const { books, onHold } = rows[i]
+      if (JSON.parse(books).length) {
         availableRooms += 1
       }
       if (onHold) onHoldRooms += 1
@@ -426,11 +427,11 @@ router.patch('/book', safeVerify, async (req, res) => {
         }
       }
 
-      const rows = await client.query(`SELECT freeBy, origPrice FROM ${`Rooms${hDId}`} where id = ?`, [id])
+      const rows = await client.query(`SELECT origPrice FROM ${`Rooms${hDId}`} where id = ?`, [id])
       const username = decodedToken?.username ?? 'Online booker'
 
-      await client.query(`UPDATE ${`Rooms${hDId}`} SET bookToken = ?, bookName = ?, freeBy = ?, updatedBy = ?, updatedAsOf = ?, 
-        bookerEmail = ?, bookerNumber = ? where id = ?`, [token, nameSave, date.toISOString(), username,
+      await client.query(`UPDATE ${`Rooms${hDId}`} SET bookToken = ?, bookName = ?, updatedBy = ?, updatedAsOf = ?, 
+        bookerEmail = ?, bookerNumber = ? where id = ?`, [token, nameSave, username,
         date1.toISOString(), email, number?.toString(), id])
 
       if (email) {
@@ -452,22 +453,23 @@ router.patch('/book', safeVerify, async (req, res) => {
         )
       }
 
+      const freeBy = new Date().toISOString()
       if (!isBooking) {
-        const time = (new Date(rows[0].freeBy)).getTime() - (new Date()).getTime()
+        const time = (new Date(freeBy)).getTime() - (new Date()).getTime()
         const remainder = time % (1000 * 60 * 60 * 24) >= 0.75 ? 1 : 0
         const days = Math.trunc(time / (1000 * 60 * 60 * 24)) + remainder
         const hrs = Math.trunc((time - (days * (1000 * 60 * 60 * 24))) / (1000 * 60 * 60))
         let mins = Math.trunc((time - (days * (1000 * 60 * 60 * 24)) - (hrs * (1000 * 60 * 60))) /
           (1000 * 60)) + 1
 
-        if (!days && !hrs && !mins) mins = (date).getTime() > (new Date(rows[0].freeBy)).getTime() ? 1 : -1
+        if (!days && !hrs && !mins) mins = (date).getTime() > (new Date(freeBy)).getTime() ? 1 : -1
 
         addLog(hDId, 'Reservation cancelled', `$${roomName}$ reservation of${days ? ` &${days} night${
           days === 1 ? '' : 's'}&` : `${hrs ? ` ${hrs} hr${hrs === 1 ? '' : 's'}` : ''}${
           mins ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} ^cancelled^ by |${username}|`, date1
         , (-1 * (refundAmount || 0)).toString())
       } else if (isEditingBooking) {
-        const time = (date).getTime() - (new Date(rows[0].freeBy)).getTime()
+        const time = (date).getTime() - (new Date(freeBy)).getTime()
         const days = Math.trunc(time / (1000 * 60 * 60 * 24))
         const hrs = Math.trunc((time - (days * (1000 * 60 * 60 * 24))) / (1000 * 60 * 60))
         const mins = Math.trunc((time - (days * (1000 * 60 * 60 * 24)) - (hrs * (1000 * 60 * 60))) /
@@ -493,7 +495,7 @@ router.patch('/book', safeVerify, async (req, res) => {
 
       const result0 = {
         id,
-        freeBy: date.toISOString(),
+        books: [],
         bookToken: token,
         bookName: nameSave,
         updatedBy: username,
