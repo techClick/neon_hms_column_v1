@@ -178,6 +178,8 @@ router.post('/rooms', safeVerify, async (req, res) => {
     bookerEmail text NULL, perks text, updatedAsOf text, updatedBy text, imgs LONGTEXT NULL,
     books text, field1 text NULL, field2 text NULL, floor text)`)
 
+    // await client.query(`UPDATE ${`Rooms${id}`} SET books = ?`, [JSON.stringify([])])
+
     const rows = await client.query(`SELECT id, name, description, price, origPrice, onHold, bookerNumber,
       bookerEmail, bookToken, bookName, createdOn, updatedAsOf, updatedBy, perks, floor,
       books from ${`Rooms${id}`}`)
@@ -186,7 +188,6 @@ router.post('/rooms', safeVerify, async (req, res) => {
     let onHoldRooms: number = 0
     rows.forEach((r, i) => {
       const price = rows[i].origPrice
-      // const addition = Number(price) >= 50000 ? 500 : 300
       const addition = (Math.ceil((Number(price) * (4 / 100)) / 100) * 100) + 500
       const realPrice = Number(price) + addition
       rows[i] = {
@@ -196,7 +197,7 @@ router.post('/rooms', safeVerify, async (req, res) => {
         books: JSON.parse(rows[i].books)
       }
       const { books, onHold } = rows[i]
-      if (JSON.parse(books).length) {
+      if (books.length) {
         availableRooms += 1
       }
       if (onHold) onHoldRooms += 1
@@ -380,7 +381,8 @@ const bookMailOptions = (hotelName: string, to: string, name: string, details: B
       </div>`
   }
 }
-router.patch('/book', safeVerify, async (req, res) => {
+
+router.patch('/editbooking', safeVerify, async (req, res) => {
   try {
     const { bookingDetails, decodedToken } = req.body
     const result = []
@@ -506,6 +508,77 @@ router.patch('/book', safeVerify, async (req, res) => {
       result.push(result0)
     }
     res.status(200).json((networkResponse('success', result)))
+  } catch (error) {
+    console.log(error)
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.patch('/book', safeVerify, async (req, res) => {
+  try {
+    const { bookingDetails, decodedToken } = req.body
+
+    const hDId = Number(req.get('hDId'))
+    const hotelName = req.get('hDName')
+    const { name, number, id, token, startDate, days, email } = bookingDetails
+
+    const bookEndDate = new Date(startDate)
+    bookEndDate.setDate(new Date(startDate).getDate() + Number(days))
+
+    const rows = await client.query(`SELECT books, origPrice, name FROM ${`Rooms${hDId}`} where id = ?`, [id])
+    const username = decodedToken?.username ?? 'Online booker'
+
+    const newBook = {
+      name,
+      token,
+      email,
+      days,
+      number,
+      startDate,
+      endDate: bookEndDate
+    }
+    const books = [
+      ...JSON.parse(rows[0].books),
+      newBook
+    ]
+
+    const date1 = new Date().toISOString()
+    // await client.query(`UPDATE ${`Rooms${hDId}`} SET books = ?`, [JSON.stringify([])])
+    await client.query(`UPDATE ${`Rooms${hDId}`} SET books = ?, updatedBy = ?, updatedAsOf = ?
+      where id = ?`, [JSON.stringify(books), username, date1, id])
+
+    if (email) {
+      const bookEmailDetails: BookEmailDetails = {
+        name,
+        days,
+        checkIn: convertDate(new Date(startDate)),
+        checkInTime: convertTime2(new Date(startDate)),
+        checkOut: convertDate(new Date(bookEndDate)),
+        checkOutTime: convertTime2(new Date(bookEndDate)),
+        price: rows[0].origPrice,
+        room: rows[0].name,
+        token,
+        isDeskBooking: true
+      }
+      await sendMail(
+        hotelName,
+        bookMailOptions(hotelName, email, name.split(' ')[0], bookEmailDetails)
+      )
+    }
+
+    const price = (Number(rows[0].origPrice)) * Number(days)
+    if (+new Date(startDate) <= +new Date()) {
+      addLog(hDId, 'Desk reservation', `$${rows[0].name}$ reserved for &${days} night${days === 1 ? '' : 's'}& by |${
+        username}| for &${name}& ${email ? `on &${email}&` : ''} ${(email && number) ? ` and &${
+        number}&` : number ? `on &${number}&` : ''}`, new Date(date1), price.toString())
+    } else {
+      addLog(hDId, 'Desk reservation', `$${rows[0].name}$ reserved in &advance& for &${days}
+        night${days === 1 ? '' : 's'}& by |${username}| for &${name}& ${email ? `on
+        &${email}&` : ''} ${(email && number) ? ` and &${number}&` : number ? `on &${number}&` : ''}`,
+      new Date(date1), price.toString())
+    }
+
+    res.status(200).json((networkResponse('success', date1)))
   } catch (error) {
     console.log(error)
     res.status(500).json((networkResponse('error', error)))

@@ -84,16 +84,12 @@ io.on('connection', (socket) => {
     socket.join(room)
   })
 
-  socket.on('book_room', ({ roomId, room }) => {
-    socket.broadcast.to(roomId).emit('get_booked_room', room)
-  })
-
   socket.on('add_room', ({ roomId, room }) => {
     socket.broadcast.to(roomId).emit('get_added_room', room)
   })
 
-  socket.on('edit_room', ({ roomId, room }) => {
-    socket.broadcast.to(roomId).emit('get_edited_room', room)
+  socket.on('edit_room', ({ roomId, rooms }) => {
+    socket.broadcast.to(roomId).emit('get_edited_room', rooms)
   })
 
   socket.on('delete_room', ({ roomId, id }) => {
