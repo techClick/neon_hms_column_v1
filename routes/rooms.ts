@@ -100,14 +100,14 @@ router.patch('/editroom', verify, async (req, res) => {
     const { username } = req.body.decodedToken
 
     const rows = await client.query(`SELECT name, price, floor, description, origPrice, onHold, perks
-      from ${`Rooms${id}`} WHERE name = ?`, [name])
+      from ${`Rooms${hDId}`} WHERE name = ?`, [name])
     if (rows.length && origName !== name) {
       return res.status(400).json((networkResponse('error', 'A room with this name exists already')))
     }
 
     const date = new Date()
 
-    await client.query(`UPDATE ${`Rooms${id}`} SET name = ?, description = ?, price = ?, origPrice = ?, img = ?,
+    await client.query(`UPDATE ${`Rooms${hDId}`} SET name = ?, description = ?, price = ?, origPrice = ?, img = ?,
       imgs = ?, updatedAsOf = ?, floor = ?, perks = ?, updatedBy = ?, onHold = ? where id = ?`,
     [name, description, price, origPrice, img, imgs, date.toISOString(), floor, perks, username, onHoldHere, id])
 
@@ -161,14 +161,13 @@ router.patch('/editroom', verify, async (req, res) => {
 
     res.status(200).json((networkResponse('success', responseData)))
   } catch (error) {
+    console.log(error)
     res.status(500).json((networkResponse('error', error)))
   }
 })
 
 router.post('/rooms', safeVerify, async (req, res) => {
   try {
-    const { decodedToken, isStaff } = req.body
-
     const id = Number(req.get('hDId'))
 
     // await client.query(`DROP TABLE IF EXISTS ${`Rooms${id}`}`)
@@ -184,9 +183,7 @@ router.post('/rooms', safeVerify, async (req, res) => {
       bookerEmail, bookToken, bookName, createdOn, updatedAsOf, updatedBy, perks, floor,
       books from ${`Rooms${id}`}`)
 
-    let availableRooms: number = 0
-    let onHoldRooms: number = 0
-    rows.forEach((r, i) => {
+    for (let i = 0; i < rows.length; i += 1) {
       const price = rows[i].origPrice
       const addition = (Math.ceil((Number(price) * (4 / 100)) / 100) * 100) + 500
       const realPrice = Number(price) + addition
@@ -196,25 +193,19 @@ router.post('/rooms', safeVerify, async (req, res) => {
         perks: JSON.parse(rows[i].perks),
         books: JSON.parse(rows[i].books)
       }
-      const { books, onHold } = rows[i]
-      if (books.length) {
-        availableRooms += 1
-      }
-      if (onHold) onHoldRooms += 1
-    })
-    availableRooms -= onHoldRooms
-    const bookedRoom = rows.length - (availableRooms + onHoldRooms)
+      const { books: b0 } = rows[i]
+      const books = [...b0].filter((b) => +new Date(b.endDate) >= +new Date())
 
-    if (!decodedToken?.username && !isStaff) {
-      addLog(id, 'Online visitor', `&${rows.length} room${rows.length === 1 ? '' : 's'}& shown. &${availableRooms}
-        available& room${availableRooms === 1 ? '' : 's'}${bookedRoom > 0 ? `. &${bookedRoom} room${
-        bookedRoom === 1 ? '' : 's'}& booked` : ''}${onHoldRooms > 0 ? `. Rooms &on hold is ${onHoldRooms}&`
-        : ''}`,
-      new Date(), 'N/A')
+      if (books.length !== b0.length) {
+        rows[i].books = books
+        await client.query(`UPDATE ${`Rooms${id}`} SET books = ? where id = ?`,
+          [JSON.stringify(books), rows[i].id])
+      }
     }
 
     res.status(200).json((networkResponse('success', rows)))
   } catch (error) {
+    console.log(error)
     res.status(500).json((networkResponse('error', error)))
   }
 })
@@ -265,13 +256,14 @@ type BookEmailDetails = {
   price: string
   room: string
   token: string
-  isDeskBooking: boolean
+  isEdit: boolean
 }
 const bookMailOptions = (hotelName: string, to: string, name: string, details: BookEmailDetails): any => {
+  const { isEdit, room } = details
   return {
     from: 1,
     to,
-    subject: `Reservation Receipt for ${details.room}`,
+    subject: isEdit ? `Reservation Receipt Update for ${room}` : `Reservation Receipt for ${room}`,
     html: `Hi ${name},
       <br/>
       <br/>
@@ -279,17 +271,8 @@ const bookMailOptions = (hotelName: string, to: string, name: string, details: B
       max-width: 620px'>
         <div style='font-size: 17px; padding: 20px; background: #f2f2f2; width: 100%;
         border: 1px solid lightgrey; border-radius: 3px; line-height: 1.6; box-sizing: border-box;'>
-          ${
-              !details.isDeskBooking
-              ? `You have reserved a room online with
-                ${' '}
-                <strong>${hotelName}</strong>.
-                <br/>
-                <div style='font-size: 15px'>Your receipt is viewable below;</div>`
-              : `You have reserved a room with
-                ${' '}
-                <strong>${hotelName}</strong>.`
-          }
+          ${isEdit ? 'Update to your room reservation with ' : 'You have reserved a room with '}
+          <strong>${hotelName}</strong>.
         </div>
         <div style='font-size: 14px; padding: 20px; background: #f2f2f2; width: 420px;
         border: 1px dashed grey; border-radius: 6px; line-height: 1.6; margin: auto; background: white;
@@ -384,13 +367,13 @@ const bookMailOptions = (hotelName: string, to: string, name: string, details: B
 
 router.patch('/editbooking', safeVerify, async (req, res) => {
   try {
-    const { bookingDetails, decodedToken } = req.body
+    const { editDetails, decodedToken } = req.body
     const result = []
 
     const hDId = Number(req.get('hDId'))
     const hotelName = req.get('hDName')
 
-    for (let i = 0; i < bookingDetails.length; i += 1) {
+    for (let i = 0; i < editDetails.length; i += 1) {
       const {
         id,
         name,
@@ -400,24 +383,18 @@ router.patch('/editbooking', safeVerify, async (req, res) => {
         secs,
         milliSecs,
         bookDate,
-        price,
-        roomName,
         token,
-        number,
         refundAmount,
         email,
-        email2,
-        isDeskBooking,
-        isEditingBooking
-      } = bookingDetails[i]
+        isEditingBooking,
+        editBook
+      } = editDetails[i]
 
-      const isBooking = ((days && Number(days) > 0) ||
-        (hours && Number(hours) > 0) ||
-        (mins && Number(mins) > 0) || (secs && Number(secs) > 0)
-      )
+      const isBooking = isEditingBooking
+
       const nameSave = isBooking ? name : null
       const date1 = new Date()
-      const date = bookDate ? new Date(bookDate) : new Date()
+      const date = new Date(bookDate)
 
       if (isBooking) {
         if (days && Number(days) > 0) date.setDate(date.getDate() + Number(days))
@@ -429,49 +406,42 @@ router.patch('/editbooking', safeVerify, async (req, res) => {
         }
       }
 
-      const rows = await client.query(`SELECT origPrice FROM ${`Rooms${hDId}`} where id = ?`, [id])
+      const rows = await client.query(`SELECT origPrice, name, books FROM ${`Rooms${hDId}`} where id = ?`, [id])
       const username = decodedToken?.username ?? 'Online booker'
 
-      await client.query(`UPDATE ${`Rooms${hDId}`} SET bookToken = ?, bookName = ?, updatedBy = ?, updatedAsOf = ?, 
-        bookerEmail = ?, bookerNumber = ? where id = ?`, [token, nameSave, username,
-        date1.toISOString(), email, number?.toString(), id])
+      const { origPrice: price, books: b0, name: roomName } = rows[0]
+      const b1 = [...JSON.parse(b0)]
+      const { id: bookId } = editBook
 
-      if (email) {
-        const bookEmailDetails: BookEmailDetails = {
-          name: nameSave,
-          days,
-          checkIn: convertDate(date1),
-          checkInTime: convertTime2(date1),
-          checkOut: convertDate(date),
-          checkOutTime: convertTime2(date),
-          price,
-          room: roomName,
-          token,
-          isDeskBooking
-        }
-        await sendMail(
-          hotelName,
-          bookMailOptions(hotelName, `${email}${email2 ? `, ${email2}` : ''}`, nameSave.split(' ')[0], bookEmailDetails)
-        )
+      const ind = b1.findIndex((b) => b.id === bookId)
+
+      const books = [...b1]
+      if (ind > -1) {
+        books[ind] = editBook
       }
 
-      const freeBy = new Date().toISOString()
+      await client.query(`UPDATE ${`Rooms${hDId}`} SET books = ? where id = ?`, [JSON.stringify(books), id])
+
+      let oldFreeBy = '1-4-2024'
+      if (ind > -1) {
+        oldFreeBy = b1[ind].endDate
+      }
       if (!isBooking) {
-        const time = (new Date(freeBy)).getTime() - (new Date()).getTime()
+        const time = (new Date(oldFreeBy)).getTime() - (new Date()).getTime()
         const remainder = time % (1000 * 60 * 60 * 24) >= 0.75 ? 1 : 0
         const days = Math.trunc(time / (1000 * 60 * 60 * 24)) + remainder
         const hrs = Math.trunc((time - (days * (1000 * 60 * 60 * 24))) / (1000 * 60 * 60))
         let mins = Math.trunc((time - (days * (1000 * 60 * 60 * 24)) - (hrs * (1000 * 60 * 60))) /
           (1000 * 60)) + 1
 
-        if (!days && !hrs && !mins) mins = (date).getTime() > (new Date(freeBy)).getTime() ? 1 : -1
+        if (!days && !hrs && !mins) mins = (date).getTime() > (new Date(oldFreeBy)).getTime() ? 1 : -1
 
         addLog(hDId, 'Reservation cancelled', `$${roomName}$ reservation of${days ? ` &${days} night${
           days === 1 ? '' : 's'}&` : `${hrs ? ` ${hrs} hr${hrs === 1 ? '' : 's'}` : ''}${
           mins ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} ^cancelled^ by |${username}|`, date1
         , (-1 * (refundAmount || 0)).toString())
-      } else if (isEditingBooking) {
-        const time = (date).getTime() - (new Date(freeBy)).getTime()
+      } else {
+        const time = (date).getTime() - (new Date(oldFreeBy)).getTime()
         const days = Math.trunc(time / (1000 * 60 * 60 * 24))
         const hrs = Math.trunc((time - (days * (1000 * 60 * 60 * 24))) / (1000 * 60 * 60))
         const mins = Math.trunc((time - (days * (1000 * 60 * 60 * 24)) - (hrs * (1000 * 60 * 60))) /
@@ -482,32 +452,33 @@ router.patch('/editbooking', safeVerify, async (req, res) => {
           hrs * -1} hr${hrs === -1 ? '' : 's'}` : ''}${mins < 0 ? ` ${mins * -1} min${mins === -1 ? '' : 's'}`
           : ''}` : `&extended& by${days > 0 ? ` &${days} day${days === 1 ? '' : 's'}&` : ''}${hrs > 0 ? ` ${
           hrs} hr${hrs === 1 ? '' : 's'}` : ''}${mins > 0 ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} by |${
-          username}|`, date1, days > 0 ? (days * Number(rows[0].origPrice)).toString()
+          username}|`, date1, days > 0 ? (days * Number(price)).toString()
           : (-1 * (refundAmount || 0)).toString())
-      } else if (isDeskBooking) {
-        const price = (Number(rows[0].origPrice)) * Number(days)
-        addLog(hDId, 'Desk reservation', `$${roomName}$ reserved for &${days} night${days === 1 ? '' : 's'}& by |${
-          username}| for &${nameSave}& ${email ? `on &${email}&` : ''} ${(email && number) ? ` and &${
-          number}&` : number ? `on &${number}&` : ''}`, date1, price.toString())
-      } else {
-        addLog(hDId, 'Online reservation', `$${roomName}$ reserved for &${days} night${Number(days) === 1 ? '' : 's'}&
-          by online booker &${nameSave}& on &${email}&`, date1, ((Number(
-          rows[0].origPrice)) * Number(days)).toString())
       }
 
-      const result0 = {
-        id,
-        books: [],
-        bookToken: token,
-        bookName: nameSave,
-        updatedBy: username,
-        updatedAsOf: date1,
-        bookerNumber: number,
-        bookerEmail: email
+      if (email && isBooking) {
+        const bookEmailDetails: BookEmailDetails = {
+          name: nameSave,
+          days,
+          checkIn: convertDate(date1),
+          checkInTime: convertTime2(date1),
+          checkOut: convertDate(date),
+          checkOutTime: convertTime2(date),
+          price,
+          room: roomName,
+          token,
+          isEdit: true
+        }
+        await sendMail(
+          hotelName,
+          bookMailOptions(hotelName, email, nameSave.split(' ')[0], bookEmailDetails)
+        )
       }
+
+      const result0 = { updatedAsOf: date1 }
       result.push(result0)
     }
-    res.status(200).json((networkResponse('success', result)))
+    res.status(200).json((networkResponse('success', result[0].updatedAsOf)))
   } catch (error) {
     console.log(error)
     res.status(500).json((networkResponse('error', error)))
@@ -520,65 +491,95 @@ router.patch('/book', safeVerify, async (req, res) => {
 
     const hDId = Number(req.get('hDId'))
     const hotelName = req.get('hDName')
-    const { name, number, id, token, startDate, days, email } = bookingDetails
 
-    const bookEndDate = new Date(startDate)
-    bookEndDate.setDate(new Date(startDate).getDate() + Number(days))
+    for (let i = 0; i < bookingDetails.length; i += 1) {
+      const {
+        name, number, id, roomId, bookDate, token, startDate, endDate, days, email
+      } = bookingDetails[i]
 
-    const rows = await client.query(`SELECT books, origPrice, name FROM ${`Rooms${hDId}`} where id = ?`, [id])
-    const username = decodedToken?.username ?? 'Online booker'
+      const rows = await client.query(`SELECT books, origPrice, name FROM ${`Rooms${hDId}`} where id = ?`, [roomId])
+      const username = decodedToken?.username ?? 'Online booker'
 
-    const newBook = {
-      name,
-      token,
-      email,
-      days,
-      number,
-      startDate,
-      endDate: bookEndDate
-    }
-    const books = [
-      ...JSON.parse(rows[0].books),
-      newBook
-    ]
-
-    const date1 = new Date().toISOString()
-    // await client.query(`UPDATE ${`Rooms${hDId}`} SET books = ?`, [JSON.stringify([])])
-    await client.query(`UPDATE ${`Rooms${hDId}`} SET books = ?, updatedBy = ?, updatedAsOf = ?
-      where id = ?`, [JSON.stringify(books), username, date1, id])
-
-    if (email) {
-      const bookEmailDetails: BookEmailDetails = {
+      const newBook = {
+        id,
+        roomId,
+        bookDate,
         name,
-        days,
-        checkIn: convertDate(new Date(startDate)),
-        checkInTime: convertTime2(new Date(startDate)),
-        checkOut: convertDate(new Date(bookEndDate)),
-        checkOutTime: convertTime2(new Date(bookEndDate)),
-        price: rows[0].origPrice,
-        room: rows[0].name,
         token,
-        isDeskBooking: true
+        email,
+        days,
+        number,
+        startDate,
+        endDate
       }
-      await sendMail(
-        hotelName,
-        bookMailOptions(hotelName, email, name.split(' ')[0], bookEmailDetails)
-      )
+      const books = [
+        ...JSON.parse(rows[0].books),
+        newBook
+      ]
+
+      await client.query(`UPDATE ${`Rooms${hDId}`} SET books = ?, updatedBy = ?, updatedAsOf = ?
+        where id = ?`, [JSON.stringify(books), username, bookDate, roomId])
+
+      if (email) {
+        const bookEmailDetails: BookEmailDetails = {
+          name,
+          days,
+          checkIn: convertDate(new Date(startDate)),
+          checkInTime: convertTime2(new Date(startDate)),
+          checkOut: convertDate(new Date(endDate)),
+          checkOutTime: convertTime2(new Date(endDate)),
+          price: rows[0].origPrice,
+          room: rows[0].name,
+          token,
+          isEdit: false
+        }
+        await sendMail(
+          hotelName,
+          bookMailOptions(hotelName, email, name.split(' ')[0], bookEmailDetails)
+        )
+      }
+
+      const price = (Number(rows[0].origPrice)) * Number(days)
+      if (+new Date(startDate) <= +new Date()) {
+        addLog(hDId, 'Desk reservation', `$${rows[0].name}$ reserved for &${days} night${days === 1 ? '' : 's'}& by |${
+          username}| for &${name}& ${email ? `on &${email}&` : ''} ${(email && number) ? ` and &${
+          number}&` : number ? `on &${number}&` : ''}`, new Date(bookDate), price.toString())
+      } else {
+        addLog(hDId, 'Desk reservation', `$${rows[0].name}$ reserved in &advance& for &${days}
+          night${days === 1 ? '' : 's'}& by |${username}| for &${name}& ${email ? `on
+          &${email}&` : ''} ${(email && number) ? ` and &${number}&` : number ? `on &${number}&` : ''}`,
+        new Date(bookDate), price.toString())
+      }
     }
 
-    const price = (Number(rows[0].origPrice)) * Number(days)
-    if (+new Date(startDate) <= +new Date()) {
-      addLog(hDId, 'Desk reservation', `$${rows[0].name}$ reserved for &${days} night${days === 1 ? '' : 's'}& by |${
-        username}| for &${name}& ${email ? `on &${email}&` : ''} ${(email && number) ? ` and &${
-        number}&` : number ? `on &${number}&` : ''}`, new Date(date1), price.toString())
-    } else {
-      addLog(hDId, 'Desk reservation', `$${rows[0].name}$ reserved in &advance& for &${days}
-        night${days === 1 ? '' : 's'}& by |${username}| for &${name}& ${email ? `on
-        &${email}&` : ''} ${(email && number) ? ` and &${number}&` : number ? `on &${number}&` : ''}`,
-      new Date(date1), price.toString())
-    }
+    res.status(200).json((networkResponse('success', true)))
+  } catch (error) {
+    console.log(error)
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
 
-    res.status(200).json((networkResponse('success', date1)))
+router.patch('/deletebooking', verify, async (req, res) => {
+  try {
+    const { deleteDetails, decodedToken } = req.body
+    const { username } = decodedToken
+    const { roomId, id, updatedAsOf } = deleteDetails
+
+    const hDId = Number(req.get('hDId'))
+    const rows = await client.query(`SELECT name, books, origPrice FROM ${`Rooms${hDId}`} where id = ?`, [roomId])
+    const { books: b0, name: roomName, origPrice: price } = rows[0]
+    const books = JSON.parse(b0)
+    const deleteBooking = [...books].find((b) => b.id === id)
+    const newBooks = books.filter((b) => b.id !== id)
+
+    await client.query(`UPDATE ${`Rooms${hDId}`} SET books = ?, updatedBy = ?, updatedAsOf = ?
+      where id = ?`, [JSON.stringify(newBooks), username, updatedAsOf, roomId])
+
+    addLog(hDId, 'Reservation cancelled', `$${roomName}$ &advance& reservation of &${deleteBooking.days} night${
+      deleteBooking.days === 1 ? '' : 's'} for ${deleteBooking.name} ^cancelled^ by |${username}|`, new Date(updatedAsOf)
+    , (-1 * Number(price)).toString())
+
+    res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     console.log(error)
     res.status(500).json((networkResponse('error', error)))
