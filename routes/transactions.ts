@@ -12,9 +12,6 @@ export const verifyPayment = async (txRef, id, amount) => {
   try {
     const isVerifiedPayment = await verifiedPayment(id, amount)
     if (isVerifiedPayment) {
-      await neonClient.query(`CREATE TABLE IF NOT EXISTS PaidToMe ( id serial PRIMARY KEY, txRef text,
-        amount text, timestamp text, transactionId text)`)
-
       const rows = await neonClient.query('SELECT txRef FROM PaidToMe where txRef = ?', [txRef.trim()])
       if (rows[0]?.txref) {
         return true
@@ -23,8 +20,6 @@ export const verifyPayment = async (txRef, id, amount) => {
         ?, ?, ?)`, [txRef.trim(), amount.toString(), convertDate(new Date()), id.toString()])
       return true
     } else {
-      await neonClient.query(`CREATE TABLE IF NOT EXISTS NoVerifyPaidToMe ( id serial PRIMARY KEY, txRef text,
-        amount text, timestamp text, transactionId text)`)
       await neonClient.query(`INSERT INTO NoVerifyPaidToMe ( txref, amount, timestamp, transactionId)
         VALUES (?, ?, ?, ?)`, [txRef.trim(), amount.toString(), convertDate(new Date()), id.toString()])
     }
@@ -66,24 +61,19 @@ router.get('/postpayment', async (req, res) => {
   }
 })
 
-export const verifySubscription = async (txRef, id, amount) => {
+export const verifyPayment1 = async (txRef, id, amount) => {
   try {
     const isVerifiedPayment = await verifiedPayment(id, amount)
     if (isVerifiedPayment) {
-      await neonClient.query(`CREATE TABLE IF NOT EXISTS Subscriptions ( id serial PRIMARY KEY, txRef text,
-        amount text, timestamp text, transactionId text)`)
-
-      const rows = await neonClient.query('SELECT txRef FROM Subscriptions where txRef = ?', [txRef.trim()])
+      const rows = await neonClient.query('SELECT txRef FROM Transactions where txRef = ?', [txRef.trim()])
       if (rows[0]?.txref) {
         return true
       }
-      await neonClient.query(`INSERT INTO Subscriptions ( txref, amount, timestamp, transactionId) VALUES (?,
+      await neonClient.query(`INSERT INTO Transactions ( txref, amount, timestamp, transactionId) VALUES (?,
         ?, ?, ?)`, [txRef.trim(), amount.toString(), convertDate(new Date()), id.toString()])
       return true
     } else {
-      await neonClient.query(`CREATE TABLE IF NOT EXISTS NoVerifySubscriptions ( id serial PRIMARY KEY, txRef text,
-        amount text, timestamp text, transactionId text)`)
-      await neonClient.query(`INSERT INTO NoVerifySubscriptions ( txref, amount, timestamp, transactionId)
+      await neonClient.query(`INSERT INTO NoVerifyTransactions ( txref, amount, timestamp, transactionId)
         VALUES (?, ?, ?, ?)`, [txRef.trim(), amount.toString(), convertDate(new Date()), id.toString()])
     }
   } catch (error) {
@@ -92,13 +82,13 @@ export const verifySubscription = async (txRef, id, amount) => {
   return false
 }
 
-router.post('/verifysubscription', async (req, res) => {
+router.post('/verifypayment', async (req, res) => {
   try {
     const { amount, status, tx_ref: txRef, transaction_id: transId } = req.body.trans
 
     let verifyStatus: any = 'fail'
     if (status === 'successful') {
-      const isVerified = await verifySubscription(txRef, transId.toString(), Number(amount))
+      const isVerified = await verifyPayment1(txRef, transId.toString(), Number(amount))
       if (isVerified) {
         verifyStatus = 'pass'
       } else {
@@ -107,6 +97,45 @@ router.post('/verifysubscription', async (req, res) => {
     }
 
     res.status(200).json((networkResponse('success', verifyStatus)))
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.patch('/extendsubscription', async (req, res) => {
+  try {
+    const hDId = Number(req.get('hDId'))
+    const { expires } = req.body
+
+    await neonClient.query('UPDATE Hotels SET expires = ? where id = ?',
+      [expires, hDId])
+    res.status(200).json((networkResponse('success', true)))
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.patch('/subscribe', async (req, res) => {
+  try {
+    const hDId = Number(req.get('hDId'))
+    const { expires, maxRooms } = req.body
+
+    await neonClient.query('UPDATE Hotels SET expires = ?, maxRooms = ? where id = ?',
+      [expires, maxRooms, hDId])
+    res.status(200).json((networkResponse('success', true)))
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.patch('/upgrade', async (req, res) => {
+  try {
+    const hDId = Number(req.get('hDId'))
+    const { maxRooms } = req.body
+
+    await neonClient.query('UPDATE Hotels SET maxRooms = ? where id = ?',
+      [maxRooms, hDId])
+    res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }

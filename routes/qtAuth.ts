@@ -1,5 +1,4 @@
 import { networkResponse } from './globals/networkResponse'
-import { callEndpoint } from './globals/endpoint'
 import express from 'express'
 const router = express.Router()
 
@@ -7,7 +6,7 @@ process.env.TZ = 'Africa/Lagos'
 
 router.get('/qtauth', async (req, res) => {
   try {
-    const authToken = Buffer.from(`${process.env.QT_CLIENT_ID}:${process.env.QT_SECRET_KEY}`).toString('base64')
+    // const authToken = Buffer.from(`${process.env.QT_CLIENT_ID}:${process.env.QT_SECRET_KEY}`).toString('base64')
     const params = {
       grant_type: 'client_credentials'
     }
@@ -18,12 +17,14 @@ router.get('/qtauth', async (req, res) => {
     }[process.env.NODE_ENV || 'development']
     console.log(`${authUrl}?${new URLSearchParams(params)}`)
 
-    const result = await callEndpoint({
-      api: `${authUrl}?${new URLSearchParams(params)}`,
-      method: 'POST',
-      contentType: 'application/x-www-form-urlencoded',
-      auth: `Basic ${authToken}`
-    })
+    // const result = await callEndpoint({
+    //   api: `${authUrl}?${new URLSearchParams(params)}`,
+    //   method: 'POST',
+    //   contentType: 'application/x-www-form-urlencoded',
+    //   auth: `Basic ${authToken}`,
+    //   type: 'text'
+    // })
+    const result = { data: '' }
 
     const qtAuthData = JSON.parse(result.data)
     console.log('payable Id', qtAuthData.payable_id)

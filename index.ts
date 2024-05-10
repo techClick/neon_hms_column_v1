@@ -6,13 +6,15 @@ import { clients } from './routes/clients'
 import { auth } from './routes/auth'
 import { qtAuth } from './routes/qtAuth'
 import { rooms } from './routes/rooms'
-import { info } from './routes/info'
+import { settings } from './routes/settings'
 import { transactions } from './routes/transactions'
 import { webhook } from './routes/webhook'
 import { logs } from './routes/logs'
 import { master } from './routes/master'
 import { insights } from './routes/insights'
+import { client, neonClient } from './routes/globals/connection'
 import http from 'http'
+import { photo } from './routes/photo'
 
 const app = express()
 app.use(express.json({ limit: '30mb' }))
@@ -49,9 +51,77 @@ const allowCors = (req, res, next) => {
   }
   return next()
 }
-app.all('*', allowCors);
 
-[clients, auth, qtAuth, rooms, info, transactions, webhook, logs, master, insights]
+const createDBs = async (req, res, next) => {
+  const hDId = Number(req.get('hDId'))
+
+  await neonClient.query(`CREATE TABLE IF NOT EXISTS Staff
+  ( id serial PRIMARY KEY, email text, password text, permission integer, forgotKey text NULL,
+    username text, hotelId text, field1 text NULL, field2 text NULL)`)
+
+  // await neonClient.query('DROP TABLE IF EXISTS HotelsTMP')
+  await neonClient.query(`CREATE TABLE IF NOT EXISTS HotelsTMP ( id serial PRIMARY KEY, nameSave text, email text,
+    password text, name text NULL, address text, phoneNumber text, linkedin text NULL, facebook text NULL,
+    logo MEDIUMTEXT NULL, accNumber text NULL, accName text NULL, field1 text NULL, field2 text NULL, updatedBy text,
+    updatedAsOf text, twitter text NULL, instagram text NULL, currency text, displayEmail text, prefs text,
+    branches text, fields LONGTEXT, branchFiles LONGTEXT, plan text NULL, country text, region text, branch text NULL,
+    username text, expires text, maxRooms text NULL, city text, coId text NULL, suffix text NULL)`)
+
+  await neonClient.query(`CREATE TABLE IF NOT EXISTS Hotels ( id serial PRIMARY KEY, nameSave text, email text,
+    password text, name text NULL, address text, phoneNumber text, linkedin text NULL, facebook text NULL,
+    logo MEDIUMTEXT NULL, accNumber text NULL, accName text NULL, field1 text NULL, field2 text NULL, updatedBy text,
+    updatedAsOf text, twitter text NULL, instagram text NULL, currency text, displayEmail text, prefs text,
+    branches text, fields LONGTEXT, branchFiles LONGTEXT, plan text NULL, country text, region text, branch text NULL,
+    username text, expires text, maxRooms text NULL, city text, coId text NULL, suffix text NULL)`)
+
+  await neonClient.query(`CREATE TABLE IF NOT EXISTS PaidToMe ( id serial PRIMARY KEY, txRef text,
+    amount text, timestamp text, transactionId text)`)
+  await neonClient.query(`CREATE TABLE IF NOT EXISTS NoVerifyPaidToMe ( id serial PRIMARY KEY, txRef text,
+    amount text, timestamp text, transactionId text)`)
+
+  await neonClient.query(`CREATE TABLE IF NOT EXISTS NoVerifyTransactions ( id serial PRIMARY KEY, txRef text,
+    amount text, timestamp text, transactionId text)`)
+  await neonClient.query(`CREATE TABLE IF NOT EXISTS Transactions ( id serial PRIMARY KEY, txRef text,
+    amount text, timestamp text, transactionId text)`)
+
+  await neonClient.query(`CREATE TABLE IF NOT EXISTS WebhookFailPayMe ( txRef text, amount text,
+    timestamp text, transactionId text)`)
+
+  await neonClient.query(`CREATE TABLE IF NOT EXISTS FlutterFee ( id serial PRIMARY KEY, fee text,
+    amount text, timestamp text, transactionId text)`)
+  await neonClient.query(`CREATE TABLE IF NOT EXISTS ErrorFlutterFee ( id serial PRIMARY KEY, message text,
+    amount text, timestamp text, transactionId text)`)
+
+  if (hDId) {
+    // await client.query(`DROP TABLE IF EXISTS ${`Rooms${hDId}`}`)
+    // await client.query(`DROP TABLE IF EXISTS ${`HotelInfo${hDId}`}`)
+    // await client.query(`DROP TABLE IF EXISTS ${`Photos${hDId}`}`)
+    const resp = await client.query(`CREATE TABLE IF NOT EXISTS ${`HotelInfo${hDId}`} ( id serial PRIMARY KEY,
+      roomGroups text, roomTypes text, rates text)`)
+
+    if (!resp.warningCount) {
+      await client.query(`INSERT INTO ${`HotelInfo${hDId}`} (roomGroups, roomTypes, rates) VALUES (?, ?, ?)`,
+        [JSON.stringify([]), JSON.stringify([]), JSON.stringify([])])
+    }
+
+    await client.query(`CREATE TABLE IF NOT EXISTS ${`Logs${hDId}`} ( id serial PRIMARY KEY, type text, message text,
+      date text, value text, updatedBy text NULL, updatedAsOf text )`)
+
+    await client.query(`CREATE TABLE IF NOT EXISTS ${`Photos${hDId}`} ( id serial PRIMARY KEY,
+      img MEDIUMTEXT NULL)`)
+
+    await client.query(`CREATE TABLE IF NOT EXISTS ${`Rooms${hDId}`}
+      ( id serial PRIMARY KEY, name text, description text NULL, rateId text,
+      onHold text NULL, bookToken text NULL, createdOn text, perks text, updatedAsOf text, updatedBy text,
+      books text, field1 text NULL, field2 text NULL, floor text, roomTypeId text)`)
+  }
+  return next()
+}
+
+app.all('*', allowCors)
+app.all('*', createDBs);
+
+[clients, auth, qtAuth, rooms, settings, transactions, webhook, logs, master, insights, photo]
   .map((endPoint) => app.use('/', endPoint))
 
 const server = http.createServer(app)
@@ -124,8 +194,8 @@ io.on('connection', (socket) => {
     socket.broadcast.to(roomId).emit('get_deleted_branch', branch)
   })
 
-  socket.on('update_hotel_expiry', ({ roomId, expires }) => {
-    socket.broadcast.to(roomId).emit('get_updated_hotel_expiry', expires)
+  socket.on('update_hotel', ({ roomId, hotelData }) => {
+    socket.broadcast.to(roomId).emit('get_updated_hotel', hotelData)
   })
 
   socketFunction = {

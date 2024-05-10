@@ -7,14 +7,12 @@ const router = express.Router()
 
 export type LogType = 'Desk reservation' | 'Reservation cancelled' | 'Room added' | 'Staff logged in' |
 'Staff logout' | 'Online visitor' | 'Settings change' | 'Online reservation' | 'Room change' | 'Reservation change' |
-'Staff added' | 'Staff removed' | 'Staff change' | 'Price change' | 'Room deleted' | 'Audit change' |
+'Staff added' | 'Staff removed' | 'Staff change' | 'Rate Plan change' | 'Room deleted' | 'Audit change' |
 'Audit deleted' | 'Walk in'
 
 export const addLog = async (
   id: number, type: LogType, message: string, date: Date, value: string, updatedAsOf?: string) => {
   try {
-    await client.query(`CREATE TABLE IF NOT EXISTS ${`Logs${id}`} ( id serial PRIMARY KEY, type text, message text,
-      date text, value text, updatedBy text NULL, updatedAsOf text, field1 text NULL, field2 text NULL )`)
     await client.query(`INSERT INTO ${`Logs${id}`} ( type, message, date, value, updatedBy, updatedAsOf )
       VALUES (?, ?, ?, ?, ?, ?)`, [type, message, date.toISOString(), value, 'N/A',
       updatedAsOf || date.toISOString()])
@@ -49,10 +47,6 @@ router.get('/getlogs', verify, async (req, res) => {
     //     VALUES (?, ?, ?, ?, ?, ?)`, [r.type, r.message, r.date, r.value, 'N/A',
     //     r.updatedAsOf || r.date.toISOString()])
     // })
-
-    // await client.query('DROP TABLE IF EXISTS Logs')
-    await client.query(`CREATE TABLE IF NOT EXISTS ${`Logs${id}`} ( id serial PRIMARY KEY, type text, message text,
-      date text, value text, updatedBy text NULL, updatedAsOf text )`)
 
     const rows = await client.query(`SELECT * from ${`Logs${id}`}`)
 

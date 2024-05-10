@@ -15,53 +15,48 @@ router.post('/addroom', verify, async (req, res) => {
       name,
       description,
       floor,
-      price,
-      origPrice,
-      imgFile: img1,
-      imgFiles: imgs,
+      rateId,
       onHold,
-      perks
+      perks,
+      roomTypeId
     } = req.body
 
     const id = Number(req.get('hDId'))
     const currency = decodeURIComponent(req.get('hDCurrency') || '')
-
-    await client.query(`CREATE TABLE IF NOT EXISTS ${`Rooms${id}`}
-      ( id serial PRIMARY KEY, name text, description text NULL, price text, origPrice text, img MEDIUMTEXT NULL,
-      onHold text NULL, bookToken text NULL, bookName text NULL, createdOn text, bookerNumber text NULL,
-      bookerEmail text NULL, perks text, updatedAsOf text, updatedBy text, imgs LONGTEXT NULL,
-      books text, field1 text NULL, field2 text NULL, floor text)`)
 
     const rows = await client.query(`SELECT name from ${`Rooms${id}`} WHERE name = ?`, [name])
     if (rows.length) {
       return res.status(403).json((networkResponse('error', 'A room with this name exists already')))
     }
 
-    const img = img1 === 'refresh' ? null : img1
     let onHoldHere = onHold
     if (!onHold) onHoldHere = null
     const { username } = req.body.decodedToken
     const date = new Date()
 
-    await client.query(`INSERT INTO ${`Rooms${id}`} (name, description, price, origPrice, floor, img, createdOn,
-      updatedAsOf, imgs, updatedBy, onHold, perks, books) VALUES (?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name, description, price, origPrice, floor, img,
-      date.toISOString(), date.toISOString(), imgs, username, onHoldHere, perks, JSON
-        .stringify([])])
+    await client.query(`INSERT INTO ${`Rooms${id}`} (name, description, rateId, floor, createdOn,
+      updatedAsOf, updatedBy, onHold, perks, books, roomTypeId) VALUES (?, ?,
+      ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name, description, rateId, floor,
+      date.toISOString(), date.toISOString(), username, onHoldHere, perks, JSON
+        .stringify([]), roomTypeId])
     const rows2 = await client.query(`SELECT id from ${`Rooms${id}`} WHERE name = ?`, [name])
 
-    addLog(id, 'Room added', `$${name}$ added. At price &${currency}${Number(origPrice).toLocaleString()}&
+    const rows1 = await client.query(`SELECT rates from ${`HotelInfo${id}`}`)
+    console.log(id, rows1)
+    const rates = JSON.parse(rows1[0].rates)
+    const thisRate = rates.find((r) => r.id === rateId).baseRate
+
+    addLog(id, 'Room added', `&V&${name}&V& added. At base rate &${currency}${Number(thisRate).toLocaleString()}&
       by |${username}|`, date, 'N/A')
 
     const addedRoom = {
       id: rows2[0].id,
       name,
       description,
-      origPrice,
-      price,
+      rateId,
       floor,
-      img: 'refresh',
       books: [],
+      roomTypeId,
       createdOn: date.toISOString(),
       updatedAsOf: date.toISOString(),
       updatedBy: username,
@@ -83,23 +78,20 @@ router.patch('/editroom', verify, async (req, res) => {
       origName,
       description,
       floor,
-      price,
-      origPrice,
-      imgFile: img1,
-      imgFiles: imgs,
+      rateId,
       onHold,
-      perks
+      perks,
+      roomTypeId
     } = req.body
 
     const hDId = Number(req.get('hDId'))
     const currency = decodeURIComponent(req.get('hDCurrency') || '')
 
-    const img = img1 === 'refresh' ? null : img1
     let onHoldHere = onHold
     if (!onHold) onHoldHere = null
     const { username } = req.body.decodedToken
 
-    const rows = await client.query(`SELECT name, price, floor, description, origPrice, onHold, perks
+    const rows = await client.query(`SELECT name, rateId, floor, description, onHold, perks
       from ${`Rooms${hDId}`} WHERE name = ?`, [name])
     if (rows.length && origName !== name) {
       return res.status(400).json((networkResponse('error', 'A room with this name exists already')))
@@ -107,14 +99,21 @@ router.patch('/editroom', verify, async (req, res) => {
 
     const date = new Date()
 
-    await client.query(`UPDATE ${`Rooms${hDId}`} SET name = ?, description = ?, price = ?, origPrice = ?, img = ?,
-      imgs = ?, updatedAsOf = ?, floor = ?, perks = ?, updatedBy = ?, onHold = ? where id = ?`,
-    [name, description, price, origPrice, img, imgs, date.toISOString(), floor, perks, username, onHoldHere, id])
+    await client.query(`UPDATE ${`Rooms${hDId}`} SET name = ?, description = ?, rateId = ?,
+      updatedAsOf = ?, floor = ?, perks = ?, updatedBy = ?, onHold = ?, roomTypeId = ? where id = ?`,
+    [name, description, rateId, date.toISOString(), floor, perks, username, onHoldHere,
+      roomTypeId, id])
 
-    const priceEdit = Number(rows[0].origPrice) === Number(origPrice) ? null : rows[0].origPrice
-    if (priceEdit) {
-      addLog(hDId, 'Price change', `$${name}$ former price was &${currency}${Number(priceEdit)
-        .toLocaleString()}&. New price is &${currency}${Number(origPrice).toLocaleString()}&.
+    const rows1 = await client.query(`SELECT rates from ${`HotelInfo${hDId}`}`)
+    const rates = JSON.parse(rows1[0].rates)
+    const newRate = rates.find((r) => r.id === rateId).baseRate
+    const rates2 = JSON.parse(rows1[0].rates)
+    const oldRate = rates2.find((r) => r.id === rows[0].rateId).baseRate
+
+    const rateEdit = newRate === oldRate ? null : oldRate
+    if (rateEdit) {
+      addLog(hDId, 'Rate Plan change', `&V&${name}&V& former base rate was &${currency}${Number(rateEdit)
+        .toLocaleString()}&. New base rate is &${currency}${Number(newRate).toLocaleString()}&.
         By |${username}|`, date, 'N/A')
     }
 
@@ -139,20 +138,19 @@ router.patch('/editroom', verify, async (req, res) => {
       `${isOldPerks ? '' : '&Perks& changed. '}`,
       `${isOldOnHold ? '' : `Room was ${onHold ? 'put &on hold&'
         : '&removed from hold& status'}. `}`
-    ].join('')
+    ].join('') || 'room type/rate-plan changed'
 
     if (edits) {
-      addLog(hDId, 'Room change', `$${name}$ details &changed& by |${username}|. Changes are: ${edits}`, date, 'N/A')
+      addLog(hDId, 'Room change', `&V&${name}&V& details &changed& by |${username}|. Changes are: ${edits}`, date, 'N/A')
     }
 
     const responseData = {
       id,
       name,
       description,
-      origPrice,
-      price,
+      rateId,
       floor,
-      img: 'refresh',
+      roomTypeId,
       updatedAsOf: date,
       onHold: onHoldHere,
       updatedBy: username,
@@ -170,26 +168,12 @@ router.post('/rooms', safeVerify, async (req, res) => {
   try {
     const id = Number(req.get('hDId'))
 
-    // await client.query(`DROP TABLE IF EXISTS ${`Rooms${id}`}`)
-    await client.query(`CREATE TABLE IF NOT EXISTS ${`Rooms${id}`}
-    ( id serial PRIMARY KEY, name text, description text NULL, price text, origPrice text, img MEDIUMTEXT NULL,
-    onHold text NULL, bookToken text NULL, bookName text NULL, createdOn text, bookerNumber text NULL,
-    bookerEmail text NULL, perks text, updatedAsOf text, updatedBy text, imgs LONGTEXT NULL,
-    books text, field1 text NULL, field2 text NULL, floor text)`)
-
-    // await client.query(`UPDATE ${`Rooms${id}`} SET books = ?`, [JSON.stringify([])])
-
-    const rows = await client.query(`SELECT id, name, description, price, origPrice, onHold, bookerNumber,
-      bookerEmail, bookToken, bookName, createdOn, updatedAsOf, updatedBy, perks, floor,
-      books from ${`Rooms${id}`}`)
+    const rows = await client.query(`SELECT id, name, description, rateId, onHold,
+      bookToken, createdOn, updatedAsOf, updatedBy, perks, floor, books, roomTypeId from ${`Rooms${id}`}`)
 
     for (let i = 0; i < rows.length; i += 1) {
-      const price = rows[i].origPrice
-      const addition = (Math.ceil((Number(price) * (4 / 100)) / 100) * 100) + 500
-      const realPrice = Number(price) + addition
       rows[i] = {
         ...rows[i],
-        price: realPrice.toString(),
         perks: JSON.parse(rows[i].perks),
         books: JSON.parse(rows[i].books)
       }
@@ -210,42 +194,6 @@ router.post('/rooms', safeVerify, async (req, res) => {
   }
 })
 
-router.get('/roomimages', async (req, res) => {
-  try {
-    const id = Number(req.get('hDId'))
-    const rows = await client.query(`SELECT img from ${`Rooms${id}`}`)
-    res.status(200).json((networkResponse('success', rows)))
-  } catch (error) {
-    res.status(500).json((networkResponse('error', error)))
-  }
-})
-
-router.post('/roomimage', async (req, res) => {
-  try {
-    const { id } = req.body
-
-    const hDId = Number(req.get('hDId'))
-
-    const rows = await client.query(`SELECT img from ${`Rooms${hDId}`} where id = ?`, [id])
-    res.status(200).json((networkResponse('success', rows[0].img)))
-  } catch (error) {
-    res.status(500).json((networkResponse('error', error)))
-  }
-})
-
-router.post('/bulkimages', async (req, res) => {
-  try {
-    const { id } = req.body
-
-    const hDId = Number(req.get('hDId'))
-
-    const rows = await client.query(`SELECT imgs from ${`Rooms${hDId}`} where id = ?`, [id])
-    res.status(200).json((networkResponse('success', JSON.parse(rows[0].imgs || '[]'))))
-  } catch (error) {
-    res.status(500).json((networkResponse('error', error)))
-  }
-})
-
 type BookEmailDetails = {
   name: string
   days: string
@@ -253,7 +201,7 @@ type BookEmailDetails = {
   checkInTime: string
   checkOut: string
   checkOutTime: string
-  price: string
+  rate: string
   room: string
   token: string
   isEdit: boolean
@@ -349,7 +297,7 @@ const bookMailOptions = (hotelName: string, to: string, name: string, details: B
               Price per night
             </div>
             <div style='color: black; margin-left: auto; font-weight: 600;'>
-              ₦${Number(details.price || 0).toLocaleString()}
+              ₦${Math.round(Number(details.rate || 0) / Number(details.days)).toLocaleString()}
             </div>
           </div>
           <div style='margin-top: 32px; display: flex; width: 100%; align-items: center'>
@@ -357,7 +305,7 @@ const bookMailOptions = (hotelName: string, to: string, name: string, details: B
               Total
             </div>
             <div style='color: black; margin-left: auto; color: #68d391; font-size: 20px;'>
-              ₦${(Number(details.price || 0) * Number(details.days)).toLocaleString()}
+              ₦${(Number(details.rate || 0)).toLocaleString()}
             </div>
           </div>
         </div>
@@ -387,6 +335,7 @@ router.patch('/editbooking', safeVerify, async (req, res) => {
         refundAmount,
         email,
         isEditingBooking,
+        rate,
         editBook
       } = editDetails[i]
 
@@ -406,10 +355,10 @@ router.patch('/editbooking', safeVerify, async (req, res) => {
         }
       }
 
-      const rows = await client.query(`SELECT origPrice, name, books FROM ${`Rooms${hDId}`} where id = ?`, [id])
+      const rows = await client.query(`SELECT name, books FROM ${`Rooms${hDId}`} where id = ?`, [id])
       const username = decodedToken?.username ?? 'Online booker'
 
-      const { origPrice: price, books: b0, name: roomName } = rows[0]
+      const { books: b0, name: roomName } = rows[0]
       const b1 = [...JSON.parse(b0)]
       const { id: bookId } = editBook
 
@@ -436,7 +385,7 @@ router.patch('/editbooking', safeVerify, async (req, res) => {
 
         if (!days && !hrs && !mins) mins = (date).getTime() > (new Date(oldFreeBy)).getTime() ? 1 : -1
 
-        addLog(hDId, 'Reservation cancelled', `$${roomName}$ reservation of${days ? ` &${days} night${
+        addLog(hDId, 'Reservation cancelled', `&V&${roomName}&V& reservation of${days ? ` &${days} night${
           days === 1 ? '' : 's'}&` : `${hrs ? ` ${hrs} hr${hrs === 1 ? '' : 's'}` : ''}${
           mins ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} ^cancelled^ by |${username}|`, date1
         , (-1 * (refundAmount || 0)).toString())
@@ -447,12 +396,12 @@ router.patch('/editbooking', safeVerify, async (req, res) => {
         const mins = Math.trunc((time - (days * (1000 * 60 * 60 * 24)) - (hrs * (1000 * 60 * 60))) /
           (1000 * 60))
 
-        addLog(hDId, 'Reservation change', `$${roomName}$ reservation time ${days < 0 || hrs < 0 || mins < 0
+        addLog(hDId, 'Reservation change', `&V&${roomName}&V& reservation time ${days < 0 || hrs < 0 || mins < 0
           ? `^reduced^ by${days < 0 ? ` &${days * -1} day${days === -1 ? '' : 's'}&` : ''}${hrs < 0 ? ` ${
           hrs * -1} hr${hrs === -1 ? '' : 's'}` : ''}${mins < 0 ? ` ${mins * -1} min${mins === -1 ? '' : 's'}`
           : ''}` : `&extended& by${days > 0 ? ` &${days} day${days === 1 ? '' : 's'}&` : ''}${hrs > 0 ? ` ${
           hrs} hr${hrs === 1 ? '' : 's'}` : ''}${mins > 0 ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} by |${
-          username}|`, date1, days > 0 ? (days * Number(price)).toString()
+          username}|`, date1, days > 0 ? Number(rate).toString()
           : (-1 * (refundAmount || 0)).toString())
       }
 
@@ -464,7 +413,7 @@ router.patch('/editbooking', safeVerify, async (req, res) => {
           checkInTime: convertTime2(date1),
           checkOut: convertDate(date),
           checkOutTime: convertTime2(date),
-          price,
+          rate,
           room: roomName,
           token,
           isEdit: true
@@ -494,10 +443,10 @@ router.patch('/book', safeVerify, async (req, res) => {
 
     for (let i = 0; i < bookingDetails.length; i += 1) {
       const {
-        name, number, id, roomId, bookDate, token, startDate, endDate, days, email
+        name, number, id, roomId, bookDate, token, rate, startDate, endDate, days, email
       } = bookingDetails[i]
 
-      const rows = await client.query(`SELECT books, origPrice, name FROM ${`Rooms${hDId}`} where id = ?`, [roomId])
+      const rows = await client.query(`SELECT books, name FROM ${`Rooms${hDId}`} where id = ?`, [roomId])
       const username = decodedToken?.username ?? 'Online booker'
 
       const newBook = {
@@ -528,7 +477,7 @@ router.patch('/book', safeVerify, async (req, res) => {
           checkInTime: convertTime2(new Date(startDate)),
           checkOut: convertDate(new Date(endDate)),
           checkOutTime: convertTime2(new Date(endDate)),
-          price: rows[0].origPrice,
+          rate,
           room: rows[0].name,
           token,
           isEdit: false
@@ -539,16 +488,16 @@ router.patch('/book', safeVerify, async (req, res) => {
         )
       }
 
-      const price = (Number(rows[0].origPrice)) * Number(days)
+      const totalRate = (Number(rate))
       if (+new Date(startDate) <= +new Date()) {
-        addLog(hDId, 'Desk reservation', `$${rows[0].name}$ reserved for &${days} night${days === 1 ? '' : 's'}& by |${
+        addLog(hDId, 'Desk reservation', `&V&${rows[0].name}&V& reserved for &${days} night${days === 1 ? '' : 's'}& by |${
           username}| for &${name}& ${email ? `on &${email}&` : ''} ${(email && number) ? ` and &${
-          number}&` : number ? `on &${number}&` : ''}`, new Date(bookDate), price.toString())
+          number}&` : number ? `on &${number}&` : ''}`, new Date(bookDate), totalRate.toString())
       } else {
-        addLog(hDId, 'Desk reservation', `$${rows[0].name}$ reserved in &advance& for &${days}
+        addLog(hDId, 'Desk reservation', `&V&${rows[0].name}&V& reserved in &advance& for &${days}
           night${days === 1 ? '' : 's'}& by |${username}| for &${name}& ${email ? `on
           &${email}&` : ''} ${(email && number) ? ` and &${number}&` : number ? `on &${number}&` : ''}`,
-        new Date(bookDate), price.toString())
+        new Date(bookDate), totalRate.toString())
       }
     }
 
@@ -563,11 +512,11 @@ router.patch('/deletebooking', verify, async (req, res) => {
   try {
     const { deleteDetails, decodedToken } = req.body
     const { username } = decodedToken
-    const { roomId, id, updatedAsOf } = deleteDetails
+    const { roomId, id, updatedAsOf, rate } = deleteDetails
 
     const hDId = Number(req.get('hDId'))
-    const rows = await client.query(`SELECT name, books, origPrice FROM ${`Rooms${hDId}`} where id = ?`, [roomId])
-    const { books: b0, name: roomName, origPrice: price } = rows[0]
+    const rows = await client.query(`SELECT name, books FROM ${`Rooms${hDId}`} where id = ?`, [roomId])
+    const { books: b0, name: roomName } = rows[0]
     const books = JSON.parse(b0)
     const deleteBooking = [...books].find((b) => b.id === id)
     const newBooks = books.filter((b) => b.id !== id)
@@ -575,9 +524,9 @@ router.patch('/deletebooking', verify, async (req, res) => {
     await client.query(`UPDATE ${`Rooms${hDId}`} SET books = ?, updatedBy = ?, updatedAsOf = ?
       where id = ?`, [JSON.stringify(newBooks), username, updatedAsOf, roomId])
 
-    addLog(hDId, 'Reservation cancelled', `$${roomName}$ &advance& reservation of &${deleteBooking.days} night${
-      deleteBooking.days === 1 ? '' : 's'} for ${deleteBooking.name} ^cancelled^ by |${username}|`, new Date(updatedAsOf)
-    , (-1 * Number(price)).toString())
+    addLog(hDId, 'Reservation cancelled', `&V&${roomName}&V& &advance& reservation of &${deleteBooking.days} night${
+      deleteBooking.days === 1 ? '' : 's'}& for &${deleteBooking.name}& ^cancelled^ by |${username}|`, new Date(updatedAsOf)
+    , (-1 * Number(rate)).toString())
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {

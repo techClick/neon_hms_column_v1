@@ -5,7 +5,9 @@ import { sendMail } from './email'
 import { addLog } from '../logs'
 import { roles } from '../auth'
 
-export const registerMailOptions = (hotelName: string, path: string, registerKey: string, email: string): any => {
+export const registerMailOptions = (
+  hotelName: string, hotelId: string, path: string, registerKey: string, email: string
+): any => {
   return {
     from: 0,
     to: email,
@@ -28,10 +30,13 @@ export const registerMailOptions = (hotelName: string, path: string, registerKey
             <strong>Set password</strong>
             button below to be redirected to a page on the site
             where you can set your password and begin using the app,
-            or copy and paste this link <a href='${path}/${registerKey}'>${path}/${registerKey}</a>
+            or copy and paste this link
+            <a href='${path}/${registerKey}/xb23y${hotelId}uu6tt7y'>
+              ${path}/${registerKey}/xb23y${hotelId}uu6tt7y
+            </a>
             <br/>
             <br/>
-            <a href='${path}/${registerKey}' style='text-decoration: none; color: white;'>
+            <a href='${path}/${registerKey}/xb23y${hotelId}uu6tt7y' style='text-decoration: none; color: white;'>
               <div style='margin-top: 15px; background: #1685ec; padding: 7px 16px; font-size: 18px;
                 font-weight: 700; width: max-content; border-radius: 4px; color: white'>
                 Set password
@@ -48,11 +53,6 @@ export const addStaffTmp = async (req, id, hotelName) => {
     const { email, permission, username, path, decodedToken } = requestBody
     const password = requestBody.password ? await bcrypt.hash(requestBody.password, 10) : null
 
-    // await neonClient.query('DROP TABLE IF EXISTS Staff')
-    await neonClient.query(`CREATE TABLE IF NOT EXISTS Staff
-    ( id serial PRIMARY KEY, email text, password text, permission integer, forgotKey text NULL,
-      hotelId text, username text, field1 text NULL, field2 text NULL)`)
-
     const rows = await neonClient.query('SELECT email from Staff where email = ? and hotelId = ?',
       [email.toLowerCase(), id])
     if (rows.length) {
@@ -68,7 +68,7 @@ export const addStaffTmp = async (req, id, hotelName) => {
       const registerKey = Math.random().toString(36).slice(2, 12)
       await neonClient.query('UPDATE Staff SET forgotKey = ? WHERE email= ? and hotelId = ?',
         [registerKey, email, id])
-      finalRes = await sendMail(hotelName, registerMailOptions(hotelName, path || '', registerKey, email))
+      finalRes = await sendMail(hotelName, registerMailOptions(hotelName, id, path || '', registerKey, email))
     }
 
     addLog(id, 'Staff added', `|${username}| &(${roles[Number(permission)]})& added by |${

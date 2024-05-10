@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs'
 import { safeVerify, verify } from './globals/verify'
 import { addLog } from './logs'
 import { roles } from './auth'
-import { addStaff, registerMailOptions } from './globals/addStaff'
+import { addStaff } from './globals/addStaff'
 const router = express.Router()
 router.use(cors())
 
@@ -69,7 +69,7 @@ router.delete('/deletestaff', verify, async (req, res) => {
 })
 
 let saveForgotKeyTimeout: any
-const forgotKeyMailOptions = (hotelName, path: string, forgotKey: string, email: string): any => {
+const forgotKeyMailOptions = (hotelName, hotelId: string, path: string, forgotKey: string, email: string): any => {
   return {
     from: 0,
     to: email,
@@ -84,7 +84,7 @@ const forgotKeyMailOptions = (hotelName, path: string, forgotKey: string, email:
           border: 1px solid lightgrey; border-radius: 3px; line-height: 1.6;'>
             You have requested to change your password on
             ${hotelName}'${hotelName?.split?.('')[hotelName.length - 1]?.toLowerCase() === 's' ? '' : 's'}
-            <strong>Neon Hotel Manager</strong>.
+            <strong>Lodge first Hotel Manager</strong>.
           </div>
           <div style='font-size: 15px; padding: 20px; border: 1px solid #ebebeb; line-height: 1.6;
           margin-top: -1px;'>
@@ -92,12 +92,15 @@ const forgotKeyMailOptions = (hotelName, path: string, forgotKey: string, email:
             <strong>Set password</strong>
             button below to be redirected to a page on the site
             where you can set a new password,
-            or copy and paste this link <a href='${path}/${forgotKey}'>${path}/${forgotKey}</a>
+            or copy and paste this link
+            <a href='${path}/${forgotKey}/ad57gh${hotelId}df4h8kl'>
+              ${path}/${forgotKey}/ad57gh${hotelId}df4h8kl
+            </a>
             <br/>
             <br/>
             <br/>
             This link will expire in 10 minutes.
-            <a href='${path}/${forgotKey}' style='text-decoration: none; color: white;'>
+            <a href='${path}/${forgotKey}/ad57gh${hotelId}df4h8kl' style='text-decoration: none; color: white;'>
               <div style='margin-top: 15px; background: #1685ec; padding: 7px 16px; font-size: 18px;
                 font-weight: 700; width: max-content; border-radius: 4px; color: white'>
                 Set password
@@ -111,10 +114,10 @@ const forgotKeyMailOptions = (hotelName, path: string, forgotKey: string, email:
 router.post('/forgot', async (req, res) => {
   try {
     const requestBody = req.body
-    const { email, path, isRegister } = requestBody
+    const { email, path, hotelId: id } = requestBody
 
-    const id = Number(req.get('hDId'))
-    const hotelName = req.get('hDName')
+    const rows0 = await neonClient.query('SELECT name from Hotels WHERE id = ?', [id])
+    const hotelName = rows0[0].name
 
     const rows = await neonClient.query(`SELECT email, password, forgotKey from Staff WHERE email = ?
       and hotelId = ?`, [email, id])
@@ -122,14 +125,9 @@ router.post('/forgot', async (req, res) => {
       return res.status(403).json((networkResponse('error', 'Email is not registered.')))
     }
 
-    if (!rows[0].password && !isRegister) {
+    if (!rows[0].password) {
       return res.status(401).json((networkResponse('error',
-        "Please register your email address first. Use the 'Staff register' link.")))
-    } else {
-      if (rows[0].password && isRegister) {
-        return res.status(401).json((networkResponse('error',
-          rows[0])))
-      }
+        'Please register your email address first. Check your mailbox for instructions or ask for another invite.')))
     }
 
     const forgotKey = rows[0].forgotKey || Math.random().toString(36).slice(2, 12)
@@ -138,18 +136,15 @@ router.post('/forgot', async (req, res) => {
         [forgotKey, email, id])
     }
 
-    if (!isRegister) {
-      clearTimeout(saveForgotKeyTimeout)
-      saveForgotKeyTimeout = setTimeout(async () => {
-        await neonClient.query('UPDATE Staff SET forgotKey = NULL WHERE email = ? and hotelId = ?', [email, id])
-      }, 1000 * 60 * 10)
-      await sendMail(hotelName, forgotKeyMailOptions(hotelName, path, forgotKey, email))
-    } else {
-      await sendMail(hotelName, registerMailOptions(hotelName, path, forgotKey, email))
-    }
+    clearTimeout(saveForgotKeyTimeout)
+    saveForgotKeyTimeout = setTimeout(async () => {
+      await neonClient.query('UPDATE Staff SET forgotKey = NULL WHERE email = ? and hotelId = ?', [email, id])
+    }, 1000 * 60 * 10)
+    await sendMail(hotelName, forgotKeyMailOptions(hotelName, id, path, forgotKey, email))
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
+    console.log(error)
     res.status(500).json((networkResponse('error', error)))
   }
 })
@@ -176,11 +171,8 @@ const resetPassMailOptions = (hotelName, email: string) => {
 router.post('/setpassword', async (req, res) => {
   try {
     const requestBody = req.body
-    const { email, key, isRegister } = requestBody
+    const { email, key, id, isRegister } = requestBody
     const password = await bcrypt.hash(requestBody.password, 10)
-
-    const id = Number(req.get('hDId'))
-    const hotelName = req.get('hDName')
 
     const rows = await neonClient.query('SELECT email from Staff WHERE email = ? and hotelId = ?', [email, id])
     if (!rows.length) {
@@ -196,18 +188,28 @@ router.post('/setpassword', async (req, res) => {
 
     const rows3 = await neonClient.query('SELECT forgotKey FROM Staff WHERE forgotKey = ? and hotelId = ?', [key, id])
     if (!rows3?.length) {
-      return res.status(401).json(
-        (networkResponse('error', 'Link is wrong or expired. Please begin forgot password process again.'))
-      )
+      if (!isRegister) {
+        return res.status(401).json(
+          (networkResponse('error', 'Link is wrong or expired.'))
+        )
+      } else {
+        return res.status(401).json(
+          (networkResponse('error', 'Link is wrong.'))
+        )
+      }
     }
 
     await neonClient.query('UPDATE Staff SET password = ?, forgotKey = NULL WHERE email = ? and hotelId = ?',
       [password, email, id])
 
+    const rows0 = await neonClient.query('SELECT name from Hotels WHERE id = ?', [id])
+    const hotelName = rows0[0].name
+
     if (!isRegister) await sendMail(hotelName, resetPassMailOptions(hotelName, email))
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
+    console.log(error)
     res.status(500).json((networkResponse('error', error)))
   }
 })
@@ -233,13 +235,39 @@ router.post('/getloginbranches', async (req, res) => {
     }
 
     const hotelIds = Array.from(new Set(rows.map((d) => d.hotelId))).filter((i) => i)
-    const rows1 = await neonClient.query(`SELECT * FROM Hotels Where Id IN (${hotelIds.join(', ')})`,
-      [email, password])
+    const rows1 = await neonClient.query(`SELECT name, branch, id FROM Hotels Where Id IN (${hotelIds.join(', ')})`)
 
     const hotels = rows1.map((r) => { return { name: `${r.name}${r.branch ? ` - ${r.branch}` : ''}`, id: r.id } })
 
     res.status(200).json((networkResponse('success', hotels)))
   } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.post('/getforgotbranches', async (req, res) => {
+  try {
+    const { email } = req.body
+
+    const rows = await neonClient.query('SELECT * FROM Staff WHERE email = ?',
+      [email])
+
+    if (rows.length === 0) {
+      return res.status(403).json((networkResponse('error', 'Email is not recognized')))
+    }
+
+    if (rows.length === 1) {
+      return res.status(200).json((networkResponse('success', [{ name: rows[0].name, id: rows[0].id }])))
+    }
+
+    const hotelIds = Array.from(new Set(rows.map((d) => d.hotelId))).filter((i) => i)
+    const rows1 = await neonClient.query(`SELECT name, branch, id FROM Hotels Where Id IN (${hotelIds.join(', ')})`)
+
+    const hotels = rows1.map((r) => { return { name: `${r.name}${r.branch ? ` - ${r.branch}` : ''}`, id: r.id } })
+
+    res.status(200).json((networkResponse('success', hotels)))
+  } catch (error) {
+    console.log(error)
     res.status(500).json((networkResponse('error', error)))
   }
 })

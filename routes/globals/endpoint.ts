@@ -20,36 +20,27 @@ export type CallArgs = {
   addHeaders?: Record<string, any>
 }
 
-export const callEndpoint = async ({
-  api, body, type = 'text', method = 'GET', contentType, noStringify, noContentType, auth, addHeaders
+const { CX_URL: cxUrl, CX_API_KEY: apiKey } = process.env
+
+export const callCXEndpoint = async ({
+  api, body, type = 'json', method = 'GET', contentType, noStringify, noContentType, auth
 }: CallArgs): Promise<IResponse> => {
   const options: any = {
     method,
     headers: {
       'Content-Type': contentType ?? 'application/json',
-      // Authorization: auth,
-      // accept: 'application/json',
-      ...addHeaders,
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      'user-api-key': apiKey,
+      Host: 'staging.channex.io'
     },
     body: !noStringify ? JSON.stringify(body) : body
   }
   if (noContentType) delete options.headers['Content-Type']
   try {
-    // console.log('calling ..... ', `${api}`)
+    // console.log('calling ..... ', `${cxUrl}${api}`)
     const response = await fetch(
-      api,
-      {
-        method,
-        headers: {
-          'Content-Type': contentType ?? 'application/json',
-          // Authorization: auth,
-          // accept: 'application/json',
-          ...addHeaders,
-          body: JSON.stringify(body)
-        },
-        body: !noStringify ? JSON.stringify(body) : body
-      }
+      `${cxUrl}${api}`,
+      ...options
     )
 
     // console.log('response', response);
@@ -62,6 +53,9 @@ export const callEndpoint = async ({
     )
     if (type === 'text') {
       const dataFromEndPoint1 = await response.text()
+      dataFromEndPoint = dataFromEndPoint1 || dataFromEndPoint
+    } else if (type === 'json') {
+      const dataFromEndPoint1 = await response.json()
       dataFromEndPoint = dataFromEndPoint1 || dataFromEndPoint
     }
     return JSON.parse(JSON.stringify({ status: 'success', data: dataFromEndPoint })) as IResponse

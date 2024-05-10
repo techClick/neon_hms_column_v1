@@ -1,5 +1,5 @@
 import { convertDate } from './globals/dates'
-import { verifySubscription } from './transactions'
+import { verifyPayment1 } from './transactions'
 import express from 'express'
 import { neonClient } from './globals/connection'
 
@@ -15,18 +15,14 @@ router.post('/fvwebhook', async (req, res) => {
   if (req.body['event.type'] === 'CARD_TRANSACTION') {
     if (status === 'successful') {
       setTimeout(async () => {
-        const verifiedTrans = await verifySubscription(txRef, id.toString(), amount)
+        const verifiedTrans = await verifyPayment1(txRef, id.toString(), amount)
         if (!verifiedTrans) {
-          await neonClient.query(`CREATE TABLE IF NOT EXISTS WebhookFailPayMe ( txRef text, amount text,
-            timestamp text, transactionId text)`)
           neonClient.query(`INSERT INTO WebhookFailPayMe ( txref, amount, timestamp, transactionId)
             VALUES (?, ?, ?, ?)`, [txRef, amount.toString(), convertDate(new Date()), id.toString()])
         }
       }, 5500)
     } else {
       setTimeout(async () => {
-        await neonClient.query(`CREATE TABLE IF NOT EXISTS WebhookFailPayMe ( txRef text, amount text,
-          timestamp text, transactionId text)`)
         neonClient.query(`INSERT INTO WebhookFailPayMe ( txref, amount, timestamp, transactionId)
           VALUES (?, ?, ?, ?)`, [txRef, amount.toString(), convertDate(new Date()), id.toString()])
       }, 1)

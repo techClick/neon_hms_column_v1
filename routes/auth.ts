@@ -16,10 +16,6 @@ router.post('/auth', async (req, res) => {
     const { email, password, hotelId: selectedHotelId } = req.body
     if (!email || !password) return res.status(400).json((networkResponse('error', 'Bad request')))
 
-    await neonClient.query(`CREATE TABLE IF NOT EXISTS Staff
-      ( id serial PRIMARY KEY, email text, password text, permission integer, forgotKey text NULL,
-        username text, hotelId text, field1 text NULL, field2 text NULL)`)
-
     let rows
     if (selectedHotelId) {
       rows = await neonClient.query('SELECT * FROM Staff WHERE email = ? and hotelId = ?',

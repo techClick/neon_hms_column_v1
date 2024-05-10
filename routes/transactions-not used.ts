@@ -46,9 +46,6 @@ export const verifyAndTransfer = async (txRef, id, amount) => {
   try {
     verifiedTrans = await verifiedPayment(id, amount)
     if (verifiedTrans) {
-      await neonClient.query(`CREATE TABLE IF NOT EXISTS PaidToMe ( id serial PRIMARY KEY, txRef text,
-        amount text, timestamp text, transactionId text)`)
-
       const rows = await neonClient.query('SELECT txRef FROM PaidToMe where txRef = ?',
         [txRef.trim()])
       if (rows[0]?.txref) {
@@ -63,8 +60,6 @@ export const verifyAndTransfer = async (txRef, id, amount) => {
       }
       return transferedToHotel
     } else {
-      await neonClient.query(`CREATE TABLE IF NOT EXISTS NoVerifyPaidToMe ( id serial PRIMARY KEY, txRef text,
-        amount text, timestamp text, transactionId text)`)
       await neonClient.query(`INSERT INTO NoVerifyPaidToMe ( txref, amount, timestamp, transactionId)
         VALUES (?, ?, ?, ?)`, [txRef.trim(), amount.toString(), convertDate(new Date()),
         id.toString()])

@@ -40,13 +40,9 @@ export const transferToHotel =
       // WARNING! Uses POSTGRES not MYSQL
       const { fee } = res1.data
       if (res1.status === 'success' && (fee || fee === 0)) {
-        await neonClient.query(`CREATE TABLE IF NOT EXISTS FlutterFee ( id serial PRIMARY KEY, fee text,
-          amount text, timestamp text, transactionId text)`)
         await neonClient.query(`INSERT INTO FlutterFee ( fee, amount, timestamp, transactionId)
           VALUES ('${fee.toString()}', '${amount.toString()}', $1, '${transId}')`, [convertDate(new Date())])
       } else {
-        await neonClient.query(`CREATE TABLE IF NOT EXISTS ErrorFlutterFee ( id serial PRIMARY KEY, message text,
-          amount text, timestamp text, transactionId text)`)
         await neonClient.query(`INSERT INTO ErrorFlutterFee ( message, amount, timestamp, transactionId) VALUES
           ('${res1.data.message}', '${amount.toString()}', $1, '${transId}')`, [convertDate(new Date())])
         return false

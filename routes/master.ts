@@ -4,12 +4,14 @@ import cors from 'cors'
 import { neonClient } from './globals/connection'
 import { sendMail } from './globals/email'
 import { addStaffTmp } from './globals/addStaff'
+import { addProperty } from './globals/cOversee/addProperty'
 const router = express.Router()
 router.use(cors())
 
 const RowNames = `nameSave, name, address, phoneNumber, linkedin, facebook, twitter,
-instagram, accNumber, accName, field1, field2, updatedBy, updatedAsOf, email, logo, currency, password,
-displayEmail, prefs, branches, branchFiles, fields, plan, country, region, branch, expires, username`
+  instagram, accNumber, accName, field1, field2, updatedBy, updatedAsOf, email, logo, currency, password,
+  displayEmail, prefs, branches, branchFiles, fields, plan, country, region, branch, expires, username,
+  maxRooms, city, coId, suffix`
 
 const verifyHotelMailOptions = (hotelName: string, verifyKey: string, email: string): any => {
   const { CLIENT_URL: clientURL } = process.env
@@ -54,16 +56,8 @@ router.post('/addTMPhotel', async (req, res) => {
     const {
       name, address, phoneNumber, linkedin, facebook, twitter, instagram, email, logo, branchFiles,
       accNumber, accName, field1, field2, password, currency, displayEmail, prefs, branches, fields,
-      plan, country, region, branch, username
+      plan, country, region, branch, username, suffix, city
     } = requestBody.hotelData
-
-    // await neonClient.query('DROP TABLE IF EXISTS HotelsTMP')
-    await neonClient.query(`CREATE TABLE IF NOT EXISTS HotelsTMP ( id serial PRIMARY KEY, nameSave text, email text,
-      password text, name text NULL, address text, phoneNumber text, linkedin text NULL, facebook text NULL,
-      logo MEDIUMTEXT NULL, accNumber text NULL, accName text NULL, field1 text NULL, field2 text NULL, updatedBy text,
-      updatedAsOf text, twitter text NULL, instagram text NULL, currency text, displayEmail text, prefs text,
-      branches text, fields LONGTEXT, branchFiles LONGTEXT, plan text NULL, country text, region text, branch text NULL,
-      username text, expires text)`)
 
     const rows1 = await neonClient.query('SELECT name from Hotels where nameSave = ? and email = ? and branch = ?',
       [name.toLowerCase().split(' ').join(''), email.toLowerCase(), branch])
@@ -81,10 +75,10 @@ router.post('/addTMPhotel', async (req, res) => {
     date.setDate(date.getDate() + 27)
 
     await neonClient.query(`INSERT INTO HotelsTMP (${RowNames}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name, address, phoneNumber,
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name, address, phoneNumber,
       linkedin, facebook, twitter, instagram, accNumber, accName, field1, field2, 'Tech CTO', new Date().toISOString(),
       email.toLowerCase(), logo, currency, password, displayEmail, JSON.stringify(prefs), JSON.stringify(branches),
-      branchFiles, fields, plan, country, region, branch, date.toISOString(), username])
+      branchFiles, fields, plan, country, region, branch, date.toISOString(), username, null, city, '', suffix])
 
     const result = await neonClient.query('SELECT MAX(id) from HotelsTMP')
     const hotelTMPLength: string = result[0]['MAX(id)'].toString()
@@ -92,6 +86,7 @@ router.post('/addTMPhotel', async (req, res) => {
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
+    console.log(error)
     res.status(500).json((networkResponse('error', error)))
   }
 })
@@ -114,14 +109,6 @@ router.post('/addhotel', async (req, res) => {
       plan, country, region, branch
     } = requestBody
 
-    // await neonClient.query('DROP TABLE IF EXISTS Hotels')
-    await neonClient.query(`CREATE TABLE IF NOT EXISTS Hotels ( id serial PRIMARY KEY, nameSave text, email text,
-      password text, name text NULL, address text, phoneNumber text, linkedin text NULL, facebook text NULL,
-      logo MEDIUMTEXT NULL, accNumber text NULL, accName text NULL, field1 text NULL, field2 text NULL, updatedBy text,
-      updatedAsOf text, twitter text NULL, instagram text NULL, currency text, displayEmail text, prefs text,
-      branches text, fields LONGTEXT, branchFiles LONGTEXT, plan text NULL, country text, region text, branch text NULL,
-      username text, expires text)`)
-
     const rows = await neonClient.query('SELECT nameSave from Hotels where name = ? and email= ? and branch = ?',
       [name, email.toLowerCase(), branch])
     if (rows.length) {
@@ -132,10 +119,10 @@ router.post('/addhotel', async (req, res) => {
     date.setDate(date.getDate() + 27)
 
     await neonClient.query(`INSERT INTO Hotels (${RowNames}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name, address, phoneNumber,
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name, address, phoneNumber,
       linkedin, facebook, twitter, instagram, accNumber, accName, field1, field2, 'Tech CTO', new Date().toISOString(),
       email.toLowerCase(), logo, currency, 'N/A', displayEmail, prefs, branches, branchFiles, fields, plan,
-      country, region, branch, date.toISOString(), 'N/A'])
+      country, region, branch, date.toISOString(), 'N/A', null, '', '', null])
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
@@ -143,28 +130,23 @@ router.post('/addhotel', async (req, res) => {
   }
 })
 
-router.post('/transferTMPhotel', async (req, res) => {
+router.post('/transferTMPhotel', addProperty, async (req, res) => {
   try {
-    const requestBody = req.body
-    const { id } = requestBody
+    const { id, tmpData } = req.body
 
-    const rows = await neonClient.query('SELECT * from HotelsTMP where id = ?',
-      [id])
-    if (!rows.length) {
-      return res.status(403).json((networkResponse('error', 'No Information available')))
-    }
+    console.log(tmpData)
 
     const {
       name, address, phoneNumber, linkedin, facebook, twitter, instagram, email, logo, branchFiles,
       accNumber, accName, field1, field2, password, currency, displayEmail, prefs, branches, fields,
-      plan, country, region, branch, expires, username
-    } = rows[0]
+      plan, country, region, branch, expires, username, city, coId
+    } = tmpData
 
     await neonClient.query(`INSERT INTO Hotels (${RowNames}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name, address, phoneNumber,
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name, address, phoneNumber,
       linkedin, facebook, twitter, instagram, accNumber, accName, field1, field2, 'Tech CTO', new Date().toISOString(),
       email.toLowerCase(), logo, currency, 'N/A', displayEmail, prefs, branches, branchFiles, fields,
-      plan, country, region, branch, expires, 'N/A'])
+      plan, country, region, branch, expires, 'N/A', null, city, coId, null])
 
     await neonClient.query('DELETE from HotelsTMP where id = ?', [id])
 
@@ -189,6 +171,7 @@ router.post('/transferTMPhotel', async (req, res) => {
     rows1[0].branches = JSON.parse(rows1[0].branches)
     res.status(200).json((networkResponse('success', { login: tmpReq.body, hotelData: rows1[0] })))
   } catch (error) {
+    console.log(error)
     res.status(500).json((networkResponse('error', error)))
   }
 })
@@ -211,8 +194,10 @@ router.post('/gethotel', async (req, res) => {
 
     rows[0].prefs = JSON.parse(rows[0].prefs)
     rows[0].branches = JSON.parse(rows[0].branches)
+    rows[0].currency = decodeURIComponent(rows[0].currency)
     res.status(200).json((networkResponse('success', rows)))
   } catch (error) {
+    console.log(error)
     res.status(500).json((networkResponse('error', error)))
   }
 })
@@ -329,19 +314,6 @@ router.post('/deletebranchfiles', async (req, res) => {
     await neonClient.query('UPDATE Hotels SET branchFiles = ? where id = ?',
       [JSON.stringify(branchFiles), hDId])
 
-    res.status(200).json((networkResponse('success', true)))
-  } catch (error) {
-    res.status(500).json((networkResponse('error', error)))
-  }
-})
-
-router.post('/extendsubscription', async (req, res) => {
-  try {
-    const hDId = Number(req.get('hDId'))
-    const { expires } = req.body
-
-    await neonClient.query('UPDATE Hotels SET expires = ? where id = ?',
-      [expires, hDId])
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
