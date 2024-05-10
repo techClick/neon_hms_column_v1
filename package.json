@@ -13,6 +13,7 @@
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
+    "country-data": "^0.0.31",
     "dotenv": "^16.3.1",
     "esbuild": "^0.19.8",
     "eslint": "^8.0.1",

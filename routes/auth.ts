@@ -24,6 +24,7 @@ router.post('/auth', async (req, res) => {
       rows = await neonClient.query('SELECT * FROM Staff WHERE email = ?',
         [email.toLowerCase()])
     }
+
     if (!rows.length) return res.status(403).json((networkResponse('error', 'Wrong password or email')))
 
     const correctPassword = await bcrypt.compare(password, rows[0].password)
