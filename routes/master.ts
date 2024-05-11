@@ -4,7 +4,7 @@ import cors from 'cors'
 import { neonClient } from './globals/connection'
 import { sendMail } from './globals/email'
 import { addStaffTmp } from './globals/addStaff'
-import { addProperty, addPropertyDirect } from './globals/cOversee/addProperty'
+import { addProperty, addPropertyDirect } from './globals/cO/addProperty'
 const router = express.Router()
 router.use(cors())
 

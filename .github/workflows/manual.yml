@@ -45,6 +45,7 @@ jobs:
           echo FV_PUBLIC_KEY=${{ secrets.FW_PUBLIC_KEY }} >> build/.env
           echo FV_SECRET_KEY=${{ secrets.FW_SECRET_KEY }} >> build/.env
           echo FV_WEBHOOK_SECRET_HASH=${{ secrets.WEBHOOK_GITHUB_SIGNATURE }} >> build/.env
+          echo THIS_URL=setToSpine133 >> build/.env
 
       - name: Set timezone
         uses: zcong1993/setup-timezone@master

@@ -15,6 +15,7 @@ import { insights } from './routes/insights'
 import { client, neonClient } from './routes/globals/connection'
 import http from 'http'
 import { photo } from './routes/photo'
+import { cOOp } from './routes/cOOp'
 
 const app = express()
 app.use(express.json({ limit: '30mb' }))
@@ -121,7 +122,7 @@ const createDBs = async (req, res, next) => {
 app.all('*', allowCors)
 app.all('*', createDBs);
 
-[clients, auth, qtAuth, rooms, settings, transactions, webhook, logs, master, insights, photo]
+[clients, auth, qtAuth, rooms, settings, transactions, webhook, logs, master, cOOp, insights, photo]
   .map((endPoint) => app.use('/', endPoint))
 
 const server = http.createServer(app)
