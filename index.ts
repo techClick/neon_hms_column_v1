@@ -112,7 +112,7 @@ const createDBs = async (req, res, next) => {
       img MEDIUMTEXT NULL)`)
 
     await client.query(`CREATE TABLE IF NOT EXISTS ${`Rooms${hDId}`}
-      ( id serial PRIMARY KEY, name text, description text NULL, rateId text,
+      ( id serial PRIMARY KEY, name text, description text NULL,
       onHold text NULL, bookToken text NULL, createdOn text, perks text, updatedAsOf text, updatedBy text,
       books text, field1 text NULL, field2 text NULL, floor text, roomTypeId text)`)
   }

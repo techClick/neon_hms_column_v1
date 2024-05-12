@@ -8,7 +8,7 @@ process.env.TZ = 'Africa/Lagos'
 
 const getRoomType = (req) => {
   const { roomCount, roomType } = req.body
-  const { THIS_URL: thisUrl } = process.env
+  const { THIS_URL: thisUrl, CX_URL: cxUrl } = process.env
   const pId = req.get('hDCoId')
   const photos = [
     {
@@ -39,7 +39,7 @@ const getRoomType = (req) => {
     occ_infants: roomType.infants,
     default_occupancy: roomType.adults,
     room_kind: 'room',
-    ...(thisUrl.includes('localhost') ? {} : {
+    ...(cxUrl.includes('staging') ? {} : {
       content: {
         photos
       }
@@ -81,6 +81,25 @@ router.put('/updateroomtypeco', verify, async (req, res) => {
       return res.status(200).json((networkResponse('success', true)))
     } else {
       return res.status(500).json((networkResponse('error', 'Server error 405CX')))
+    }
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.delete('/deleteroomtypeco', verify, async (req, res) => {
+  try {
+    const { coRoomTypeId } = req.body
+
+    const result = await callCXEndpoint({
+      api: `room_types/${coRoomTypeId}?force=true`,
+      method: 'DELETE'
+    })
+
+    if (result.data.meta) {
+      return res.status(200).json((networkResponse('success', true)))
+    } else {
+      return res.status(500).json((networkResponse('error', 'Server error 605CX')))
     }
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))

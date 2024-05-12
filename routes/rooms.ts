@@ -15,7 +15,6 @@ router.post('/addroom', verify, async (req, res) => {
       name,
       description,
       floor,
-      rateId,
       onHold,
       perks,
       roomTypeId
@@ -34,16 +33,18 @@ router.post('/addroom', verify, async (req, res) => {
     const { username } = req.body.decodedToken
     const date = new Date()
 
-    await client.query(`INSERT INTO ${`Rooms${id}`} (name, description, rateId, floor, createdOn,
+    await client.query(`INSERT INTO ${`Rooms${id}`} (name, description, floor, createdOn,
       updatedAsOf, updatedBy, onHold, perks, books, roomTypeId) VALUES (?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name, description, rateId, floor,
+      ?, ?, ?, ?, ?, ?, ?, ?)`, [name, description, floor,
       date.toISOString(), date.toISOString(), username, onHoldHere, perks, JSON
         .stringify([]), roomTypeId])
     const rows2 = await client.query(`SELECT id from ${`Rooms${id}`} WHERE name = ?`, [name])
 
-    const rows1 = await client.query(`SELECT rates from ${`HotelInfo${id}`}`)
+    const rows1 = await client.query(`SELECT roomTypes, rates from ${`HotelInfo${id}`}`)
     console.log(id, rows1)
     const rates = JSON.parse(rows1[0].rates)
+    const roomTypes = JSON.parse(rows1[0].roomTypes)
+    const rateId = roomTypes.find((t) => t.id === roomTypeId).rateId
     const thisRate = rates.find((r) => r.id === rateId).baseRate
 
     addLog(id, 'Room added', `&V&${name}&V& added. At base rate &${currency}${Number(thisRate).toLocaleString()}&
@@ -53,7 +54,6 @@ router.post('/addroom', verify, async (req, res) => {
       id: rows2[0].id,
       name,
       description,
-      rateId,
       floor,
       books: [],
       roomTypeId,
@@ -78,7 +78,6 @@ router.patch('/editroom', verify, async (req, res) => {
       origName,
       description,
       floor,
-      rateId,
       onHold,
       perks,
       roomTypeId
@@ -91,7 +90,7 @@ router.patch('/editroom', verify, async (req, res) => {
     if (!onHold) onHoldHere = null
     const { username } = req.body.decodedToken
 
-    const rows = await client.query(`SELECT name, rateId, floor, description, onHold, perks
+    const rows = await client.query(`SELECT name, floor, description, onHold, perks
       from ${`Rooms${hDId}`} WHERE name = ?`, [name])
     if (rows.length && origName !== name) {
       return res.status(400).json((networkResponse('error', 'A room with this name exists already')))
@@ -99,16 +98,17 @@ router.patch('/editroom', verify, async (req, res) => {
 
     const date = new Date()
 
-    await client.query(`UPDATE ${`Rooms${hDId}`} SET name = ?, description = ?, rateId = ?,
+    await client.query(`UPDATE ${`Rooms${hDId}`} SET name = ?, description = ?,
       updatedAsOf = ?, floor = ?, perks = ?, updatedBy = ?, onHold = ?, roomTypeId = ? where id = ?`,
-    [name, description, rateId, date.toISOString(), floor, perks, username, onHoldHere,
+    [name, description, date.toISOString(), floor, perks, username, onHoldHere,
       roomTypeId, id])
 
-    const rows1 = await client.query(`SELECT rates from ${`HotelInfo${hDId}`}`)
+    const rows1 = await client.query(`SELECT roomTypes, rates from ${`HotelInfo${hDId}`}`)
     const rates = JSON.parse(rows1[0].rates)
+    const roomTypes = JSON.parse(rows1[0].roomTypes)
+    const rateId = roomTypes.find((t) => t.id === roomTypeId).rateId
     const newRate = rates.find((r) => r.id === rateId).baseRate
-    const rates2 = JSON.parse(rows1[0].rates)
-    const oldRate = rates2.find((r) => r.id === rows[0].rateId).baseRate
+    const oldRate = rates.find((r) => r.id === rows[0].rateId).baseRate
 
     const rateEdit = newRate === oldRate ? null : oldRate
     if (rateEdit) {
@@ -148,7 +148,6 @@ router.patch('/editroom', verify, async (req, res) => {
       id,
       name,
       description,
-      rateId,
       floor,
       roomTypeId,
       updatedAsOf: date,
@@ -168,7 +167,7 @@ router.post('/rooms', safeVerify, async (req, res) => {
   try {
     const id = Number(req.get('hDId'))
 
-    const rows = await client.query(`SELECT id, name, description, rateId, onHold,
+    const rows = await client.query(`SELECT id, name, description, onHold,
       bookToken, createdOn, updatedAsOf, updatedBy, perks, floor, books, roomTypeId from ${`Rooms${id}`}`)
 
     for (let i = 0; i < rows.length; i += 1) {
