@@ -36,6 +36,7 @@ export const callCXEndpoint = async ({
     body: !noStringify ? JSON.stringify(body) : body
   }
 
+  // console.log(options.headers)
   if (noContentType) delete options.headers['Content-Type']
   try {
     // console.log('calling ..... ', `${cxUrl}${api}`)

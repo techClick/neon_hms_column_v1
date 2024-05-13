@@ -112,7 +112,7 @@ const getRatePlan = (req) => {
 
   // eslint-disable-next-line @typescript-eslint/naming-convention
   const rate_plan = {
-    title: `${roomType.name} Rate Plan`,
+    title: ratePlan.name,
     property_id: pId,
     room_type_id: roomType.coRoomTypeId,
     options: [
@@ -156,6 +156,26 @@ router.put('/updaterateplanco', verify, async (req, res) => {
     })
 
     console.log(getRatePlan(req), result.data)
+    if (result.data.data) {
+      return res.status(200).json((networkResponse('success', true)))
+    } else {
+      return res.status(500).json((networkResponse('error', 'Server error 204CX')))
+    }
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.post('/updaterestrictionsCO', verify, async (req, res) => {
+  try {
+    const { values } = req.body
+
+    const result = await callCXEndpoint({
+      api: 'restrictions',
+      method: 'POST',
+      body: { values }
+    })
+
     if (result.data.data) {
       return res.status(200).json((networkResponse('success', true)))
     } else {
