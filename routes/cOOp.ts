@@ -106,4 +106,64 @@ router.delete('/deleteroomtypeco', verify, async (req, res) => {
   }
 })
 
+const getRatePlan = (req) => {
+  const { roomType, ratePlan } = req.body
+  const pId = req.get('hDCoId')
+
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  const rate_plan = {
+    title: `${roomType.name} Rate Plan`,
+    property_id: pId,
+    room_type_id: roomType.coRoomTypeId,
+    options: [
+      {
+        occupancy: roomType.adults,
+        is_primary: true,
+        rate: +ratePlan.baseRate * 100
+      }
+    ]
+  }
+
+  return { ...rate_plan }
+}
+
+router.post('/addrateplanco', verify, async (req, res) => {
+  try {
+    const result = await callCXEndpoint({
+      api: 'rate_plans',
+      method: 'POST',
+      body: { rate_plan: getRatePlan(req) }
+    })
+
+    if (result.data.data) {
+      return res.status(200).json((networkResponse('success', result.data.data.id)))
+    } else {
+      return res.status(500).json((networkResponse('error', 'Server error 104CX')))
+    }
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.put('/updaterateplanco', verify, async (req, res) => {
+  try {
+    const { coRateId } = req.body.roomType
+
+    const result = await callCXEndpoint({
+      api: `rate_plans/${coRateId}`,
+      method: 'PUT',
+      body: { rate_plan: getRatePlan(req) }
+    })
+
+    console.log(getRatePlan(req), result.data)
+    if (result.data.data) {
+      return res.status(200).json((networkResponse('success', true)))
+    } else {
+      return res.status(500).json((networkResponse('error', 'Server error 204CX')))
+    }
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
 export const cOOp = router
