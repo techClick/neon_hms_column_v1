@@ -2,6 +2,7 @@ import { networkResponse } from './globals/networkResponse'
 import express from 'express'
 import { verify } from './globals/verify'
 import { callCXEndpoint } from './globals/endpoint'
+import { neonClient } from './globals/connection'
 const router = express.Router()
 
 process.env.TZ = 'Africa/Lagos'
@@ -155,7 +156,6 @@ router.put('/updaterateplanco', verify, async (req, res) => {
       body: { rate_plan: getRatePlan(req) }
     })
 
-    console.log(getRatePlan(req), result.data)
     if (result.data.data) {
       return res.status(200).json((networkResponse('success', true)))
     } else {
@@ -166,9 +166,59 @@ router.put('/updaterateplanco', verify, async (req, res) => {
   }
 })
 
+type Limit = 'restrictions' | 'availability'
+
+export const isAtCOLimit = async (hDId: string | number, limit: Limit) => {
+  const row = await neonClient.query('SELECT limits from Hotels WHERE id = ?', [hDId])
+  if (row[0]?.limits) {
+    const limits = JSON.parse(row[0].limits)
+    if (limits[limit].count >= 10 && +new Date(limits[limit].expires) >= +new Date()) {
+      return true
+    }
+  }
+  return false
+}
+
+const updatelimits = async (hDId: string, limit: Limit) => {
+  try {
+    const row = await neonClient.query('SELECT limits from Hotels WHERE id = ?', [hDId])
+    let limits
+    if (!row[0]?.limits) {
+      limits = JSON.stringify({
+        restrictions: {
+          expires: new Date(+new Date() - 1000).toISOString(),
+          count: 0
+        },
+        availability: {
+          expires: new Date(+new Date() - 1000).toISOString(),
+          count: 0
+        }
+      })
+      await neonClient.query('UPDATE Hotels SET limits = ? where id = ?', [limits, hDId])
+    } else {
+      limits = JSON.parse(row[0].limits)
+    }
+
+    const expiryTime = 1 * 60 * 1000
+
+    if (+new Date(limits[limit].expires) >= +new Date()) {
+      limits[limit].count += 1
+    } else {
+      limits[limit].expires = new Date(+new Date() + expiryTime).toISOString()
+      limits[limit].count = 1
+    }
+
+    await neonClient.query('UPDATE Hotels SET limits = ? where id = ?',
+      [JSON.stringify(limits), hDId])
+  } catch (error) {
+    console.log(error)
+  }
+}
+
 router.post('/updaterestrictionsCO', verify, async (req, res) => {
   try {
     const { values } = req.body
+    const hDId = req.get('hDId')
 
     const result = await callCXEndpoint({
       api: 'restrictions',
@@ -177,9 +227,32 @@ router.post('/updaterestrictionsCO', verify, async (req, res) => {
     })
 
     if (result.data.data) {
+      updatelimits(hDId, 'restrictions')
       return res.status(200).json((networkResponse('success', true)))
     } else {
-      return res.status(500).json((networkResponse('error', 'Server error 204CX')))
+      return res.status(500).json((networkResponse('error', 'Server error 304CX')))
+    }
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.post('/updateavailabilityCO', verify, async (req, res) => {
+  try {
+    const { values } = req.body
+    const hDId = req.get('hDId')
+
+    const result = await callCXEndpoint({
+      api: 'availability',
+      method: 'POST',
+      body: { values }
+    })
+
+    if (result.data.data) {
+      updatelimits(hDId, 'availability')
+      return res.status(200).json((networkResponse('success', true)))
+    } else {
+      return res.status(500).json((networkResponse('error', 'Server error 404CX')))
     }
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))

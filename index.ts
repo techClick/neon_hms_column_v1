@@ -15,7 +15,8 @@ import { insights } from './routes/insights'
 import { client, neonClient } from './routes/globals/connection'
 import http from 'http'
 import { photo } from './routes/photo'
-import { cOOp } from './routes/cOOp'
+import { cOOp, isAtCOLimit } from './routes/cOOp'
+import { networkResponse } from './routes/globals/networkResponse'
 
 const app = express()
 app.use(express.json({ limit: '30mb' }))
@@ -54,26 +55,24 @@ const allowCors = (req, res, next) => {
 }
 
 const createDBs = async (req, res, next) => {
-  const hDId = Number(req.get('hDId'))
-
   await neonClient.query(`CREATE TABLE IF NOT EXISTS Staff
   ( id serial PRIMARY KEY, email text, password text, permission integer, forgotKey text NULL,
     username text, hotelId text, field1 text NULL, field2 text NULL)`)
 
-  // await neonClient.query('DROP TABLE IF EXISTS HotelsTMP')
+  // await neonClient.query('DROP TABLE IF EXISTS HotelsTMP, Hotels')
   await neonClient.query(`CREATE TABLE IF NOT EXISTS HotelsTMP ( id serial PRIMARY KEY, nameSave text, email text,
     password text, name text NULL, address text, phoneNumber text, linkedin text NULL, facebook text NULL,
     logo MEDIUMTEXT NULL, accNumber text NULL, accName text NULL, field1 text NULL, field2 text NULL, updatedBy text,
     updatedAsOf text, twitter text NULL, instagram text NULL, currency text, displayEmail text, prefs text,
     branches text, fields LONGTEXT, branchFiles LONGTEXT, plan text NULL, country text, region text, branch text NULL,
-    username text, expires text, maxRooms text NULL, city text, coId text NULL, suffix text NULL)`)
+    username text, expires text, maxRooms text NULL, city text, coId text NULL, limits text NULL, suffix text NULL)`)
 
   await neonClient.query(`CREATE TABLE IF NOT EXISTS Hotels ( id serial PRIMARY KEY, nameSave text, email text,
     password text, name text NULL, address text, phoneNumber text, linkedin text NULL, facebook text NULL,
     logo MEDIUMTEXT NULL, accNumber text NULL, accName text NULL, field1 text NULL, field2 text NULL, updatedBy text,
     updatedAsOf text, twitter text NULL, instagram text NULL, currency text, displayEmail text, prefs text,
     branches text, fields LONGTEXT, branchFiles LONGTEXT, plan text NULL, country text, region text, branch text NULL,
-    username text, expires text, maxRooms text NULL, city text, coId text NULL, suffix text NULL)`)
+    username text, expires text, maxRooms text NULL, city text, coId text NULL, limits text NULL, suffix text NULL)`)
 
   await neonClient.query(`CREATE TABLE IF NOT EXISTS PaidToMe ( id serial PRIMARY KEY, txRef text,
     amount text, timestamp text, transactionId text)`)
@@ -93,7 +92,19 @@ const createDBs = async (req, res, next) => {
   await neonClient.query(`CREATE TABLE IF NOT EXISTS ErrorFlutterFee ( id serial PRIMARY KEY, message text,
     amount text, timestamp text, transactionId text)`)
 
+  const checkLimit = req.get('checkLimit')
+  const hDId = Number(req.get('hDId'))
+
   if (hDId) {
+    if ((checkLimit === 'restrictions' || checkLimit === 'availability') && await isAtCOLimit(hDId, checkLimit)) {
+      return res.status(500).json((networkResponse('error',
+        'Failed. Channel Manager limit reached. Please try again after 1 minute')))
+    } else if (checkLimit === 'both' && (await isAtCOLimit(hDId, 'restrictions') ||
+      await isAtCOLimit(hDId, 'availability'))) {
+      return res.status(500).json((networkResponse('error',
+        'Failed. Channel Manager limit reached. Please try again after 1 minute')))
+    }
+
     // await client.query(`DROP TABLE IF EXISTS ${`Rooms${hDId}`}`)
     // await client.query(`DROP TABLE IF EXISTS ${`HotelInfo${hDId}`}`)
     // await client.query(`DROP TABLE IF EXISTS ${`Photos${hDId}`}`)
