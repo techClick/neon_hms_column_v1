@@ -5,13 +5,14 @@ import { neonClient } from './globals/connection'
 import { sendMail } from './globals/email'
 import { addStaffTmp } from './globals/addStaff'
 import { addProperty, addPropertyDirect } from './globals/cO/addProperty'
+import { addWebhook } from './cOOp'
 const router = express.Router()
 router.use(cors())
 
 const RowNames = `nameSave, name, address, phoneNumber, linkedin, facebook, twitter,
   instagram, accNumber, accName, field1, field2, updatedBy, updatedAsOf, email, logo, currency, password,
   displayEmail, prefs, branches, branchFiles, fields, plan, country, region, branch, expires, username,
-  maxRooms, city, coId, suffix`
+  maxRooms, city, coId, webhook, isChannel, suffix`
 
 const verifyHotelMailOptions = (hotelName: string, verifyKey: string, email: string): any => {
   const { CLIENT_URL: clientURL } = process.env
@@ -75,10 +76,11 @@ router.post('/addTMPhotel', async (req, res) => {
     date.setDate(date.getDate() + 27)
 
     await neonClient.query(`INSERT INTO HotelsTMP (${RowNames}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name, address, phoneNumber,
-      linkedin, facebook, twitter, instagram, accNumber, accName, field1, field2, 'Tech CTO', new Date().toISOString(),
-      email.toLowerCase(), logo, null, password, displayEmail, JSON.stringify(prefs), JSON.stringify(branches),
-      branchFiles, fields, plan, country, region, branch, date.toISOString(), username, null, city, '', suffix])
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name,
+      address, phoneNumber, linkedin, facebook, twitter, instagram, accNumber, accName, field1, field2,
+      'Tech CTO', new Date().toISOString(), email.toLowerCase(), logo, null, password, displayEmail,
+      JSON.stringify(prefs), JSON.stringify(branches), branchFiles, fields, plan, country, region,
+      branch, date.toISOString(), username, null, city, '', null, null, suffix])
 
     const result = await neonClient.query('SELECT MAX(id) from HotelsTMP')
     const hotelTMPLength: string = result[0]['MAX(id)'].toString()
@@ -112,10 +114,15 @@ router.post('/addhotel', addPropertyDirect, async (req, res) => {
     date.setDate(date.getDate() + 27)
 
     await neonClient.query(`INSERT INTO Hotels (${RowNames}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name, address, phoneNumber,
-      linkedin, facebook, twitter, instagram, accNumber, accName, field1, field2, 'Tech CTO', new Date().toISOString(),
-      email.toLowerCase(), logo, null, 'N/A', displayEmail, prefs, branches, branchFiles, fields, plan,
-      country, region, branch, date.toISOString(), 'N/A', null, city, coId, null])
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name,
+      address, phoneNumber, linkedin, facebook, twitter, instagram, accNumber, accName, field1, field2,
+      'Tech CTO', new Date().toISOString(), email.toLowerCase(), logo, null, 'N/A', displayEmail, prefs,
+      branches, branchFiles, fields, plan, country, region, branch, date.toISOString(), 'N/A', null,
+      city, coId, null, null, null])
+
+    const result = await neonClient.query('SELECT MAX(id) from Hotels')
+    const hotelTMPLength: string = result[0]['MAX(id)'].toString()
+    await addWebhook(hotelTMPLength, coId)
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
@@ -131,14 +138,15 @@ router.post('/transferTMPhotel', addProperty, async (req, res) => {
     const {
       name, address, phoneNumber, linkedin, facebook, twitter, instagram, email, logo, branchFiles,
       accNumber, accName, field1, field2, password, displayEmail, prefs, branches, fields,
-      plan, country, region, branch, expires, username, city, coId, suffix
+      plan, country, region, branch, expires, username, city, coId, isChannel, suffix
     } = tmpData
 
     await neonClient.query(`INSERT INTO Hotels (${RowNames}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name, address, phoneNumber,
-      linkedin, facebook, twitter, instagram, accNumber, accName, field1, field2, 'Tech CTO', new Date().toISOString(),
-      email.toLowerCase(), logo, null, 'N/A', displayEmail, prefs, branches, branchFiles, fields,
-      plan, country, region, branch, expires, 'N/A', null, city, coId, suffix])
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name,
+      address, phoneNumber, linkedin, facebook, twitter, instagram, accNumber, accName, field1, field2,
+      'Tech CTO', new Date().toISOString(), email.toLowerCase(), logo, null, 'N/A', displayEmail, prefs,
+      branches, branchFiles, fields, plan, country, region, branch, expires, 'N/A', null, city, coId,
+      null, isChannel, suffix])
 
     await neonClient.query('DELETE from HotelsTMP where id = ?', [id])
 
@@ -158,6 +166,7 @@ router.post('/transferTMPhotel', addProperty, async (req, res) => {
     }
 
     await addStaffTmp(tmpReq, rows1[0].id, name)
+    await addWebhook(rows1[0].id, coId)
 
     rows1[0].prefs = JSON.parse(rows1[0].prefs)
     rows1[0].branches = JSON.parse(rows1[0].branches)

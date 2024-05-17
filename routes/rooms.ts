@@ -41,7 +41,7 @@ router.post('/addroom', verify, async (req, res) => {
     const rows2 = await client.query(`SELECT id from ${`Rooms${id}`} WHERE name = ?`, [name])
 
     const rows1 = await client.query(`SELECT roomTypes, rates from ${`HotelInfo${id}`}`)
-    console.log(id, rows1)
+
     const rates = JSON.parse(rows1[0].rates)
     const roomTypes = JSON.parse(rows1[0].roomTypes)
     const rateId = roomTypes.find((t) => t.id === roomTypeId).rateId
