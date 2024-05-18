@@ -176,8 +176,8 @@ io.on('connection', (socket) => {
     socket.broadcast.to(roomId).emit('get_edited_room', rooms)
   })
 
-  socket.on('delete_room', ({ roomId, id }) => {
-    socket.broadcast.to(roomId).emit('get_deleted_room', id)
+  socket.on('delete_rooms', ({ roomId, ids }) => {
+    socket.broadcast.to(roomId).emit('get_deleted_rooms', ids)
   })
 
   socket.on('revoke_staff', ({ roomId, username }) => {

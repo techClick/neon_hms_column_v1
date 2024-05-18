@@ -196,6 +196,7 @@ router.post('/gethotel', async (req, res) => {
     rows[0].prefs = JSON.parse(rows[0].prefs)
     rows[0].branches = JSON.parse(rows[0].branches)
     rows[0].currency = rows[0].currency ? decodeURIComponent(rows[0].currency) : null
+    rows[0].id = rows[0].id.toString()
     res.status(200).json((networkResponse('success', rows)))
   } catch (error) {
     console.log(error)

@@ -512,16 +512,19 @@ router.patch('/deletebooking', verify, async (req, res) => {
   }
 })
 
-router.delete('/deleteroom', verify, async (req, res) => {
+router.delete('/deleterooms', verify, async (req, res) => {
   try {
-    const { decodedToken } = req.body
+    const { decodedToken, ids } = req.body
 
-    const id = Number(req.get('hDId'))
+    const hId = Number(req.get('hDId'))
 
-    const rows = await client.query(`SELECT name FROM ${`Rooms${id}`} where id = ?`, [req.body.id])
-    await client.query(`DELETE FROM ${`Rooms${id}`} where id = ?`, [req.body.id])
+    for (let i = 0; i < ids.length; i += 1) {
+      const id = ids[i]
+      const rows = await client.query(`SELECT name FROM ${`Rooms${hId}`} where id = ?`, [id])
+      await client.query(`DELETE FROM ${`Rooms${hId}`} where id = ?`, [id])
 
-    addLog(id, 'Room deleted', `&${rows[0].name}& ^deleted^ by |${decodedToken?.username}|`, new Date(), 'N/A')
+      addLog(hId, 'Room deleted', `&${rows[0].name}& ^deleted^ by |${decodedToken?.username}|`, new Date(), 'N/A')
+    }
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
