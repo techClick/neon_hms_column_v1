@@ -15,7 +15,7 @@ import { insights } from './routes/insights'
 import { client, neonClient } from './routes/globals/connection'
 import http from 'http'
 import { photo } from './routes/photo'
-import { cOOp, isAtCOLimit } from './routes/cOOp'
+import { cOOp, isAtCOLimit, reviseBookings } from './routes/cOOp'
 import { networkResponse } from './routes/globals/networkResponse'
 
 const app = express()
@@ -125,9 +125,9 @@ const createDBs = async (req, res, next) => {
       img MEDIUMTEXT NULL)`)
 
     await client.query(`CREATE TABLE IF NOT EXISTS ${`Rooms${hDId}`}
-      ( id serial PRIMARY KEY, name text, description text NULL,
-      onHold text NULL, bookToken text NULL, createdOn text, perks text, updatedAsOf text, updatedBy text,
-      books text, field1 text NULL, field2 text NULL, floor text, roomTypeId text)`)
+      ( id serial PRIMARY KEY, name text, onHold text NULL, bookToken text NULL, createdOn text,
+        perks text, updatedAsOf text, updatedBy text, books text, field1 text NULL, field2 text NULL,
+        floor text, roomTypeId text)`)
   }
   return next()
 }
@@ -223,6 +223,35 @@ io.on('connection', (socket) => {
 })
 
 export const getIO = () => io
+
+const COCronJob = async () => {
+  const row = await neonClient.query('SELECT id, coId FROM Hotels')
+  if (!row[0]) return
+
+  for (let i = 0; i < row.length; i += 1) {
+    const { id, coId } = row[i]
+    if (id && coId) {
+      // await testBookings(id)
+      const bookResult = await reviseBookings(id, coId)
+      if (bookResult[0] === 'pass') {
+        const rooms = bookResult[1].map((books, i) => {
+          return {
+            id: bookResult[2][i],
+            books: JSON.parse(books),
+            updatedAsOf: bookResult[3].toISOString()
+          }
+        })
+        io.emit('get_edited_room', rooms)
+      }
+    }
+  }
+}
+
+COCronJob()
+
+setInterval(() => {
+  COCronJob()
+}, 6 * 60 * 1000)
 
 const port = process.env.PORT || 8200
 

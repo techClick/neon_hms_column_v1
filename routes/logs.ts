@@ -24,7 +24,7 @@ export const addLog = async (
 
     const socketEmitFunc = getSocketFunction()
     const roomId = `room${id}`
-    socketEmitFunc.addedLog({ roomId, log: rows[0] })
+    socketEmitFunc?.addedLog?.({ roomId, log: rows[0] })
 
     return allLogsLength
   } catch (e) {

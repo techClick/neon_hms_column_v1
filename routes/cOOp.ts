@@ -64,7 +64,6 @@ router.post('/addroomtypeco', verify, async (req, res) => {
     if (result.data.data) {
       return res.status(200).json((networkResponse('success', result.data.data.id)))
     } else {
-      console.log(getRoomType(req), JSON.stringify(result.data))
       return res.status(500).json((networkResponse('error', 'Server error 305CX')))
     }
   } catch (error) {
@@ -287,8 +286,6 @@ export const addWebhook = async (hDId: string, coId: string) => {
     if (result.data.data) {
       const webhookId = result.data.data.id
       await neonClient.query('UPDATE Hotels SET webhook = ? where id = ?', [webhookId, hDId])
-    } else {
-      console.log(result.data)
     }
   } catch (e) {
     console.log(e)
@@ -310,9 +307,11 @@ const cancelBooking = async (hId: string, booking: any) => {
     const roomTypes = JSON.parse(rows[0].roomTypes)
     const updatedBooks: string[] = []
     const booksRoomId: string[] = []
+    const date = new Date()
     for (let i = 0; i < rooms.length; i += 1) {
       const {
-        room_type_id: coRoomId
+        room_type_id: coRoomId,
+        checkin_date: checkInDate
       } = rooms[i]
       const roomType = roomTypes.find((t) => t.coRoomTypeId === coRoomId)
       const rows1 = await client.query(`SELECT books, id FROM Rooms${hId} where roomTypeId = ?`,
@@ -330,7 +329,6 @@ const cancelBooking = async (hId: string, booking: any) => {
 
       booksRoomId[i] = book.roomId
       updatedBooks[i] = JSON.stringify(AllBooks0.filter((b) => b.roomId === book.roomId && b.coId !== bookingId))
-      const date = new Date()
 
       await client.query(`UPDATE ${`Rooms${hId}`} SET books = ?, updatedAsOf = ? where id = ?`,
         [updatedBooks[i], date.toISOString(), book.roomId])
@@ -338,11 +336,12 @@ const cancelBooking = async (hId: string, booking: any) => {
       const rows2 = await client.query(`SELECT name FROM Rooms${hId} where id = ?`, [book.roomId])
 
       const days = Number(book.days)
+      const rate = +new Date(checkInDate) > +new Date() ? ((-1 * Number(book.rate)) || 0).toString() : '0'
       addLog(Number(hId), 'Reservation cancelled', `&V&${rows2[0]?.name}&V& reservation of &${days} night${
-        days === 1 ? '' : 's'}& ^cancelled^ by online booker on &C&${otaName}&C&`, date, '0')
+        days === 1 ? '' : 's'}& ^cancelled^ by online booker on &C&${otaName}&C&`, date, rate)
     }
 
-    return ['pass', updatedBooks, booksRoomId]
+    return ['pass', updatedBooks, booksRoomId, date]
   } catch (error) {
     return `Cancel Booking: ${error}`
   }
@@ -380,6 +379,7 @@ const modifyBooking = async (hId: string, booking: any) => {
     const roomTypes = JSON.parse(rows[0].roomTypes)
     const booksRoomId: string[] = []
     const updatedBooks: string[] = []
+    const date = new Date()
     for (let i = 0; i < rooms.length; i += 1) {
       const {
         room_type_id: coRoomId,
@@ -422,7 +422,6 @@ const modifyBooking = async (hId: string, booking: any) => {
       updatedBooks[i] = JSON.stringify(
         [...AllBooks0.filter((b) => b.roomId === book.roomId && b.coId !== bookingId), updatedBook]
       )
-      const date = new Date()
 
       await client.query(`UPDATE ${`Rooms${hId}`} SET books = ?, updatedAsOf = ? where id = ?`, [
         updatedBooks[i], date.toISOString(), book.roomId])
@@ -436,7 +435,7 @@ const modifyBooking = async (hId: string, booking: any) => {
         days === 1 ? '' : 's'}& by online booker on &C&${otaName}&C&`}`, date, Number(rate).toString())
     }
 
-    return ['pass', updatedBooks, booksRoomId]
+    return ['pass', updatedBooks, booksRoomId, date]
   } catch (error) {
     return `Modify Booking: ${error}`
   }
@@ -464,6 +463,7 @@ const newBooking = async (hId: string, booking: any) => {
     const roomTypes = JSON.parse(rows[0].roomTypes)
     const booksRoomId: string[] = []
     const thisBooks: string[] = []
+    const date = new Date()
     for (let i = 0; i < rooms.length; i += 1) {
       const {
         room_type_id: coRoomId,
@@ -522,17 +522,16 @@ const newBooking = async (hId: string, booking: any) => {
       thisBooks[i] = JSON.stringify([...JSON.parse(rows1[selectedInd].books), newBook])
       booksRoomId[i] = selectedRoom
 
-      const date = new Date()
       await client.query(`UPDATE ${`Rooms${hId}`} SET books = ?, updatedAsOf = ? where id = ?`, [
         thisBooks[i], date.toISOString(), selectedRoom])
 
       addLog(Number(hId), 'Online reservation', `&V&${rows1[selectedInd].name}&V& reserved for &${days}
-        night${Number(days) === 1 ? '' : 's'}& by &${name} ${surname}&${email
+        night${Number(days) === 1 ? '' : 's'}& online by &${name} ${surname}&${email
           ? ` on &${email}&` : ''} ${(email && number) ? ` and &${number}&` : number ? ` on &${number}&`
-          : ''}. Registered on &C&${otaName}&C&`,
+          : ''}. Registered by &C&${otaName}&C&`,
       date, (Number(amount)).toString())
     }
-    return ['pass', thisBooks, booksRoomId]
+    return ['pass', thisBooks, booksRoomId, date]
   } catch (error) {
     return `NewBooking: ${error}`
   }
@@ -546,7 +545,6 @@ export const ackBooking = async (hId: string, revisionId) => {
     })
 
     if (!result.data.meta) {
-      console.log(result.data)
       return 'Error cx 026xy'
     }
     return 'pass'
@@ -559,9 +557,9 @@ const handleBooking = async (hId: string, bookingData, revisionId?) => {
   let bookResult
   if (bookingData.attributes.status === 'new') {
     bookResult = await newBooking(hId, bookingData)
-  } if (bookingData.attributes.status === 'modified') {
+  } else if (bookingData.attributes.status === 'modified') {
     bookResult = await modifyBooking(hId, bookingData)
-  } else if (bookingData.attributes.status === 'cancelled') {
+  } else {
     bookResult = await cancelBooking(hId, bookingData)
   }
 
@@ -599,7 +597,8 @@ router.post('/:id/webhook', async (req, res) => {
             const rooms = result0[1].map((books, i) => {
               return {
                 id: result0[2][i],
-                books: JSON.parse(books)
+                books: JSON.parse(books),
+                updatedAsOf: result0[3].toISOString()
               }
             })
             getIO().emit('get_edited_room', rooms)
@@ -616,39 +615,34 @@ router.post('/:id/webhook', async (req, res) => {
   }
 })
 
-router.post('/revisebookings', async (req, res) => {
+export const reviseBookings = async (hId, coId) => {
   try {
-    const coId = req.get('hDCoId')
-    const hId = req.get('hDId')
     const result = await callCXEndpoint({
       api: `booking_revisions/feed?filter[property_id]=${coId}`,
       method: 'GET'
     })
 
     if (result.data.data) {
-      let bookResult = ['pass']
+      let bookResult = 'pass'
       for (let i = 1; i < result.data.data.length; i += 1) {
         const bookingData = result.data.data[i]
         bookResult = await handleBooking(hId, bookingData, bookingData.id)
       }
-      if (bookResult[0] === 'pass') {
-        return res.status(200).json((networkResponse('success', true)))
-      }
-      return res.status(500).json((networkResponse('error', bookResult)))
+
+      return bookResult
     } else {
-      return res.status(500).json((networkResponse('error', 'Server error 070CX')))
+      return 'Server error 070CX'
     }
   } catch (error) {
-    res.status(500).json((networkResponse('error', error)))
+    return error
   }
-})
+}
 
-router.post('/testbookings', async (req, res) => {
+export const testBookings = async (hId) => {
   try {
-    const hId = req.get('hDId')
     const bookingData = {
       attributes: {
-        status: 'cancelled',
+        status: 'new',
         inserted_at: new Date().toISOString(),
         ota_name: 'BookingCom',
         customer: { mail: 'ik@test.tes', phone: '666777888', name: 'Jim', surname: 'John' },
@@ -665,14 +659,11 @@ router.post('/testbookings', async (req, res) => {
     }
 
     const bookResult = await handleBooking(hId, bookingData)
-    if (bookResult[0] === 'pass') {
-      return res.status(200).json((networkResponse('success', true)))
-    }
 
-    return res.status(500).json((networkResponse('error', bookResult)))
+    return bookResult
   } catch (error) {
-    res.status(500).json((networkResponse('error', error)))
+    return error
   }
-})
+}
 
 export const cOOp = router

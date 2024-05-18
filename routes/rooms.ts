@@ -13,7 +13,6 @@ router.post('/addroom', verify, async (req, res) => {
   try {
     const {
       name,
-      description,
       floor,
       onHold,
       perks,
@@ -33,9 +32,9 @@ router.post('/addroom', verify, async (req, res) => {
     const { username } = req.body.decodedToken
     const date = new Date()
 
-    await client.query(`INSERT INTO ${`Rooms${id}`} (name, description, floor, createdOn,
+    await client.query(`INSERT INTO ${`Rooms${id}`} (name, floor, createdOn,
       updatedAsOf, updatedBy, onHold, perks, books, roomTypeId) VALUES (?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?)`, [name, description, floor,
+      ?, ?, ?, ?, ?, ?, ?)`, [name, floor,
       date.toISOString(), date.toISOString(), username, onHoldHere, perks, JSON
         .stringify([]), roomTypeId])
     const rows2 = await client.query(`SELECT id from ${`Rooms${id}`} WHERE name = ?`, [name])
@@ -53,7 +52,6 @@ router.post('/addroom', verify, async (req, res) => {
     const addedRoom = {
       id: rows2[0].id,
       name,
-      description,
       floor,
       books: [],
       roomTypeId,
@@ -76,7 +74,6 @@ router.patch('/editroom', verify, async (req, res) => {
       name,
       id,
       origName,
-      description,
       floor,
       onHold,
       perks,
@@ -84,13 +81,12 @@ router.patch('/editroom', verify, async (req, res) => {
     } = req.body
 
     const hDId = Number(req.get('hDId'))
-    const currency = decodeURIComponent(req.get('hDCurrency') || '')
 
     let onHoldHere = onHold
     if (!onHold) onHoldHere = null
     const { username } = req.body.decodedToken
 
-    const rows = await client.query(`SELECT name, floor, description, onHold, perks
+    const rows = await client.query(`SELECT name, floor, onHold, perks
       from ${`Rooms${hDId}`} WHERE name = ?`, [name])
     if (rows.length && origName !== name) {
       return res.status(400).json((networkResponse('error', 'A room with this name exists already')))
@@ -98,34 +94,18 @@ router.patch('/editroom', verify, async (req, res) => {
 
     const date = new Date()
 
-    await client.query(`UPDATE ${`Rooms${hDId}`} SET name = ?, description = ?,
-      updatedAsOf = ?, floor = ?, perks = ?, updatedBy = ?, onHold = ?, roomTypeId = ? where id = ?`,
-    [name, description, date.toISOString(), floor, perks, username, onHoldHere,
+    await client.query(`UPDATE ${`Rooms${hDId}`} SET name = ?, updatedAsOf = ?, floor = ?,
+      perks = ?, updatedBy = ?, onHold = ?, roomTypeId = ? where id = ?`,
+    [name, date.toISOString(), floor, perks, username, onHoldHere,
       roomTypeId, id])
-
-    const rows1 = await client.query(`SELECT roomTypes, rates from ${`HotelInfo${hDId}`}`)
-    const rates = JSON.parse(rows1[0].rates)
-    const roomTypes = JSON.parse(rows1[0].roomTypes)
-    const rateId = roomTypes.find((t) => t.id === roomTypeId).rateId
-    const newRate = rates.find((r) => r.id === rateId).baseRate
-    const oldRate = rates.find((r) => r.id === rows[0].rateId).baseRate
-
-    const rateEdit = newRate === oldRate ? null : oldRate
-    if (rateEdit) {
-      addLog(hDId, 'Rate Plan change', `&V&${name}&V& former base rate was &${currency}${Number(rateEdit)
-        .toLocaleString()}&. New base rate is &${currency}${Number(newRate).toLocaleString()}&.
-        By |${username}|`, date, 'N/A')
-    }
 
     const {
       name: oldName,
-      description: oldDescription,
       floor: oldFloor,
       perks: oldPerks,
       onHold: oldOnHold
     } = rows[0]
     const isOldName = oldName === name
-    const isOldDescription = oldDescription === description
     const isOldFloor = oldFloor.toString() === floor.toString()
     const isOldPerks = JSON.parse(oldPerks).reduce((a, b) => a + b, 0) ===
       JSON.parse(perks).reduce((a, b) => a + b, 0)
@@ -133,7 +113,6 @@ router.patch('/editroom', verify, async (req, res) => {
 
     const edits = [
       `${isOldName ? '' : `Room name changed from &${oldName}& to &${name}&. `}`,
-      `${isOldDescription ? '' : '&Description& changed. '}`,
       `${isOldFloor ? '' : `Floor changed from &floor ${oldFloor}& to &floor ${floor}&. `}`,
       `${isOldPerks ? '' : '&Perks& changed. '}`,
       `${isOldOnHold ? '' : `Room was ${onHold ? 'put &on hold&'
@@ -147,7 +126,6 @@ router.patch('/editroom', verify, async (req, res) => {
     const responseData = {
       id,
       name,
-      description,
       floor,
       roomTypeId,
       updatedAsOf: date,
@@ -167,7 +145,7 @@ router.post('/rooms', safeVerify, async (req, res) => {
   try {
     const id = Number(req.get('hDId'))
 
-    const rows = await client.query(`SELECT id, name, description, onHold,
+    const rows = await client.query(`SELECT id, name, onHold,
       bookToken, createdOn, updatedAsOf, updatedBy, perks, floor, books, roomTypeId from ${`Rooms${id}`}`)
 
     for (let i = 0; i < rows.length; i += 1) {
