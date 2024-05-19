@@ -473,7 +473,7 @@ const newBooking = async (hId: string, booking: any) => {
       } = rooms[i]
       const roomType = roomTypes.find((t) => t.coRoomTypeId === coRoomId)
       if (!roomType) {
-        return 'Error cx 325xy'
+        return `Error cx 325xy ${coRoomId}`
       }
 
       const rows1 = await client.query(`SELECT books, name, id FROM Rooms${hId} where roomTypeId = ?`,
@@ -601,7 +601,7 @@ router.post('/:id/webhook', async (req, res) => {
                 updatedAsOf: result0[3].toISOString()
               }
             })
-            getIO().emit('get_edited_room', rooms)
+            if ((await getIO().fetchSockets()).length) getIO().emit('get_edited_room', rooms)
           }
         }, 1)
         return res.status(200).json((networkResponse('error', true)))
@@ -649,7 +649,7 @@ export const testBookings = async (hId) => {
         id: 'Test',
         rooms: [
           {
-            room_type_id: 'c554c860-9052-4fdc-9a81-1212db63082e',
+            room_type_id: '41ca3f6e-636d-4c02-a62d-60429403e38f',
             checkin_date: '2024-05-20',
             checkout_date: '2024-05-23',
             amount: '30000'
@@ -660,6 +660,7 @@ export const testBookings = async (hId) => {
 
     const bookResult = await handleBooking(hId, bookingData)
 
+    console.log('TEST BOOKINGS', bookResult)
     return bookResult
   } catch (error) {
     return error

@@ -5,14 +5,14 @@ import { neonClient } from './globals/connection'
 import { sendMail } from './globals/email'
 import { addStaffTmp } from './globals/addStaff'
 import { addProperty, addPropertyDirect } from './globals/cO/addProperty'
-import { addWebhook } from './cOOp'
+import { addWebhook, reviseBookings } from './cOOp'
 const router = express.Router()
 router.use(cors())
 
 const RowNames = `nameSave, name, address, phoneNumber, linkedin, facebook, twitter,
   instagram, accNumber, accName, field1, field2, updatedBy, updatedAsOf, email, logo, currency, password,
   displayEmail, prefs, branches, branchFiles, fields, plan, country, region, branch, expires, username,
-  maxRooms, city, coId, webhook, isChannel, suffix`
+  maxRooms, city, coId, webhook, channelExpiry, suffix`
 
 const verifyHotelMailOptions = (hotelName: string, verifyKey: string, email: string): any => {
   const { CLIENT_URL: clientURL } = process.env
@@ -138,7 +138,7 @@ router.post('/transferTMPhotel', addProperty, async (req, res) => {
     const {
       name, address, phoneNumber, linkedin, facebook, twitter, instagram, email, logo, branchFiles,
       accNumber, accName, field1, field2, password, displayEmail, prefs, branches, fields,
-      plan, country, region, branch, expires, username, city, coId, isChannel, suffix
+      plan, country, region, branch, expires, username, city, coId, channelExpiry, suffix
     } = tmpData
 
     await neonClient.query(`INSERT INTO Hotels (${RowNames}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
@@ -146,7 +146,7 @@ router.post('/transferTMPhotel', addProperty, async (req, res) => {
       address, phoneNumber, linkedin, facebook, twitter, instagram, accNumber, accName, field1, field2,
       'Tech CTO', new Date().toISOString(), email.toLowerCase(), logo, null, 'N/A', displayEmail, prefs,
       branches, branchFiles, fields, plan, country, region, branch, expires, 'N/A', null, city, coId,
-      null, isChannel, suffix])
+      null, channelExpiry, suffix])
 
     await neonClient.query('DELETE from HotelsTMP where id = ?', [id])
 
@@ -197,6 +197,9 @@ router.post('/gethotel', async (req, res) => {
     rows[0].branches = JSON.parse(rows[0].branches)
     rows[0].currency = rows[0].currency ? decodeURIComponent(rows[0].currency) : null
     rows[0].id = rows[0].id.toString()
+
+    await reviseBookings(id, rows[0].coId)
+
     res.status(200).json((networkResponse('success', rows)))
   } catch (error) {
     console.log(error)

@@ -76,15 +76,17 @@ router.patch('/updateroomtype', verify, async (req, res) => {
 
     await client.query(`UPDATE ${`HotelInfo${hDId}`} SET roomTypes = ?`, [JSON.stringify(roomTypes)])
 
-    if (isUpdate) {
-      addLog(hDId, 'Settings change', `&${roomType.name} Room Type& updated by |${
-        decodedToken.username}|`, new Date(), 'N/A')
-    } else if (isDelete) {
-      addLog(hDId, 'Settings change', `&${roomType.name} Room Type& updated by |${
-        decodedToken.username}|`, new Date(), 'N/A')
-    } else {
-      addLog(hDId, 'Settings change', `&${roomType.name} Room Type& added by |${
-        decodedToken.username}|`, new Date(), 'N/A')
+    if (roomType) {
+      if (isUpdate) {
+        addLog(hDId, 'Settings change', `&${roomType.name} Room Type& updated by |${
+          decodedToken.username}|`, new Date(), 'N/A')
+      } else if (isDelete) {
+        addLog(hDId, 'Settings change', `&${roomType.name} Room Type& updated by |${
+          decodedToken.username}|`, new Date(), 'N/A')
+      } else {
+        addLog(hDId, 'Settings change', `&${roomType.name} Room Type& added by |${
+          decodedToken.username}|`, new Date(), 'N/A')
+      }
     }
 
     res.status(200).json((networkResponse('success', true)))
