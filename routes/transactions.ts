@@ -105,10 +105,11 @@ router.post('/verifypayment', async (req, res) => {
 router.patch('/extendsubscription', async (req, res) => {
   try {
     const hDId = Number(req.get('hDId'))
-    const { expires, channelExpiry } = req.body
+    const { expires, channelExpiry, billingDate } = req.body
 
-    await neonClient.query('UPDATE Hotels SET expires = ?, channelExpiry = ? where id = ?',
-      [expires, channelExpiry, hDId])
+    await neonClient.query('UPDATE Hotels SET expires = ?, channelExpiry = ?, billingDate = ? where id = ?',
+      [expires, channelExpiry, billingDate, hDId])
+
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
@@ -118,10 +119,11 @@ router.patch('/extendsubscription', async (req, res) => {
 router.patch('/subscribe', async (req, res) => {
   try {
     const hDId = Number(req.get('hDId'))
-    const { expires, maxRooms, channelExpiry } = req.body
+    const { expires, maxRooms, channelExpiry, billingDate } = req.body
 
-    await neonClient.query('UPDATE Hotels SET expires = ?, maxRooms = ?, channelExpiry = ? where id = ?',
-      [expires, maxRooms, channelExpiry, hDId])
+    await neonClient.query(`UPDATE Hotels SET expires = ?, maxRooms = ?, channelExpiry = ?, billingDate = ?
+      where id = ?`, [expires, maxRooms, channelExpiry, billingDate, hDId])
+
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))

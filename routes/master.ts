@@ -12,7 +12,7 @@ router.use(cors())
 const RowNames = `nameSave, name, address, phoneNumber, linkedin, facebook, twitter,
   instagram, accNumber, accName, field1, field2, updatedBy, updatedAsOf, email, logo, currency, password,
   displayEmail, prefs, branches, branchFiles, fields, plan, country, region, branch, expires, username,
-  maxRooms, city, coId, webhook, channelExpiry, suffix`
+  maxRooms, city, coId, webhook, channelExpiry, billingDate, suffix`
 
 const verifyHotelMailOptions = (hotelName: string, verifyKey: string, email: string): any => {
   const { CLIENT_URL: clientURL } = process.env
@@ -76,11 +76,11 @@ router.post('/addTMPhotel', async (req, res) => {
     date.setDate(date.getDate() + 27)
 
     await neonClient.query(`INSERT INTO HotelsTMP (${RowNames}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name,
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name,
       address, phoneNumber, linkedin, facebook, twitter, instagram, accNumber, accName, field1, field2,
       'Tech CTO', new Date().toISOString(), email.toLowerCase(), logo, null, password, displayEmail,
       JSON.stringify(prefs), JSON.stringify(branches), branchFiles, fields, plan, country, region,
-      branch, date.toISOString(), username, null, city, '', null, null, suffix])
+      branch, date.toISOString(), username, null, city, '', null, null, null, suffix])
 
     const result = await neonClient.query('SELECT MAX(id) from HotelsTMP')
     const hotelTMPLength: string = result[0]['MAX(id)'].toString()
@@ -114,11 +114,11 @@ router.post('/addhotel', addPropertyDirect, async (req, res) => {
     date.setDate(date.getDate() + 27)
 
     await neonClient.query(`INSERT INTO Hotels (${RowNames}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name,
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name,
       address, phoneNumber, linkedin, facebook, twitter, instagram, accNumber, accName, field1, field2,
       'Tech CTO', new Date().toISOString(), email.toLowerCase(), logo, null, 'N/A', displayEmail, prefs,
       branches, branchFiles, fields, plan, country, region, branch, date.toISOString(), 'N/A', null,
-      city, coId, null, null, null])
+      city, coId, null, null, null, null])
 
     const result = await neonClient.query('SELECT MAX(id) from Hotels')
     const hotelTMPLength: string = result[0]['MAX(id)'].toString()
@@ -142,11 +142,11 @@ router.post('/transferTMPhotel', addProperty, async (req, res) => {
     } = tmpData
 
     await neonClient.query(`INSERT INTO Hotels (${RowNames}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name,
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name,
       address, phoneNumber, linkedin, facebook, twitter, instagram, accNumber, accName, field1, field2,
       'Tech CTO', new Date().toISOString(), email.toLowerCase(), logo, null, 'N/A', displayEmail, prefs,
       branches, branchFiles, fields, plan, country, region, branch, expires, 'N/A', null, city, coId,
-      null, channelExpiry, suffix])
+      null, channelExpiry, null, suffix])
 
     await neonClient.query('DELETE from HotelsTMP where id = ?', [id])
 
@@ -181,7 +181,6 @@ router.post('/gethotel', async (req, res) => {
   try {
     const { id } = req.body
 
-    // await neonClient.query('DROP TABLE IF EXISTS Hotels')
     const rowNamesHere = RowNames.replace('fields, ', '').replace('branchFiles, ', '')
     const rows = await neonClient.query(`SELECT id, ${rowNamesHere} from Hotels where id = ?`,
       [id])
@@ -207,16 +206,6 @@ router.post('/gethotel', async (req, res) => {
   }
 })
 
-router.get('/gethotels', async (req, res) => {
-  try {
-    const rowNamesHere = RowNames.replace('logo, ', '').replace('fields, ', '').replace('branchFiles, ', '')
-    const rows = await neonClient.query(`SELECT id, ${rowNamesHere} from Hotels`)
-    res.status(200).json((networkResponse('success', rows)))
-  } catch (error) {
-    res.status(500).json((networkResponse('error', error)))
-  }
-})
-
 router.post('/setbranches', async (req, res) => {
   try {
     const hDId = Number(req.get('hDId'))
@@ -233,8 +222,6 @@ router.get('/getbranchfiles', async (req, res) => {
   try {
     const hDId = Number(req.get('hDId'))
 
-    // await neonClient.query('UPDATE Hotels SET branches = ? where id = ?', ['[]', hDId])
-    // await neonClient.query('UPDATE Hotels SET branchFiles = ? where id = ?', ['{}', hDId])
     const rows = await neonClient.query('SELECT branchFiles, branches from Hotels where id = ?',
       [hDId])
 

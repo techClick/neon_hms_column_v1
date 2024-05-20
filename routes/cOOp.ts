@@ -106,6 +106,7 @@ router.delete('/deleteroomtypeco', verify, async (req, res) => {
       return res.status(500).json((networkResponse('error', 'Server error 605CX')))
     }
   } catch (error) {
+    console.log(error)
     res.status(500).json((networkResponse('error', error)))
   }
 })
@@ -203,6 +204,7 @@ const updatelimits = async (hDId: string, limit: Limit) => {
 
     const expiryTime = 1 * 60 * 1000
 
+    console.log(limits, limit)
     if (+new Date(limits[limit].expires) >= +new Date()) {
       limits[limit].count += 1
     } else {
