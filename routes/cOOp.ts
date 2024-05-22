@@ -4,7 +4,7 @@ import { verify } from './globals/verify'
 import { callCXEndpoint } from './globals/endpoint'
 import { client, neonClient } from './globals/connection'
 import { addLog } from './logs'
-import { getIO } from '..'
+import { getIO } from './globals/socket'
 
 const router = express.Router()
 
@@ -163,6 +163,7 @@ router.put('/updaterateplanco', verify, async (req, res) => {
     if (result.data.data) {
       return res.status(200).json((networkResponse('success', true)))
     } else {
+      console.log('RATE PLAN', result.data)
       return res.status(500).json((networkResponse('error', 'Server error 204CX')))
     }
   } catch (error) {
@@ -183,7 +184,7 @@ export const isAtCOLimit = async (hDId: string | number, limit: Limit) => {
   return false
 }
 
-const updatelimits = async (hDId: string, limit: Limit) => {
+export const updatelimits = async (hDId: string, limit: Limit) => {
   try {
     const row = await neonClient.query('SELECT limits from Hotels WHERE id = ?', [hDId])
     let limits = JSON.parse(row[0].limits)
@@ -204,7 +205,7 @@ const updatelimits = async (hDId: string, limit: Limit) => {
 
     const expiryTime = 1 * 60 * 1000
 
-    console.log(limits, limit)
+    // console.log(limits, limit)
     if (+new Date(limits[limit].expires) >= +new Date()) {
       limits[limit].count += 1
     } else {
@@ -323,7 +324,8 @@ const cancelBooking = async (hId: string, booking: any) => {
         return 'Error cx 235xy'
       }
 
-      const AllBooks0 = rows1.map((row) => JSON.parse(row.books)).flat()
+      const AllBooks00 = rows1.map((row) => JSON.parse(row.books))
+      const AllBooks0 = AllBooks00.reduce((a, val) => a.concat(val), [])
       const book = AllBooks0.find((b) => b.coId === bookingId)
       if (!book) {
         return 'Error cx 335xy'
@@ -397,7 +399,8 @@ const modifyBooking = async (hId: string, booking: any) => {
         return 'Error cx 215xy'
       }
 
-      const AllBooks0 = rows1.map((row) => JSON.parse(row.books)).flat()
+      const AllBooks00 = rows1.map((row) => JSON.parse(row.books))
+      const AllBooks0 = AllBooks00.reduce((a, val) => a.concat(val), [])
       const book = AllBooks0.find((b) => b.coId === bookingId)
       if (!book) {
         return 'Error cx 315xy'
@@ -606,10 +609,8 @@ router.post('/:id/webhook', async (req, res) => {
             if ((await getIO().fetchSockets()).length) getIO().emit('get_edited_room', rooms)
           }
         }, 1)
-        return res.status(200).json((networkResponse('error', true)))
-      } else if (!bookingData) {
-        return res.status(500).json((networkResponse('error', 'Server error 103CX')))
       }
+      return res.status(200).json((networkResponse('success', true)))
     }
     return res.status(200).json((networkResponse('success', true)))
   } catch (error) {

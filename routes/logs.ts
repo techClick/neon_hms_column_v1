@@ -2,7 +2,7 @@ import { client } from './globals/connection'
 import express from 'express'
 import { networkResponse } from './globals/networkResponse'
 import { verify } from './globals/verify'
-import { getSocketFunction } from '..'
+import { getSocketFunction } from './globals/socket'
 const router = express.Router()
 
 export type LogType = 'Desk reservation' | 'Reservation cancelled' | 'Room added' | 'Staff logged in' |
