@@ -163,7 +163,6 @@ router.put('/updaterateplanco', verify, async (req, res) => {
     if (result.data.data) {
       return res.status(200).json((networkResponse('success', true)))
     } else {
-      console.log('RATE PLAN', result.data)
       return res.status(500).json((networkResponse('error', 'Server error 204CX')))
     }
   } catch (error) {
@@ -627,7 +626,7 @@ export const reviseBookings = async (hId, coId) => {
 
     if (result.data.data) {
       let bookResult = 'pass'
-      for (let i = 1; i < result.data.data.length; i += 1) {
+      for (let i = 0; i < result.data.data.length; i += 1) {
         const bookingData = result.data.data[i]
         bookResult = await handleBooking(hId, bookingData, bookingData.id)
       }

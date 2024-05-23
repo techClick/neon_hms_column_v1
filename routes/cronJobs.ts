@@ -243,7 +243,6 @@ const runCronJobs = async () => {
           let dayBeforeNextBuildDate = new Date(nextBuild.date)
           dayBeforeNextBuildDate.setDate(dayBeforeNextBuildDate.getDate() - 1)
           if (+dayBeforeNextBuildDate <= +b.date) {
-            console.log('HERE', new Date(+b.date + 1))
             dayBeforeNextBuildDate = new Date(+b.date + 1)
           }
           availabilityCO.push({
@@ -311,7 +310,7 @@ const runCronJobs = async () => {
       AllRestrictions.forEach((r) => { r.forEach((r2) => restrictions.push(r2)) })
 
       const availabilities: AvailabilityCO[][] = roomTypes.map((t) =>
-        roomTypes.coRoomTypeId ? getFullAvailability(coId, t, rooms, books) : [])
+        t.coRoomTypeId ? getFullAvailability(coId, t, rooms, books) : [])
 
       const availability: AvailabilityCO[] = []
       availabilities.forEach((a) => { a.forEach((a2) => availability.push(a2)) })
@@ -334,13 +333,14 @@ const runCronJobs = async () => {
         body: { values: restrictions }
       })
 
+      // console.log(restrictions, result.data, i)
       if (result.data.data) {
         updatelimits(i.toString(), 'restrictions')
       } else {
         return `Error ARI-U 101xy ${JSON.stringify(result.data)}`
       }
 
-      await new Promise((resolve) => { setTimeout(resolve, 4000) })
+      // await new Promise((resolve) => { setTimeout(resolve, 4000) })
     }
     return 'Update ARI pass'
   }
