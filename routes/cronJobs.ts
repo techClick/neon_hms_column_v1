@@ -53,7 +53,7 @@ const runCronJobs = async () => {
       rate: number
     }
 
-    const dateInfoLength = 501
+    const dateInfoLength = 500
     const getDateRestrictions = (ratePlan: Rate | undefined, propertyId: string, ratePlanId: string) => {
       const restrictions: RestrictionCO[] = []
 
@@ -308,9 +308,7 @@ const runCronJobs = async () => {
       })
 
       const restrictions: RestrictionCO[] = []
-      AllRestrictions.forEach((a) => {
-        a.forEach((a2) => restrictions.push(a2))
-      })
+      AllRestrictions.forEach((r) => { r.forEach((r2) => restrictions.push(r2)) })
 
       const availabilities: AvailabilityCO[][] = roomTypes.map((t) =>
         roomTypes.coRoomTypeId ? getFullAvailability(coId, t, rooms, books) : [])
@@ -319,18 +317,6 @@ const runCronJobs = async () => {
       availabilities.forEach((a) => { a.forEach((a2) => availability.push(a2)) })
 
       let result = await callCXEndpoint({
-        api: 'restrictions',
-        method: 'POST',
-        body: { values: restrictions }
-      })
-
-      if (result.data.data) {
-        updatelimits(i.toString(), 'restrictions')
-      } else {
-        return `Error ARI-U 101xy ${JSON.stringify(result.data)}`
-      }
-
-      result = await callCXEndpoint({
         api: 'availability',
         method: 'POST',
         body: { values: availability }
@@ -340,6 +326,18 @@ const runCronJobs = async () => {
         updatelimits(i.toString(), 'availability')
       } else {
         return `Error ARI-U 201xy ${JSON.stringify(result.data)}`
+      }
+
+      result = await callCXEndpoint({
+        api: 'restrictions',
+        method: 'POST',
+        body: { values: restrictions }
+      })
+
+      if (result.data.data) {
+        updatelimits(i.toString(), 'restrictions')
+      } else {
+        return `Error ARI-U 101xy ${JSON.stringify(result.data)}`
       }
 
       await new Promise((resolve) => { setTimeout(resolve, 4000) })

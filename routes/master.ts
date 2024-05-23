@@ -106,7 +106,7 @@ router.post('/addhotel', addPropertyDirect, async (req, res) => {
   try {
     const {
       name, address, phoneNumber, linkedin, facebook, twitter, instagram, email, logo, branchFiles,
-      accNumber, accName, field1, field2, displayEmail, prefs, branches, fields,
+      accNumber, accName, field1, field2, displayEmail, prefs, branches, fields, password, username,
       plan, country, region, branch, city, coId
     } = req.body
 
@@ -117,11 +117,25 @@ router.post('/addhotel', addPropertyDirect, async (req, res) => {
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name,
       address, phoneNumber, linkedin, facebook, twitter, instagram, accNumber, accName, field1, field2,
       'Tech CTO', new Date().toISOString(), email.toLowerCase(), logo, null, 'N/A', displayEmail, prefs,
-      branches, branchFiles, fields, plan, country, region, branch, date.toISOString(), 'N/A', null,
+      branches, branchFiles, fields, plan, country, region, branch, date.toISOString(), username, null,
       city, coId, null, null, null, null])
 
     const result = await neonClient.query('SELECT MAX(id) from Hotels')
     const hotelTMPLength: string = result[0]['MAX(id)'].toString()
+
+    console.log('HERE', username)
+    const tmpReq = {
+      body: {
+        email,
+        password,
+        permission: 6,
+        username,
+        path: process.env.CLIENT_URL,
+        decodedToken: { username }
+      }
+    }
+
+    await addStaffTmp(tmpReq, hotelTMPLength, name)
     await addWebhook(hotelTMPLength, coId)
 
     res.status(200).json((networkResponse('success', true)))
