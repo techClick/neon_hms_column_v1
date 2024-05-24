@@ -519,7 +519,7 @@ router.delete('/deleterooms', verify, async (req, res) => {
       const rows = await client.query(`SELECT name FROM ${`Rooms${hId}`} where id = ?`, [id])
       await client.query(`DELETE FROM ${`Rooms${hId}`} where id = ?`, [id])
 
-      addLog(hId, 'Room deleted', `&${rows[0].name}& ^deleted^ by |${decodedToken?.username}|`, new Date(), 'N/A')
+      addLog(hId, 'Room deleted', `&V&${rows[0].name}&V& ^deleted^ by |${decodedToken?.username}|`, new Date(), 'N/A')
     }
 
     res.status(200).json((networkResponse('success', true)))

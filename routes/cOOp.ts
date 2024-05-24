@@ -173,6 +173,29 @@ router.put('/updaterateplanco', verify, async (req, res) => {
   }
 })
 
+router.delete('/deleterateplanco', verify, async (req, res) => {
+  try {
+    const { roomType, ratePlan } = req.body
+
+    console.log(req.body)
+    const { coRateId } = roomType.roomTypeRates.find((r) => r.id === ratePlan.id)
+
+    const result = await callCXEndpoint({
+      api: `rate_plans/${coRateId}`,
+      method: 'DELETE'
+    })
+
+    if (result.data.meta) {
+      return res.status(200).json((networkResponse('success', true)))
+    } else {
+      return res.status(500).json((networkResponse('error', 'Server error 214CX')))
+    }
+  } catch (error) {
+    console.log(error)
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
 type Limit = 'restrictions' | 'availability'
 
 export const isAtCOLimit = async (hDId: string | number, limit: Limit) => {
