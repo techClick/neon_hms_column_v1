@@ -20,7 +20,6 @@ router.post('/addroom', verify, async (req, res) => {
     } = req.body
 
     const id = Number(req.get('hDId'))
-    const currency = decodeURIComponent(req.get('hDCurrency') || '')
 
     const rows = await client.query(`SELECT name from ${`Rooms${id}`} WHERE name = ?`, [name])
     if (rows.length) {
@@ -39,15 +38,12 @@ router.post('/addroom', verify, async (req, res) => {
         .stringify([]), roomTypeId])
     const rows2 = await client.query(`SELECT id from ${`Rooms${id}`} WHERE name = ?`, [name])
 
-    const rows1 = await client.query(`SELECT roomTypes, rates from ${`HotelInfo${id}`}`)
+    const rows1 = await client.query(`SELECT roomTypes from ${`HotelInfo${id}`}`)
 
-    const rates = JSON.parse(rows1[0].rates)
     const roomTypes = JSON.parse(rows1[0].roomTypes)
-    const rateId = roomTypes.find((t) => t.id === roomTypeId).rateId
-    const thisRate = rates.find((r) => r.id === rateId).baseRate
+    const roomTypeName = roomTypes.find((t) => t.id === roomTypeId).name
 
-    addLog(id, 'Room added', `&V&${name}&V& added. At base rate &${currency}${Number(thisRate).toLocaleString()}&
-      by |${username}|`, date, 'N/A')
+    addLog(id, 'Room added', `&V&${name}&V& added as a &${roomTypeName}& room by |${username}|`, date, 'N/A')
 
     const addedRoom = {
       id: rows2[0].id,

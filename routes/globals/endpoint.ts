@@ -29,7 +29,6 @@ export const callCXEndpoint = async ({
     method,
     headers: {
       'Content-Type': contentType ?? 'application/json',
-      body: JSON.stringify(body),
       'user-api-key': apiKey,
       Host: 'staging.channex.io'
     },

@@ -152,7 +152,9 @@ router.post('/addrateplanco', verify, async (req, res) => {
 
 router.put('/updaterateplanco', verify, async (req, res) => {
   try {
-    const { coRateId } = req.body.roomType
+    const { roomType, ratePlan } = req.body
+
+    const { coRateId } = roomType.roomTypeRates.find((r) => r.id === ratePlan.id)
 
     const result = await callCXEndpoint({
       api: `rate_plans/${coRateId}`,
@@ -166,6 +168,7 @@ router.put('/updaterateplanco', verify, async (req, res) => {
       return res.status(500).json((networkResponse('error', 'Server error 204CX')))
     }
   } catch (error) {
+    console.log(error)
     res.status(500).json((networkResponse('error', error)))
   }
 })
@@ -480,7 +483,7 @@ const newBooking = async (hId: string, booking: any) => {
         return `Error cx 325xy ${coRoomId}`
       }
 
-      const rows1 = await client.query(`SELECT books, name, id FROM Rooms${hId} where roomTypeId = ?`,
+      const rows1 = await client.query(`SELECT books, name, id, onHold FROM Rooms${hId} where roomTypeId = ?`,
         [roomType.id]
       )
       if (!rows1[0]?.books) {
@@ -491,10 +494,11 @@ const newBooking = async (hId: string, booking: any) => {
       let selectedInd = -1
       for (let i = 0; i < rows1.length; i += 1) {
         const row = rows1[i]
-        const thisBooks = JSON.parse(row.books)
-        if (!isBookingTimeError(thisBooks, new Date(checkInDate), new Date(checkOutDate))) {
+        const { onHold, id } = row
+        const thisBooks = onHold ? undefined : JSON.parse(row.books)
+        if (thisBooks && !isBookingTimeError(thisBooks, new Date(checkInDate), new Date(checkOutDate))) {
           selectedInd = i
-          selectedRoom = row.id
+          selectedRoom = id
           break
         }
       }

@@ -297,17 +297,22 @@ const runCronJobs = async () => {
       row = await client.query(`SELECT roomTypes, rates FROM HotelInfo${i}`)
       if (!row[0]?.roomTypes) continue
 
+      console.log(row[0].roomTypes, JSON.stringify([]))
       const roomTypes = JSON.parse(row[0].roomTypes)
       const rates = JSON.parse(row[0].rates)
 
-      const AllRestrictions: RestrictionCO[][] = rates.map((rate) => {
-        const thisRoomType = roomTypes.find((t) => t.rateId === rate.id)
-        return thisRoomType.coRateId ? getDateRestrictions(rate, coId, thisRoomType.coRateId)
-          : []
+      const AllRestrictions: RestrictionCO[][][] = rates.map((rate) => {
+        const thisRoomTypes = roomTypes.filter((t) => t.roomTypeRates.find((r) => r.id === rate.id))
+        const restr: RestrictionCO[][] = thisRoomTypes?.map((thisRoomType) => {
+          const { coRateId } = thisRoomType.roomTypeRates.find((r) => r.id === rate.id)
+          return coRateId ? getDateRestrictions(rate, coId, coRateId)
+            : []
+        }) || [[]]
+        return restr
       })
 
       const restrictions: RestrictionCO[] = []
-      AllRestrictions.forEach((r) => { r.forEach((r2) => restrictions.push(r2)) })
+      AllRestrictions.forEach((r) => { r.forEach((r2) => { r2.forEach((r3) => restrictions.push(r3)) }) })
 
       const availabilities: AvailabilityCO[][] = roomTypes.map((t) =>
         t.coRoomTypeId ? getFullAvailability(coId, t, rooms, books) : [])
@@ -333,14 +338,14 @@ const runCronJobs = async () => {
         body: { values: restrictions }
       })
 
-      // console.log(restrictions, result.data, i)
+      console.log(AllRestrictions, restrictions, i)
       if (result.data.data) {
         updatelimits(i.toString(), 'restrictions')
       } else {
         return `Error ARI-U 101xy ${JSON.stringify(result.data)}`
       }
 
-      // await new Promise((resolve) => { setTimeout(resolve, 4000) })
+      await new Promise((resolve) => { setTimeout(resolve, 4000) })
     }
     return 'Update ARI pass'
   }
