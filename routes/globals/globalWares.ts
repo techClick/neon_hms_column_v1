@@ -75,7 +75,7 @@ export const createDBs = async (req, res, next) => {
       // await client.query(`DROP TABLE IF EXISTS ${`HotelInfo${hDId}`}`)
       // await client.query(`DROP TABLE IF EXISTS ${`Photos${hDId}`}`)
       const resp = await client.query(`CREATE TABLE IF NOT EXISTS ${`HotelInfo${hDId}`} ( id serial PRIMARY KEY,
-        roomGroups text, roomTypes text, rates text)`)
+        roomGroups MEDIUMTEXT, roomTypes MEDIUMTEXT, rates MEDIUMTEXT)`)
 
       if (!resp.warningCount) {
         await client.query(`INSERT INTO ${`HotelInfo${hDId}`} (roomGroups, roomTypes, rates) VALUES (?, ?, ?)`,
@@ -89,7 +89,7 @@ export const createDBs = async (req, res, next) => {
         img MEDIUMTEXT NULL)`)
 
       await client.query(`CREATE TABLE IF NOT EXISTS ${`Rooms${hDId}`}
-        ( id serial PRIMARY KEY, name text, onHold text NULL, bookToken text NULL, createdOn text,
+        ( id serial PRIMARY KEY, name text, onHold text NULL, createdOn text,
           perks text, updatedAsOf text, updatedBy text, books text, field1 text NULL, field2 text NULL,
           floor text, roomTypeId text)`)
     }

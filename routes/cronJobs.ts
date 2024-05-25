@@ -90,8 +90,10 @@ const runCronJobs = async () => {
           return (+date >= +startD && +date <= +endD)
         })
 
-        const startD = new Date(calendarDate?.start || 0)
+        let startD = new Date(calendarDate?.start || 0)
         startD.setFullYear(date.getFullYear())
+        if (+startD < +new Date()) startD = new Date()
+
         const thisRate = calendarDate ? +calendarDate.rate : +(ratePlan?.baseRate || 0)
         const thisDate = calendarDate ? new Date(startD) : new Date(date)
 
@@ -338,7 +340,6 @@ const runCronJobs = async () => {
         body: { values: restrictions }
       })
 
-      console.log(AllRestrictions, restrictions, i)
       if (result.data.data) {
         updatelimits(i.toString(), 'restrictions')
       } else {

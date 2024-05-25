@@ -416,24 +416,14 @@ router.patch('/book', safeVerify, async (req, res) => {
 
     for (let i = 0; i < bookingDetails.length; i += 1) {
       const {
-        name, number, id, roomId, bookDate, token, rate, startDate, endDate, days, email
+        name, number, roomId, bookDate, token, rate, startDate, endDate, days, email
       } = bookingDetails[i]
 
       const rows = await client.query(`SELECT books, name FROM ${`Rooms${hDId}`} where id = ?`, [roomId])
       const username = decodedToken?.username ?? 'Online booker'
 
-      const newBook = {
-        id,
-        roomId,
-        bookDate,
-        name,
-        token,
-        email,
-        days,
-        number,
-        startDate,
-        endDate
-      }
+      const newBook = { ...bookingDetails[i] }
+
       const books = [
         ...JSON.parse(rows[0].books),
         newBook
