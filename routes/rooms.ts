@@ -416,7 +416,7 @@ router.patch('/book', safeVerify, async (req, res) => {
 
     for (let i = 0; i < bookingDetails.length; i += 1) {
       const {
-        name, number, roomId, bookDate, token, rate, startDate, endDate, days, email
+        name, number, roomId, bookDate, token, rate, startDate, endDate, days, email, transfer
       } = bookingDetails[i]
 
       const rows = await client.query(`SELECT books, name FROM ${`Rooms${hDId}`} where id = ?`, [roomId])
@@ -451,16 +451,25 @@ router.patch('/book', safeVerify, async (req, res) => {
         )
       }
 
-      const totalRate = (Number(rate))
-      if (+new Date(startDate) <= +new Date()) {
+      if (transfer) {
+        if (+new Date(startDate) <= +new Date()) {
+          addLog(hDId, 'Reservation change', `&V&${transfer.fromName}&V& reservation of &${days} night${
+            days === 1 ? '' : 's'} transferred& to &V&${transfer.toName}&V& by |${username}|`,
+          new Date(bookDate), transfer.cost.toString())
+        } else {
+          addLog(hDId, 'Reservation change', `&V&${transfer.fromName}&V& &advance& reservation of &${days} night${
+            days === 1 ? '' : 's'} transferred& to &V&${transfer.toName}&V& by |${username}|`,
+          new Date(bookDate), transfer.cost.toString())
+        }
+      } else if (+new Date(startDate) <= +new Date()) {
         addLog(hDId, 'Desk reservation', `&V&${rows[0].name}&V& reserved for &${days} night${days === 1 ? '' : 's'}& by |${
           username}| for &${name}& ${email ? `on &${email}&` : ''} ${(email && number) ? ` and &${
-          number}&` : number ? `on &${number}&` : ''}`, new Date(bookDate), totalRate.toString())
+          number}&` : number ? `on &${number}&` : ''}`, new Date(bookDate), Number(rate).toString())
       } else {
         addLog(hDId, 'Desk reservation', `&V&${rows[0].name}&V& reserved in &advance& for &${days}
           night${days === 1 ? '' : 's'}& by |${username}| for &${name}& ${email ? `on
           &${email}&` : ''} ${(email && number) ? ` and &${number}&` : number ? `on &${number}&` : ''}`,
-        new Date(bookDate), totalRate.toString())
+        new Date(bookDate), Number(rate).toString())
       }
     }
 
@@ -475,7 +484,7 @@ router.patch('/deletebooking', verify, async (req, res) => {
   try {
     const { deleteDetails, decodedToken } = req.body
     const { username } = decodedToken
-    const { roomId, id, updatedAsOf, rate } = deleteDetails
+    const { roomId, id, updatedAsOf, rate, startDate, skipLog } = deleteDetails
 
     const hDId = Number(req.get('hDId'))
     const rows = await client.query(`SELECT name, books FROM ${`Rooms${hDId}`} where id = ?`, [roomId])
@@ -487,9 +496,17 @@ router.patch('/deletebooking', verify, async (req, res) => {
     await client.query(`UPDATE ${`Rooms${hDId}`} SET books = ?, updatedBy = ?, updatedAsOf = ?
       where id = ?`, [JSON.stringify(newBooks), username, updatedAsOf, roomId])
 
-    addLog(hDId, 'Reservation cancelled', `&V&${roomName}&V& &advance& reservation of &${deleteBooking.days} night${
-      deleteBooking.days === 1 ? '' : 's'}& for &${deleteBooking.name}& ^cancelled^ by |${username}|`, new Date(updatedAsOf)
-    , (-1 * Number(rate)).toString())
+    if (!skipLog) {
+      if (+new Date(startDate) <= +new Date()) {
+        addLog(hDId, 'Reservation cancelled', `&V&${roomName}&V& reservation of &${deleteBooking.days} night${
+          deleteBooking.days === 1 ? '' : 's'}& for &${deleteBooking.name}& ^cancelled^ by |${username}|`, new Date(updatedAsOf)
+        , (-1 * Number(rate)).toString())
+      } else {
+        addLog(hDId, 'Reservation cancelled', `&V&${roomName}&V& &advance& reservation of &${deleteBooking.days} night${
+          deleteBooking.days === 1 ? '' : 's'}& for &${deleteBooking.name}& ^cancelled^ by |${username}|`, new Date(updatedAsOf)
+        , (-1 * Number(rate)).toString())
+      }
+    }
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
