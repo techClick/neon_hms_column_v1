@@ -102,7 +102,7 @@ router.patch('/updaterate', verify, async (req, res) => {
     const { rates, rate, isUpdate, isDelete } = ratesBody
 
     const hDId = Number(req.get('hDId'))
-    const currency = req.get('hDCurrency')
+    const currency = decodeURIComponent(req.get('hDCurrency'))
 
     await client.query(`UPDATE ${`HotelInfo${hDId}`} SET rates = ?`, [JSON.stringify(rates)])
 
