@@ -67,7 +67,7 @@ router.patch('/addgroup', verify, async (req, res) => {
   }
 })
 
-router.patch('/updateroomtype', verify, async (req, res) => {
+router.patch('/updateroomtypes', verify, async (req, res) => {
   try {
     const { updateRoomT, decodedToken } = req.body
     const { roomTypes, roomType, isUpdate, isDelete } = updateRoomT
@@ -96,7 +96,7 @@ router.patch('/updateroomtype', verify, async (req, res) => {
   }
 })
 
-router.patch('/updaterate', verify, async (req, res) => {
+router.patch('/updaterates', verify, async (req, res) => {
   try {
     const { ratesBody, decodedToken } = req.body
     const { rates, rate, isUpdate, isDelete } = ratesBody
@@ -106,17 +106,19 @@ router.patch('/updaterate', verify, async (req, res) => {
 
     await client.query(`UPDATE ${`HotelInfo${hDId}`} SET rates = ?`, [JSON.stringify(rates)])
 
-    if (isUpdate) {
-      addLog(hDId, 'Rate Plan change', `&${rate.name} Rate Plan& updated by |${
-        decodedToken.username}|`, new Date(), 'N/A')
-    } else if (isDelete) {
-      addLog(hDId, 'Rate Plan change', `&${rate.name} Rate Plan& of base rate
-        &${currency}${Number(rate.baseRate).toLocaleString()}&
-        ^deleted^ by |${decodedToken.username}|`, new Date(), 'N/A')
-    } else {
-      addLog(hDId, 'Rate Plan change', `&${rate.name} Rate Plan& with base rate
-        &${currency}${Number(rate.baseRate).toLocaleString()}& added by |${
-        decodedToken.username}|`, new Date(), 'N/A')
+    if (rate) {
+      if (isUpdate) {
+        addLog(hDId, 'Rate Plan change', `&${rate.name} Rate Plan& updated by |${
+          decodedToken.username}|`, new Date(), 'N/A')
+      } else if (isDelete) {
+        addLog(hDId, 'Rate Plan change', `&${rate.name} Rate Plan& of base rate
+          &${currency}${Number(rate.baseRate).toLocaleString()}&
+          ^deleted^ by |${decodedToken.username}|`, new Date(), 'N/A')
+      } else {
+        addLog(hDId, 'Rate Plan change', `&${rate.name} Rate Plan& with base rate
+          &${currency}${Number(rate.baseRate).toLocaleString()}& added by |${
+          decodedToken.username}|`, new Date(), 'N/A')
+      }
     }
 
     res.status(200).json((networkResponse('success', true)))

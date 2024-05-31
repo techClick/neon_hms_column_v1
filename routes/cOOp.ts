@@ -64,6 +64,7 @@ router.post('/addroomtypeco', verify, async (req, res) => {
     if (result.data.data) {
       return res.status(200).json((networkResponse('success', result.data.data.id)))
     } else {
+      console.log(getRoomType(req), result.data)
       return res.status(500).json((networkResponse('error', 'Server error 305CX')))
     }
   } catch (error) {
@@ -152,9 +153,7 @@ router.post('/addrateplanco', verify, async (req, res) => {
 
 router.put('/updaterateplanco', verify, async (req, res) => {
   try {
-    const { roomType, ratePlan } = req.body
-
-    const { coRateId } = roomType.roomTypeRates.find((r) => r.id === ratePlan.id)
+    const { coRateId } = req.body.ratePlan
 
     const result = await callCXEndpoint({
       api: `rate_plans/${coRateId}`,
@@ -175,10 +174,7 @@ router.put('/updaterateplanco', verify, async (req, res) => {
 
 router.delete('/deleterateplanco', verify, async (req, res) => {
   try {
-    const { roomType, ratePlan } = req.body
-
-    console.log(req.body)
-    const { coRateId } = roomType.roomTypeRates.find((r) => r.id === ratePlan.id)
+    const { coRateId } = req.body.ratePlan
 
     const result = await callCXEndpoint({
       api: `rate_plans/${coRateId}`,
@@ -230,7 +226,6 @@ export const updatelimits = async (hDId: string, limit: Limit) => {
 
     const expiryTime = 1 * 60 * 1000
 
-    // console.log(limits, limit)
     if (+new Date(limits[limit].expires) >= +new Date()) {
       limits[limit].count += 1
     } else {

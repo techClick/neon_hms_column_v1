@@ -303,18 +303,14 @@ const runCronJobs = async () => {
       const roomTypes = JSON.parse(row[0].roomTypes)
       const rates = JSON.parse(row[0].rates)
 
-      const AllRestrictions: RestrictionCO[][][] = rates.map((rate) => {
-        const thisRoomTypes = roomTypes.filter((t) => t.roomTypeRates.find((r) => r.id === rate.id))
-        const restr: RestrictionCO[][] = thisRoomTypes?.map((thisRoomType) => {
-          const { coRateId } = thisRoomType.roomTypeRates.find((r) => r.id === rate.id)
-          return coRateId ? getDateRestrictions(rate, coId, coRateId)
-            : []
-        }) || [[]]
-        return restr
+      const AllRestrictions: RestrictionCO[][] = rates.map((rate) => {
+        const { coRateId } = rate
+        return coRateId ? getDateRestrictions(rate, coId, coRateId)
+          : []
       })
 
       const restrictions: RestrictionCO[] = []
-      AllRestrictions.forEach((r) => { r.forEach((r2) => { r2.forEach((r3) => restrictions.push(r3)) }) })
+      AllRestrictions.forEach((r) => { r.forEach((r2) => r2 && restrictions.push(r2)) })
 
       const availabilities: AvailabilityCO[][] = roomTypes.map((t) =>
         t.coRoomTypeId ? getFullAvailability(coId, t, rooms, books) : [])
@@ -358,12 +354,20 @@ const runCronJobs = async () => {
   const thisTime = +thisMidnight - +now
 
   setTimeout(async () => {
-    const result = await COUpdatesARI()
-    console.log(result)
+    try {
+      const result = await COUpdatesARI()
+      console.log(result)
+    } catch (e) {
+      console.log('1. CRON JOBS', e)
+    }
 
     setInterval(async () => {
-      const result1 = await COUpdatesARI()
-      console.log(result1)
+      try {
+        const result1 = await COUpdatesARI()
+        console.log(result1)
+      } catch (e) {
+        console.log('2. CRON JOBS', e)
+      }
     }, 24 * 60 * 60 * 1000)
   }, thisTime || 1)
 }
