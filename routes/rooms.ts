@@ -142,7 +142,7 @@ router.post('/rooms', safeVerify, async (req, res) => {
     const id = Number(req.get('hDId'))
 
     const rows = await client.query(`SELECT id, name, onHold,
-      bookToken, createdOn, updatedAsOf, updatedBy, perks, floor, books, roomTypeId from ${`Rooms${id}`}`)
+      createdOn, updatedAsOf, updatedBy, perks, floor, books, roomTypeId from ${`Rooms${id}`}`)
 
     for (let i = 0; i < rows.length; i += 1) {
       rows[i] = {
