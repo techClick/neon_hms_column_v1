@@ -9,15 +9,16 @@ router.get('/info', async (req, res) => {
   try {
     const id = Number(req.get('hDId'))
 
-    const rows = await client.query(`SELECT roomGroups, roomTypes, rates from ${`HotelInfo${id}`}`)
+    const rows = await client.query(`SELECT roomGroups, roomTypes, rates, services from ${`HotelInfo${id}`}`)
     const users = await neonClient.query('SELECT username, email, permission from Staff where hotelId = ?',
       [id])
 
     const groups = JSON.parse(rows[0]?.roomGroups || '[]')
     const roomTypes = JSON.parse(rows[0]?.roomTypes || '[]')
     const rates = JSON.parse(rows[0]?.rates || '[]')
+    const services = JSON.parse(rows[0]?.services)
 
-    res.status(200).json((networkResponse('success', { users, groups, roomTypes, rates })))
+    res.status(200).json((networkResponse('success', { users, groups, roomTypes, rates, services })))
   } catch (error) {
     console.log(error)
     res.status(500).json((networkResponse('error', error)))
@@ -177,6 +178,24 @@ router.delete('/deletephoto', verify, async (req, res) => {
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     console.log(error)
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
+
+router.post('/updateservices', verify, async (req, res) => {
+  try {
+    const { services, updatedAsOf, logMessage, roomId } = req.body
+
+    const hDId = Number(req.get('hDId'))
+
+    await client.query(`UPDATE HotelInfo${hDId} SET services = ?`, [JSON.stringify(services)])
+
+    await client.query(`UPDATE Rooms${hDId} SET updatedAsOf = ? where id = ?`, [updatedAsOf, roomId])
+
+    addLog(hDId, 'Meal delivered', logMessage, new Date(updatedAsOf), 'N/A')
+
+    res.status(200).json((networkResponse('success', true)))
+  } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }
 })

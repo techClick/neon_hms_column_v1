@@ -351,7 +351,7 @@ const runCronJobs = async () => {
   const thisMidnight = new Date(now)
   thisMidnight.setHours(23, 59, 59, 999)
 
-  const thisTime = +thisMidnight - +now
+  const timeTillMidnight = +thisMidnight - +now
 
   setTimeout(async () => {
     try {
@@ -369,7 +369,7 @@ const runCronJobs = async () => {
         console.log('2. CRON JOBS', e)
       }
     }, 24 * 60 * 60 * 1000)
-  }, thisTime || 1)
+  }, timeTillMidnight || 1)
 }
 
 export const cronJobs = { runCronJobs }

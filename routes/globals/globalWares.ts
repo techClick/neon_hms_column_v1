@@ -75,11 +75,17 @@ export const createDBs = async (req, res, next) => {
       // await client.query(`DROP TABLE IF EXISTS ${`HotelInfo${hDId}`}`)
       // await client.query(`DROP TABLE IF EXISTS ${`Photos${hDId}`}`)
       const resp = await client.query(`CREATE TABLE IF NOT EXISTS ${`HotelInfo${hDId}`} ( id serial PRIMARY KEY,
-        roomGroups MEDIUMTEXT, roomTypes MEDIUMTEXT, rates MEDIUMTEXT)`)
+        roomGroups MEDIUMTEXT, roomTypes MEDIUMTEXT, rates MEDIUMTEXT, services MEDIUMTEXT)`)
 
       if (!resp.warningCount) {
-        await client.query(`INSERT INTO ${`HotelInfo${hDId}`} (roomGroups, roomTypes, rates) VALUES (?, ?, ?)`,
-          [JSON.stringify([]), JSON.stringify([]), JSON.stringify([])])
+        await client.query(`INSERT INTO ${`HotelInfo${hDId}`} (roomGroups, roomTypes, rates, services) VALUES (?, ?, ?, ?)`,
+          [
+            JSON.stringify([]),
+            JSON.stringify([]),
+            JSON.stringify([]),
+            JSON.stringify({ meals: { date: new Date().toISOString(), ids: [] } })
+          ]
+        )
       }
 
       await client.query(`CREATE TABLE IF NOT EXISTS ${`Logs${hDId}`} ( id serial PRIMARY KEY, type text, message text,
