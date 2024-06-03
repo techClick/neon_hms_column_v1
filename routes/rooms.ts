@@ -141,7 +141,7 @@ router.post('/rooms', safeVerify, async (req, res) => {
   try {
     const id = Number(req.get('hDId'))
 
-    const rows = await client.query(`SELECT id, name, onHold,
+    const rows = await client.query(`SELECT id, name, onHold, deletedAsOf,
       createdOn, updatedAsOf, updatedBy, perks, floor, books, roomTypeId from ${`Rooms${id}`}`)
 
     for (let i = 0; i < rows.length; i += 1) {
@@ -523,8 +523,8 @@ router.delete('/deleterooms', verify, async (req, res) => {
 
     for (let i = 0; i < ids.length; i += 1) {
       const id = ids[i]
-      const rows = await client.query(`SELECT name FROM ${`Rooms${hId}`} where id = ?`, [id])
-      await client.query(`DELETE FROM ${`Rooms${hId}`} where id = ?`, [id])
+      const rows = await client.query(`SELECT name FROM Rooms${hId} where id = ?`, [id])
+      await client.query(`UPDATE Rooms${hId} SET deletedAsOf = ? where id = ?`, [new Date().toISOString(), id])
 
       addLog(hId, 'Room deleted', `&V&${rows[0].name}&V& ^deleted^ by |${decodedToken?.username}|`, new Date(), 'N/A')
     }
