@@ -123,7 +123,6 @@ router.post('/addhotel', addPropertyDirect, async (req, res) => {
     const result = await neonClient.query('SELECT MAX(id) from Hotels')
     const hotelTMPLength: string = result[0]['MAX(id)'].toString()
 
-    console.log('HERE', username)
     const tmpReq = {
       body: {
         email,

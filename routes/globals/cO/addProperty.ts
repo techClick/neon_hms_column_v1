@@ -16,8 +16,8 @@ export const addProperty = async (req, res, next) => {
     name, address, phoneNumber, email, country, region, branch, city, suffix
   } = rows[0]
 
-  const rows1 = await neonClient.query('SELECT nameSave from Hotels where name = ? and email= ? and branch = ?',
-    [name, email.toLowerCase(), branch])
+  const rows1 = await neonClient.query('SELECT nameSave from Hotels where nameSave = ? and email= ? and branch = ?',
+    [name.toLowerCase().split(' ').join(''), email.toLowerCase(), branch])
   if (rows1.length) {
     return res.status(403).json((networkResponse('error', 'Information exists already')))
   }
@@ -49,7 +49,7 @@ export const addProperty = async (req, res, next) => {
     req.body.tmpData = { ...rows[0], coId: result.data.data.id }
     return next()
   } else {
-    return res.status(500).json((networkResponse('error', 'Server error 505CX')))
+    return res.status(500).json((networkResponse('error', 'Server error 105CX')))
   }
 }
 
@@ -58,8 +58,8 @@ export const addPropertyDirect = async (req, res, next) => {
     name, address, phoneNumber, email, country, region, branch, city, suffix
   } = req.body
 
-  const rows = await neonClient.query('SELECT nameSave from Hotels where name = ? and email= ? and branch = ?',
-    [name, email.toLowerCase(), branch])
+  const rows = await neonClient.query('SELECT nameSave from Hotels where nameSave = ? and email= ? and branch = ?',
+    [name.toLowerCase().split(' ').join(''), email.toLowerCase(), branch])
   if (rows.length) {
     return res.status(403).json((networkResponse('error', 'Information exists already')))
   }
@@ -91,6 +91,6 @@ export const addPropertyDirect = async (req, res, next) => {
     req.body.coId = result.data.data.id
     return next()
   } else {
-    return res.status(500).json((networkResponse('error', 'Server error 505CX')))
+    return res.status(500).json((networkResponse('error', 'Server error 205CX')))
   }
 }
