@@ -18,6 +18,7 @@ import { cronJobs } from './routes/cronJobs'
 import { allowCors, createDBs } from './routes/globals/globalWares'
 import { startSockets } from './routes/globals/socket'
 import { cert } from './routes/certification'
+import { insightEmail } from './routes/insightemail'
 
 const app = express()
 app.use(express.json({ limit: '30mb' }))
@@ -43,8 +44,8 @@ app.options('*', cors(corsOptions))
 app.all('*', allowCors)
 app.all('*', createDBs);
 
-[clients, auth, qtAuth, rooms, settings, transactions, webhook, logs, master, cOOp, insights, photo, cert]
-  .map((endPoint) => app.use('/', endPoint))
+[clients, auth, qtAuth, rooms, settings, transactions, webhook, logs, master, cOOp, insights, photo, cert,
+  insightEmail].map((endPoint) => app.use('/', endPoint))
 
 const server = http.createServer(app)
 
