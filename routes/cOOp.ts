@@ -64,7 +64,7 @@ router.post('/addroomtypeco', verify, async (req, res) => {
     if (result.data.data) {
       return res.status(200).json((networkResponse('success', result.data.data.id)))
     } else {
-      console.log(getRoomType(req), result.data)
+      console.log(getRoomType(req), JSON.stringify(result.data))
       return res.status(500).json((networkResponse('error', 'Server error 305CX')))
     }
   } catch (error) {

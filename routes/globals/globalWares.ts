@@ -89,7 +89,7 @@ export const createDBs = async (req, res, next) => {
       }
 
       await client.query(`CREATE TABLE IF NOT EXISTS ${`Logs${hDId}`} ( id serial PRIMARY KEY, type text, message text,
-        date text, value text, updatedBy text NULL, updatedAsOf text )`)
+        date text, value text, updatedBy text NULL, updatedAsOf text, fields MEDIUMTEXT NULL, isDelete text NULL)`)
 
       await client.query(`CREATE TABLE IF NOT EXISTS ${`Photos${hDId}`} ( id serial PRIMARY KEY,
         img MEDIUMTEXT NULL)`)

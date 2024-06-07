@@ -50,7 +50,7 @@ router.get('/getlogs', verify, async (req, res) => {
 
     const rows = await client.query(`SELECT * from ${`Logs${id}`}`)
 
-    res.status(200).json((networkResponse('success', rows)))
+    res.status(200).json((networkResponse('success', rows.filter((r) => !r.isDelete))))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }
@@ -96,10 +96,10 @@ router.post('/deletelog', verify, async (req, res) => {
     const { dId: deleteId, value, type, decodedToken } = req.body
     const { username } = decodedToken
 
-    await client.query(`DELETE FROM ${`Logs${id}`} WHERE id = ?`, [deleteId])
+    await client.query(`UPDATE ${`Logs${id}`} SET isDelete = ? WHERE id = ?`, ['true', deleteId])
 
     setTimeout(() => {
-      addLog(id, 'Audit deleted', `&${type}& audit of value &P&${value}&P& ^deleted^ by |${
+      addLog(id, 'Audit deleted', `&${type}& audit AUD${deleteId} of value &P&${value}&P& ^deleted^ by |${
         username}|`, new Date(), 'N/A')
     }, 100)
 
