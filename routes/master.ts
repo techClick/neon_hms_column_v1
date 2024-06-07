@@ -73,7 +73,7 @@ router.post('/addTMPhotel', async (req, res) => {
     }
 
     const date = new Date()
-    date.setDate(date.getDate() + 27)
+    date.setDate(date.getDate() + 14)
 
     await neonClient.query(`INSERT INTO HotelsTMP (${RowNames}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name,
@@ -111,7 +111,7 @@ router.post('/addhotel', addPropertyDirect, async (req, res) => {
     } = req.body
 
     const date = new Date()
-    date.setDate(date.getDate() + 27)
+    date.setDate(date.getDate() + 14)
 
     await neonClient.query(`INSERT INTO Hotels (${RowNames}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name,

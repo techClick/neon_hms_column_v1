@@ -44,7 +44,7 @@ router.post('/insightemail', async (req, res) => {
     const mailOptions = {
       from: 2,
       to,
-      subject: `${hotelName} Report for ${convertDate2(new Date())}:${convertTime2(new Date())}`,
+      subject: `${hotelName} Report for ${convertDate2(new Date())} ${convertTime2(new Date())}`,
       html: `
       <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
       <html xmlns="http://www.w3.org/1999/xhtml">

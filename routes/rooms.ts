@@ -178,6 +178,7 @@ type BookEmailDetails = {
   room: string
   token: string
   isEdit: boolean
+  currency: string
 }
 const bookMailOptions = (hotelName: string, to: string, name: string, details: BookEmailDetails): any => {
   const { isEdit, room } = details
@@ -270,7 +271,7 @@ const bookMailOptions = (hotelName: string, to: string, name: string, details: B
               Price per night
             </div>
             <div style='color: black; margin-left: auto; font-weight: 600;'>
-              ₦${Math.round(Number(details.rate || 0) / Number(details.days)).toLocaleString()}
+              ${details.currency}${Math.round(Number(details.rate || 0) / Number(details.days)).toLocaleString()}
             </div>
           </div>
           <div style='margin-top: 32px; display: flex; width: 100%; align-items: center'>
@@ -278,7 +279,7 @@ const bookMailOptions = (hotelName: string, to: string, name: string, details: B
               Total
             </div>
             <div style='color: black; margin-left: auto; color: #68d391; font-size: 20px;'>
-              ₦${(Number(details.rate || 0)).toLocaleString()}
+              ${details.currency}${(Number(details.rate || 0)).toLocaleString()}
             </div>
           </div>
         </div>
@@ -293,6 +294,7 @@ router.patch('/editbooking', safeVerify, async (req, res) => {
 
     const hDId = Number(req.get('hDId'))
     const hotelName = req.get('hDName')
+    const currency = decodeURIComponent(req.get('hDCurrency'))
 
     for (let i = 0; i < editDetails.length; i += 1) {
       const {
@@ -389,7 +391,8 @@ router.patch('/editbooking', safeVerify, async (req, res) => {
           rate,
           room: roomName,
           token,
-          isEdit: true
+          isEdit: true,
+          currency
         }
         await sendMail(
           hotelName,
@@ -413,6 +416,7 @@ router.patch('/book', safeVerify, async (req, res) => {
 
     const hDId = Number(req.get('hDId'))
     const hotelName = req.get('hDName')
+    const currency = decodeURIComponent(req.get('hDCurrency'))
 
     for (let i = 0; i < bookingDetails.length; i += 1) {
       const {
@@ -443,7 +447,8 @@ router.patch('/book', safeVerify, async (req, res) => {
           rate,
           room: rows[0].name,
           token,
-          isEdit: false
+          isEdit: false,
+          currency
         }
         await sendMail(
           hotelName,

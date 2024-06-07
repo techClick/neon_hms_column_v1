@@ -53,7 +53,7 @@ const runCronJobs = async () => {
       rate: number
     }
 
-    const dateInfoLength = 500
+    const dateInfoLength = 505
     const getDateRestrictions = (ratePlan: Rate | undefined, propertyId: string, ratePlanId: string) => {
       const restrictions: RestrictionCO[] = []
 
@@ -299,7 +299,6 @@ const runCronJobs = async () => {
       row = await client.query(`SELECT roomTypes, rates FROM HotelInfo${i}`)
       if (!row[0]?.roomTypes) continue
 
-      console.log(row[0].roomTypes, JSON.stringify([]))
       const roomTypes = JSON.parse(row[0].roomTypes)
       const rates = JSON.parse(row[0].rates)
 
