@@ -76,6 +76,10 @@ export const startSockets = (server: http.Server<typeof http.IncomingMessage, ty
       socket.broadcast.to(roomId).emit('get_updated_hotel', hotelData)
     })
 
+    socket.on('update_settings', ({ roomId, settings }) => {
+      socket.broadcast.to(roomId).emit('get_updated_settings', settings)
+    })
+
     socketFunction = {
       addedLog: ({ roomId, log }) => {
         io.to(roomId).emit('get_added_log', log)

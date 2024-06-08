@@ -179,9 +179,11 @@ type BookEmailDetails = {
   token: string
   isEdit: boolean
   currency: string
+  suffix: string
+  branch: string
 }
 const bookMailOptions = (hotelName: string, to: string, name: string, details: BookEmailDetails): any => {
-  const { isEdit, room } = details
+  const { isEdit, room, suffix, branch } = details
   return {
     from: 1,
     to,
@@ -191,7 +193,7 @@ const bookMailOptions = (hotelName: string, to: string, name: string, details: B
       <br/>
       <div style='width: 100%; height: max-content; box-sizing: border-box;
       max-width: 620px'>
-        <div style='font-size: 17px; padding: 20px; background: #f2f2f2; width: 100%;
+        <div style='font-size: 13px; padding: 20px; background: #f2f2f2; width: 100%;
         border: 1px solid lightgrey; border-radius: 3px; line-height: 1.6; box-sizing: border-box;'>
           ${isEdit ? 'Update to your room reservation with ' : 'You have reserved a room with '}
           <strong>${hotelName}</strong>.
@@ -199,11 +201,24 @@ const bookMailOptions = (hotelName: string, to: string, name: string, details: B
         <div style='font-size: 14px; padding: 20px; background: #f2f2f2; width: 420px;
         border: 1px dashed grey; border-radius: 6px; line-height: 1.6; margin: auto; background: white;
         margin-top: 15px;'>
-          <div style='font-size: 30px; margin-bottom: 15px; font-weight: 700;'>
+          <div style='font-size: 24px; font-weight: 600;'>
             ${hotelName}
             &#174;
           </div>
-          <div style='font-size: 24px; font-weight: 700;'>
+          ${
+            suffix ? `
+              <div style='font-size: 16px; margin-bottom: 5px; font-weight: 600;'>
+                ${suffix}
+              </div>` : ''
+          }
+          ${
+            branch ? `
+              <div style='font-size: 13px; margin-bottom: 15px; font-weight: 600; color: grey'>
+                ${branch}
+              </div>` : ''
+          }
+          ${!branch ? '<div style="margin-bottom: 10px;" />' : ''}
+          <div style='font-size: 20px; font-weight: 700;'>
             Customer Receipt
           </div>
           <div style='color: #a0aec0;'>
@@ -295,6 +310,8 @@ router.patch('/editbooking', safeVerify, async (req, res) => {
     const hDId = Number(req.get('hDId'))
     const hotelName = req.get('hDName')
     const currency = decodeURIComponent(req.get('hDCurrency'))
+    const suffix = req.get('hDSuffix')
+    const branch = req.get('hDBranch')
 
     for (let i = 0; i < editDetails.length; i += 1) {
       const {
@@ -392,7 +409,9 @@ router.patch('/editbooking', safeVerify, async (req, res) => {
           room: roomName,
           token,
           isEdit: true,
-          currency
+          currency,
+          suffix,
+          branch
         }
         await sendMail(
           hotelName,
@@ -417,6 +436,8 @@ router.patch('/book', safeVerify, async (req, res) => {
     const hDId = Number(req.get('hDId'))
     const hotelName = req.get('hDName')
     const currency = decodeURIComponent(req.get('hDCurrency'))
+    const suffix = req.get('hDSuffix')
+    const branch = req.get('hDBranch')
 
     for (let i = 0; i < bookingDetails.length; i += 1) {
       const {
@@ -448,7 +469,9 @@ router.patch('/book', safeVerify, async (req, res) => {
           room: rows[0].name,
           token,
           isEdit: false,
-          currency
+          currency,
+          suffix,
+          branch
         }
         await sendMail(
           hotelName,

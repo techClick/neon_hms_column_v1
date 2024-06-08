@@ -218,15 +218,23 @@ router.post('/getloginbranches', async (req, res) => {
   try {
     const { email, password } = req.body.logInDetails
 
-    const rows = await neonClient.query('SELECT * FROM Staff WHERE email = ?',
+    const rows0 = await neonClient.query('SELECT * FROM Staff WHERE email = ?',
       [email])
 
-    if (rows.length === 0) {
+    if (rows0.length === 0) {
       return res.status(403).json((networkResponse('error', 'Wrong password or email')))
     }
 
-    const correctPassword = await bcrypt.compare(password, rows[0].password)
-    if (!correctPassword) {
+    const rows: any[] = []
+    for (let i = 0; i < rows0.length; i += 1) {
+      const row = rows0[i]
+      const isPasswordCorrect = await bcrypt.compare(password, row.password)
+      if (isPasswordCorrect) {
+        rows.push(row)
+      }
+    }
+
+    if (!rows.length) {
       return res.status(403).json((networkResponse('error', 'Wrong password or email')))
     }
 
@@ -237,6 +245,7 @@ router.post('/getloginbranches', async (req, res) => {
     const hotelIds = Array.from(new Set(rows.map((d) => d.hotelId))).filter((i) => i)
     const rows1 = await neonClient.query(`SELECT name, branch, id FROM Hotels Where Id IN (${hotelIds.join(', ')})`)
 
+    console.log(rows1)
     const hotels = rows1.map((r) => { return { name: `${r.name}${r.branch ? ` - ${r.branch}` : ''}`, id: r.id } })
 
     res.status(200).json((networkResponse('success', hotels)))
