@@ -94,3 +94,48 @@ export const addPropertyDirect = async (req, res, next) => {
     return res.status(500).json((networkResponse('error', 'Server error 205CX')))
   }
 }
+
+export const addPropertyCO = async (hId: string, res) => {
+  const rows = await neonClient.query('SELECT * from Hotels where id = ?',
+    [hId])
+
+  if (!rows.length) {
+    return res.status(403).json((networkResponse('error', 'No Information available')))
+  }
+
+  const {
+    name, address, phoneNumber, email, country, region, branch, city, suffix
+  } = rows[0]
+
+  const property = {
+    title: `${name}${suffix ? ` ${suffix}` : ''}${branch ? ` | ${branch}` : ''}`,
+    currency: CD.lookup.countries({ name: country })[0].currencies[0],
+    email,
+    phone: phoneNumber,
+    country: CD.lookup.countries({ name: country })[0].alpha2,
+    state: region,
+    city,
+    address,
+    property_type: 'hotel',
+    settings: {
+      allow_availability_autoupdate_on_confirmation: true,
+      allow_availability_autoupdate_on_modification: true,
+      allow_availability_autoupdate_on_cancellation: true
+    }
+  }
+
+  const result = await callCXEndpoint({
+    api: 'properties',
+    method: 'POST',
+    body: { property }
+  })
+
+  if (result.data.data) {
+    await neonClient.query('UPDATE Hotels SET coId = ? where id = ?',
+      [result.data.data.id, hId])
+
+    return res.status(200).json((networkResponse('success', result.data.data.id)))
+  } else {
+    return res.status(500).json((networkResponse('error', 'Server error 305CX')))
+  }
+}

@@ -5,6 +5,7 @@ import { callCXEndpoint } from './globals/endpoint'
 import { client, neonClient } from './globals/connection'
 import { addLog } from './logs'
 import { getIO } from './globals/socket'
+import { addPropertyCO } from './globals/cO/addProperty'
 
 const router = express.Router()
 
@@ -97,7 +98,7 @@ router.delete('/deleteroomtypeco', verify, async (req, res) => {
     const { coRoomTypeId } = req.body
 
     const result = await callCXEndpoint({
-      api: `room_types/${coRoomTypeId}?force=true`,
+      api: `room_types/${coRoomTypeId}`, // eId}`?force=true`,
       method: 'DELETE'
     })
 
@@ -305,7 +306,6 @@ export const addWebhook = async (hDId: string, coId: string) => {
       }
     })
 
-    // console.log(`${webUrl}`, result.data)
     if (result.data.data) {
       const webhookId = result.data.data.id
       await neonClient.query('UPDATE Hotels SET webhook = ? where id = ?', [webhookId, hDId])
@@ -690,5 +690,27 @@ export const testBookings = async (hId) => {
     return error
   }
 }
+
+router.get('/handleproperty', async (req, res) => {
+  try {
+    const coId = req.get('hDCoId')
+    const hId = req.get('hDId')
+
+    const result = await callCXEndpoint({
+      api: `properties/${coId}`,
+      method: 'GET'
+    })
+
+    if (result.data.data) {
+      return res.status(200).json((networkResponse('success', 'exists')))
+    }
+
+    const finalResponse = await addPropertyCO(hId, res)
+
+    return finalResponse
+  } catch (error) {
+    res.status(500).json((networkResponse('error', error)))
+  }
+})
 
 export const cOOp = router

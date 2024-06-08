@@ -208,13 +208,13 @@ const bookMailOptions = (hotelName: string, to: string, name: string, details: B
           ${
             suffix ? `
               <div style='font-size: 16px; margin-bottom: 5px; font-weight: 600;'>
-                ${suffix}
+                ${suffix}this
               </div>` : ''
           }
           ${
             branch ? `
               <div style='font-size: 13px; margin-bottom: 15px; font-weight: 600; color: grey'>
-                ${branch}
+                ${branch}here
               </div>` : ''
           }
           ${!branch ? '<div style="margin-bottom: 10px;" />' : ''}
