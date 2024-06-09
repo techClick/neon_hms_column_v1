@@ -238,14 +238,14 @@ router.post('/getloginbranches', async (req, res) => {
       return res.status(403).json((networkResponse('error', 'Wrong password or email')))
     }
 
-    if (rows.length === 1) {
-      return res.status(200).json((networkResponse('success', [])))
+    const hotelIds = Array.from(new Set(rows.map((d) => d.hotelId))).filter((i) => i)
+
+    if (hotelIds.length === 1) {
+      return res.status(200).json((networkResponse('success', [hotelIds[0]])))
     }
 
-    const hotelIds = Array.from(new Set(rows.map((d) => d.hotelId))).filter((i) => i)
     const rows1 = await neonClient.query(`SELECT name, branch, id FROM Hotels Where Id IN (${hotelIds.join(', ')})`)
 
-    console.log(rows1)
     const hotels = rows1.map((r) => { return { name: `${r.name}${r.branch ? ` - ${r.branch}` : ''}`, id: r.id } })
 
     res.status(200).json((networkResponse('success', hotels)))

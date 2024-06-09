@@ -479,7 +479,8 @@ const newBooking = async (hId: string, booking: any) => {
       inserted_at: insertedAt,
       ota_name: otaName,
       customer,
-      id: coId
+      id: coId,
+      ota_reservation_code: otaBookingId
     } = booking.attributes
     const rows = await client.query(`SELECT roomTypes FROM HotelInfo${hId} where id = 1`)
     if (!rows[0]?.roomTypes) {
@@ -537,7 +538,7 @@ const newBooking = async (hId: string, booking: any) => {
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         days,
-        token: `${Math.random().toString(36).slice(2, 8)}${selectedRoom.toString().split('')[0]}`.toUpperCase(),
+        token: otaBookingId,
         email,
         number,
         name: `${name} ${surname}`,

@@ -16,14 +16,8 @@ router.post('/auth', async (req, res) => {
     const { email, password, hotelId: selectedHotelId } = req.body
     if (!email || !password) return res.status(400).json((networkResponse('error', 'Bad request')))
 
-    let rows
-    if (selectedHotelId) {
-      rows = await neonClient.query('SELECT * FROM Staff WHERE email = ? and hotelId = ?',
-        [email.toLowerCase(), selectedHotelId])
-    } else {
-      rows = await neonClient.query('SELECT * FROM Staff WHERE email = ?',
-        [email.toLowerCase()])
-    }
+    const rows = await neonClient.query('SELECT * FROM Staff WHERE email = ? and hotelId = ?',
+      [email.toLowerCase(), selectedHotelId])
 
     if (!rows.length) return res.status(403).json((networkResponse('error', 'Wrong password or email')))
 
