@@ -76,7 +76,7 @@ router.post('/addTMPhotel', async (req, res) => {
     date.setDate(date.getDate() + 14)
 
     await neonClient.query(`INSERT INTO HotelsTMP (${RowNames}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name,
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name.trim(),
       address, phoneNumber, linkedin, facebook, twitter, instagram, accNumber, accName, field1, field2,
       'Tech CTO', new Date().toISOString(), email.toLowerCase(), logo, null, password, displayEmail,
       JSON.stringify(prefs), JSON.stringify(branches), branchFiles, JSON.stringify(fields), plan, country, region,
@@ -114,7 +114,7 @@ router.post('/addhotel', addPropertyDirect, async (req, res) => {
     date.setDate(date.getDate() + 14)
 
     await neonClient.query(`INSERT INTO Hotels (${RowNames}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name,
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [name.toLowerCase().split(' ').join(''), name.trim(),
       address, phoneNumber, linkedin, facebook, twitter, instagram, accNumber, accName, field1, field2,
       'Tech CTO', new Date().toISOString(), email.toLowerCase(), logo, null, 'N/A', displayEmail, prefs,
       branches, branchFiles, fields, plan, country, region, branch, date.toISOString(), username, null,
