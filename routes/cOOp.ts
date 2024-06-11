@@ -339,8 +339,9 @@ const cancelBooking = async (hId: string, booking: any) => {
         checkin_date: checkInDate
       } = rooms[i]
       const roomType = roomTypes.find((t) => t.coRoomTypeId === coRoomId)
-      const rows1 = await client.query(`SELECT books, id FROM Rooms${hId} where roomTypeId = ?`,
-        [roomType.id]
+      const rows1 = await client.query(`SELECT books, id FROM Rooms${hId} where roomTypeId = ?
+        and deletedAsOf IS NULL`,
+      [roomType.id]
       )
       if (!rows1[0]?.books) {
         return 'Error cx 235xy'
@@ -415,7 +416,7 @@ const modifyBooking = async (hId: string, booking: any) => {
         amount
       } = rooms[i]
       const roomType = roomTypes.find((t) => t.coRoomTypeId === coRoomId)
-      const rows1 = await client.query(`SELECT books, id FROM Rooms${hId} where roomTypeId = ?`,
+      const rows1 = await client.query(`SELECT books, id FROM Rooms${hId} where roomTypeId = ? and deletedAsOf IS NULL`,
         [roomType.id]
       )
       if (!rows1[0]?.books) {
@@ -469,8 +470,10 @@ const modifyBooking = async (hId: string, booking: any) => {
   }
 }
 
-const isBookingTimeError = (books: BookingDetails[], start: Date, end: Date) => {
-  return !!books.find((b) => (+new Date(b.startDate) >= +start &&
+const isBookingTimeError = (books0: BookingDetails[], start: Date, end: Date) => {
+  const books = books0.filter((b) => +new Date(b.endDate) > +new Date())
+
+  return books.find((b) => (+new Date(b.startDate) >= +start &&
     +new Date(b.endDate) <= +end) || (+new Date(b.endDate) >= +start &&
     +new Date(b.startDate) <= +end))
 }
@@ -485,14 +488,17 @@ const newBooking = async (hId: string, booking: any) => {
       id: coId,
       ota_reservation_code: otaBookingId
     } = booking.attributes
+
     const rows = await client.query(`SELECT roomTypes FROM HotelInfo${hId} where id = 1`)
     if (!rows[0]?.roomTypes) {
       return 'Error cx 225xy'
     }
+
     const roomTypes = JSON.parse(rows[0].roomTypes)
     const booksRoomId: string[] = []
     const thisBooks: string[] = []
     const date = new Date()
+
     for (let i = 0; i < rooms.length; i += 1) {
       const {
         room_type_id: coRoomId,
@@ -506,8 +512,9 @@ const newBooking = async (hId: string, booking: any) => {
         return `Error cx 325xy ${coRoomId}`
       }
 
-      const rows1 = await client.query(`SELECT books, name, id, onHold FROM Rooms${hId} where roomTypeId = ?`,
-        [roomType.id]
+      const rows1 = await client.query(`SELECT books, name, id, onHold FROM Rooms${hId} where roomTypeId = ? and
+        deletedAsOf IS NULL`,
+      [roomType.id]
       )
       if (!rows1[0]?.books) {
         return 'Error cx 425xy'
@@ -517,8 +524,8 @@ const newBooking = async (hId: string, booking: any) => {
       let selectedInd = -1
       for (let i = 0; i < rows1.length; i += 1) {
         const row = rows1[i]
-        const { onHold, id } = row
-        const thisBooks = onHold ? undefined : JSON.parse(row.books)
+        const { onHold, id, books } = row
+        const thisBooks = onHold ? undefined : JSON.parse(books)
         if (thisBooks && !isBookingTimeError(thisBooks, new Date(checkInDate), new Date(checkOutDate))) {
           selectedInd = i
           selectedRoom = id
@@ -530,17 +537,8 @@ const newBooking = async (hId: string, booking: any) => {
       }
 
       const rows2 = await client.query(`SELECT rates FROM HotelInfo${hId} where id = 1`)
-      if (rows2.length === 0) {
-        //remove this
-        return 'Error cx 625xy'
-      }
-
       const rates = rows2[0]?.rates ? JSON.parse(rows2[0].rates) : undefined
-      const ratePlan = rates?.find((r) => r.ratePlan.coRateId === ratePlanCoId)
-      if (!ratePlan) {
-        //remove this
-        return 'Error cx 725xy'
-      }
+      const ratePlan = rates?.find((r) => r.coRateId === ratePlanCoId)
 
       const days = ((+new Date(checkOutDate) - +new Date(checkInDate)) / (24 * 60 * 60 * 1000)).toString()
       const { mail: email, phone: number, name, surname } = customer
@@ -576,6 +574,7 @@ const newBooking = async (hId: string, booking: any) => {
           : ''}. Registered by &C&${otaName}&C&`,
       date, (Number(amount)).toString())
     }
+
     return ['pass', thisBooks, booksRoomId, date]
   } catch (error) {
     return `NewBooking: ${error}`
@@ -608,12 +607,10 @@ const handleBooking = async (hId: string, bookingData, revisionId?) => {
     bookResult = await cancelBooking(hId, bookingData)
   }
 
-  console.log('HERE', bookResult)
   if (bookResult[0] === 'pass' && revisionId) {
     const ackResult = await ackBooking(hId, revisionId)
     if (ackResult !== 'pass') bookResult = ackResult
   }
-  console.log('2. HERE', bookResult)
 
   return bookResult
 }
@@ -694,10 +691,11 @@ export const testBookings = async (hId) => {
         id: 'Test',
         rooms: [
           {
-            room_type_id: '41ca3f6e-636d-4c02-a62d-60429403e38f',
+            room_type_id: 'cb0b145f-25e4-426b-99e1-9bcc3c8f5945',
             checkin_date: '2024-05-20',
             checkout_date: '2024-05-23',
-            amount: '30000'
+            amount: '30000',
+            rate_plan_id: 'd4b542c1-5acb-4772-83d9-f16fa0b2db5f'
           }
         ]
       }
