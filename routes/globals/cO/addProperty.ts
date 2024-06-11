@@ -2,6 +2,7 @@ import { callCXEndpoint } from '../endpoint'
 import { neonClient } from '../connection'
 import { networkResponse } from '../networkResponse'
 import CD from 'country-data'
+import { addWebhook } from '../../cOOp'
 
 export const addProperty = async (req, res, next) => {
   const { id } = req.body
@@ -131,11 +132,17 @@ export const addPropertyCO = async (hId: string, res) => {
   })
 
   if (result.data.data) {
-    await neonClient.query('UPDATE Hotels SET coId = ? where id = ?',
-      [result.data.data.id, hId])
+    const res1 = await addWebhook(hId, result.data.data.id)
 
-    return res.status(200).json((networkResponse('success', result.data.data.id)))
-  } else {
+    if (res1 === 'pass') {
+      await neonClient.query('UPDATE Hotels SET coId = ? where id = ?',
+        [result.data.data.id, hId])
+
+      return res.status(200).json((networkResponse('success', result.data.data.id)))
+    }
+
     return res.status(500).json((networkResponse('error', 'Server error 305CX')))
+  } else {
+    return res.status(500).json((networkResponse('error', 'Server error 405CX')))
   }
 }

@@ -310,8 +310,10 @@ export const addWebhook = async (hDId: string, coId: string) => {
       const webhookId = result.data.data.id
       await neonClient.query('UPDATE Hotels SET webhook = ? where id = ?', [webhookId, hDId])
     }
+    return 'pass'
   } catch (e) {
     console.log(e)
+    return `${e}`
   }
 }
 
@@ -385,6 +387,7 @@ type BookingDetails = {
   rate: string
   source: string
   coId: string
+  ratePlan: Object | undefined
 }
 
 const modifyBooking = async (hId: string, booking: any) => {
@@ -495,7 +498,8 @@ const newBooking = async (hId: string, booking: any) => {
         room_type_id: coRoomId,
         checkin_date: checkInDate,
         checkout_date: checkOutDate,
-        amount
+        amount,
+        rate_plan_id: ratePlanCoId
       } = rooms[i]
       const roomType = roomTypes.find((t) => t.coRoomTypeId === coRoomId)
       if (!roomType) {
@@ -525,6 +529,19 @@ const newBooking = async (hId: string, booking: any) => {
         return 'Error cx 525xy'
       }
 
+      const rows2 = await client.query(`SELECT rates FROM HotelInfo${hId} where id = 1`)
+      if (rows2.length === 0) {
+        //remove this
+        return 'Error cx 625xy'
+      }
+
+      const rates = rows2[0]?.rates ? JSON.parse(rows2[0].rates) : undefined
+      const ratePlan = rates?.find((r) => r.ratePlan.coRateId === ratePlanCoId)
+      if (!ratePlan) {
+        //remove this
+        return 'Error cx 725xy'
+      }
+
       const days = ((+new Date(checkOutDate) - +new Date(checkInDate)) / (24 * 60 * 60 * 1000)).toString()
       const { mail: email, phone: number, name, surname } = customer
       const startDate = new Date(checkInDate)
@@ -544,7 +561,8 @@ const newBooking = async (hId: string, booking: any) => {
         name: `${name} ${surname}`,
         rate: amount,
         source: otaName,
-        coId
+        coId,
+        ratePlan
       }
       thisBooks[i] = JSON.stringify([...JSON.parse(rows1[selectedInd].books), newBook])
       booksRoomId[i] = selectedRoom
@@ -590,10 +608,12 @@ const handleBooking = async (hId: string, bookingData, revisionId?) => {
     bookResult = await cancelBooking(hId, bookingData)
   }
 
+  console.log('HERE', bookResult)
   if (bookResult[0] === 'pass' && revisionId) {
     const ackResult = await ackBooking(hId, revisionId)
     if (ackResult !== 'pass') bookResult = ackResult
   }
+  console.log('2. HERE', bookResult)
 
   return bookResult
 }
