@@ -96,7 +96,7 @@ export const createDBs = async (req, res, next) => {
 
       await client.query(`CREATE TABLE IF NOT EXISTS ${`Rooms${hDId}`}
         ( id serial PRIMARY KEY, name text, onHold text NULL, createdOn text, deletedAsOf text NULL,
-          perks text, updatedAsOf text, updatedBy text, books text, field1 text NULL, field2 text NULL,
+          perks text, updatedAsOf text, updatedBy text, books LONGTEXT, field1 text NULL, field2 text NULL,
           floor text, roomTypeId text)`)
     }
     return next()

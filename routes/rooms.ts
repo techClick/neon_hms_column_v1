@@ -21,7 +21,8 @@ router.post('/addroom', verify, async (req, res) => {
 
     const id = Number(req.get('hDId'))
 
-    const rows = await client.query(`SELECT name from ${`Rooms${id}`} WHERE name = ?`, [name])
+    const rows = await client.query(`SELECT name from ${`Rooms${id}`} WHERE name = ? and
+      deletedAsOf IS NULL`, [name])
     if (rows.length) {
       return res.status(403).json((networkResponse('error', 'A room with this name exists already')))
     }
