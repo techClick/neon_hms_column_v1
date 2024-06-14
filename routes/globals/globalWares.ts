@@ -30,7 +30,7 @@ export const createDBs = async (req, res, next) => {
       updatedAsOf text, twitter text NULL, instagram text NULL, currency text, displayEmail text, prefs text,
       branches text, fields LONGTEXT, branchFiles LONGTEXT, plan text NULL, country text, region text, branch text NULL,
       username text, expires text, billingDate text NULL, maxRooms text NULL, city text, coId text NULL, limits text NULL,
-      webhook text NULL, channelExpiry text NULL, suffix text NULL)`)
+      webhook text NULL, channelExpiry text NULL, keyCardUrl text NULL, suffix text NULL)`)
 
     await neonClient.query(`CREATE TABLE IF NOT EXISTS Hotels ( id serial PRIMARY KEY, nameSave text, email text,
       password text, name text NULL, address text, phoneNumber text, linkedin text NULL, facebook text NULL,
@@ -38,7 +38,7 @@ export const createDBs = async (req, res, next) => {
       updatedAsOf text, twitter text NULL, instagram text NULL, currency text, displayEmail text, prefs text,
       branches text, fields LONGTEXT, branchFiles LONGTEXT, plan text NULL, country text, region text, branch text NULL,
       username text, expires text, billingDate text NULL, maxRooms text NULL, city text, coId text NULL, limits text NULL,
-      webhook text NULL, channelExpiry text NULL, suffix text NULL)`)
+      webhook text NULL, channelExpiry text NULL, keyCardUrl text NULL, suffix text NULL)`)
 
     await neonClient.query(`CREATE TABLE IF NOT EXISTS PaidToMe ( id serial PRIMARY KEY, txRef text,
       amount text, timestamp text, transactionId text)`)

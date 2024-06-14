@@ -8,7 +8,7 @@ const router = express.Router()
 export type LogType = 'Desk reservation' | 'Reservation cancelled' | 'Room added' | 'Staff logged in' |
 'Staff logout' | 'Online visitor' | 'Settings change' | 'Online reservation' | 'Room change' | 'Reservation change' |
 'Staff added' | 'Staff removed' | 'Staff change' | 'Rate Plan change' | 'Room deleted' | 'Audit change' |
-'Audit deleted' | 'Walk in' | 'Meal delivered'
+'Audit deleted' | 'Walk in' | 'Meal delivered' | 'Key card access'
 
 export const addLog = async (
   id: number, type: LogType, message: string, date: Date, value: string, updatedAsOf?: string) => {

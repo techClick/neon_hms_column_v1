@@ -303,7 +303,35 @@ const bookMailOptions = (hotelName: string, to: string, name: string, details: B
   }
 }
 
-router.patch('/editbooking', safeVerify, async (req, res) => {
+router.patch('/editbookaccess', verify, async (req, res) => {
+  try {
+    const { editBook, roomName, decodedToken, updatedAsOf } = req.body
+    const { roomId, id, hasKeyAccess, name } = editBook
+    const hId = Number(req.get('hDId'))
+
+    const rows = await client.query(`SELECT books FROM Rooms${hId} where id = ?`, [roomId])
+
+    const books = JSON.parse(rows[0].books)
+    const newBooks = [...books.filter((b) => b.id !== id), editBook]
+
+    await client.query(`UPDATE Rooms${hId} SET books = ?, updatedAsOf = ? where id = ?`,
+      [JSON.stringify(newBooks), updatedAsOf, roomId])
+
+    if (hasKeyAccess) {
+      addLog(hId, 'Key card access', `&V&${roomName}&V& key card access &granted& to &${name}&
+        by |${decodedToken?.username}|`, new Date(updatedAsOf), 'N/A')
+    } else {
+      addLog(hId, 'Key card access', `&V&${roomName}&V& key card access set to ^not^ granted
+        by |${decodedToken?.username}|`, new Date(updatedAsOf), 'N/A')
+    }
+
+    res.status(200).json((networkResponse('success', true)))
+  } catch (e) {
+    res.status(500).json((networkResponse('error', e)))
+  }
+})
+
+router.patch('/editbooking', verify, async (req, res) => {
   try {
     const { editDetails, decodedToken } = req.body
     const result = []
@@ -348,8 +376,8 @@ router.patch('/editbooking', safeVerify, async (req, res) => {
         }
       }
 
-      const rows = await client.query(`SELECT name, books FROM ${`Rooms${hDId}`} where id = ?`, [id])
-      const username = decodedToken?.username ?? 'Online booker'
+      const rows = await client.query(`SELECT name, books FROM Rooms${hDId} where id = ?`, [id])
+      const username = decodedToken.username
 
       const { books: b0, name: roomName } = rows[0]
       const b1 = [...JSON.parse(b0)]
@@ -362,7 +390,7 @@ router.patch('/editbooking', safeVerify, async (req, res) => {
         books[ind] = editBook
       }
 
-      await client.query(`UPDATE ${`Rooms${hDId}`} SET books = ? where id = ?`, [JSON.stringify(books), id])
+      await client.query(`UPDATE Rooms${hDId} SET books = ? where id = ?`, [JSON.stringify(books), id])
 
       let oldFreeBy = '1-4-2024'
       if (ind > -1) {
@@ -445,7 +473,7 @@ router.patch('/book', safeVerify, async (req, res) => {
         name, number, roomId, bookDate, token, rate, startDate, endDate, days, email, transfer
       } = bookingDetails[i]
 
-      const rows = await client.query(`SELECT books, name FROM ${`Rooms${hDId}`} where id = ?`, [roomId])
+      const rows = await client.query(`SELECT books, name FROM Rooms${hDId} where id = ?`, [roomId])
       const username = decodedToken?.username ?? 'Online booker'
 
       const newBook = { ...bookingDetails[i] }
@@ -455,7 +483,7 @@ router.patch('/book', safeVerify, async (req, res) => {
         newBook
       ]
 
-      await client.query(`UPDATE ${`Rooms${hDId}`} SET books = ?, updatedBy = ?, updatedAsOf = ?
+      await client.query(`UPDATE Rooms${hDId} SET books = ?, updatedBy = ?, updatedAsOf = ?
         where id = ?`, [JSON.stringify(books), username, bookDate, roomId])
 
       if (email) {
@@ -516,13 +544,13 @@ router.patch('/deletebooking', verify, async (req, res) => {
     const { roomId, id, updatedAsOf, rate, startDate, skipLog } = deleteDetails
 
     const hDId = Number(req.get('hDId'))
-    const rows = await client.query(`SELECT name, books FROM ${`Rooms${hDId}`} where id = ?`, [roomId])
+    const rows = await client.query(`SELECT name, books FROM Rooms${hDId} where id = ?`, [roomId])
     const { books: b0, name: roomName } = rows[0]
     const books = JSON.parse(b0)
     const deleteBooking = [...books].find((b) => b.id === id)
     const newBooks = books.filter((b) => b.id !== id)
 
-    await client.query(`UPDATE ${`Rooms${hDId}`} SET books = ?, updatedBy = ?, updatedAsOf = ?
+    await client.query(`UPDATE Rooms${hDId} SET books = ?, updatedBy = ?, updatedAsOf = ?
       where id = ?`, [JSON.stringify(newBooks), username, updatedAsOf, roomId])
 
     if (!skipLog) {
