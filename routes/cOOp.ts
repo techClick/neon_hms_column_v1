@@ -278,6 +278,7 @@ router.post('/updateavailabilityCO', verify, async (req, res) => {
       updatelimits(hDId, 'availability')
       return res.status(200).json((networkResponse('success', true)))
     } else {
+      console.log(result.data)
       return res.status(500).json((networkResponse('error', 'Server error 404CX')))
     }
   } catch (error) {
