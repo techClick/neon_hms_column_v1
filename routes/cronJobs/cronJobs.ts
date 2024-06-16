@@ -1,7 +1,7 @@
-import { isAtCOLimit, reviseBookings, updatelimits } from './cOOp'
-import { client, neonClient } from './globals/connection'
-import { callCXEndpoint } from './globals/endpoint'
-import { getIO } from './globals/socket'
+import { isAtCOLimit, reviseBookings, updatelimits } from '../cOOp'
+import { client, neonClient } from '../globals/connection'
+import { callCXEndpoint } from '../globals/endpoint'
+import { getIO } from '../globals/socket'
 
 const runCronJobs = async () => {
   const COReviseBookings = async () => {

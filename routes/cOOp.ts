@@ -375,7 +375,7 @@ const cancelBooking = async (hId: string, booking: any) => {
   }
 }
 
-type BookingDetails = {
+export type BookingDetails = {
   id: string
   roomId: string
   bookDate: string

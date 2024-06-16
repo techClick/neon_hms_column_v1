@@ -14,11 +14,12 @@ import { insights } from './routes/insights'
 import http from 'http'
 import { photo } from './routes/photo'
 import { cOOp } from './routes/cOOp'
-import { cronJobs } from './routes/cronJobs'
+import { cronJobs } from './routes/cronJobs/cronJobs'
 import { allowCors, createDBs } from './routes/globals/globalWares'
 import { startSockets } from './routes/globals/socket'
 import { cert } from './routes/certification'
 import { insightEmail } from './routes/insightemail'
+import { checkInAndOutOp } from './routes/cronJobs/checkInAndOut'
 
 const app = express()
 app.use(express.json({ limit: '30mb' }))
@@ -63,3 +64,5 @@ app.get('/', (req, res) => {
 })
 
 export { server }
+
+export const checkInAndOutOps = (async () => await checkInAndOutOp())()

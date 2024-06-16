@@ -8,25 +8,23 @@ const router = express.Router()
 export type LogType = 'Desk reservation' | 'Reservation cancelled' | 'Room added' | 'Staff logged in' |
 'Staff logout' | 'Online visitor' | 'Settings change' | 'Online reservation' | 'Room change' | 'Reservation change' |
 'Staff added' | 'Staff removed' | 'Staff change' | 'Rate Plan change' | 'Room deleted' | 'Audit change' |
-'Audit deleted' | 'Walk in' | 'Meal delivered' | 'Key card access'
+'Audit deleted' | 'Walk in' | 'Meal delivered' | 'Key card access' | 'Check in' | 'Check out'
 
 export const addLog = async (
   id: number, type: LogType, message: string, date: Date, value: string, updatedAsOf?: string) => {
   try {
     await client.query(`INSERT INTO ${`Logs${id}`} ( type, message, date, value, updatedBy, updatedAsOf )
       VALUES (?, ?, ?, ?, ?, ?)`, [type, message, date.toISOString(), value, 'N/A',
-      updatedAsOf || date.toISOString()])
+      updatedAsOf || new Date().toISOString()])
 
-    const result = await client.query(`SELECT MAX(id) from ${`Logs${id}`}`)
-    const allLogsLength: string = result[0]['MAX(id)'].toString()
-
-    const rows = await client.query(`SELECT * FROM ${`Logs${id}`} where id = ?`, [allLogsLength])
+    const rows = await client.query(`SELECT * FROM ${`Logs${id}`} where message = ? AND date = ? AND type = ?`,
+      [message, date.toISOString(), type])
 
     const socketEmitFunc = getSocketFunction()
     const roomId = `room${id}`
     socketEmitFunc?.addedLog?.({ roomId, log: rows[0] })
 
-    return allLogsLength
+    return rows[0].id.toString()
   } catch (e) {
     console.log('Log error: ', e)
     return ''

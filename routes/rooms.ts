@@ -5,6 +5,7 @@ import express from 'express'
 import { safeVerify, verify } from './globals/verify'
 import { client } from './globals/connection'
 import { addLog } from './logs'
+import { checkInAndOutOps } from '../'
 const router = express.Router()
 
 process.env.TZ = 'Africa/Lagos'
@@ -390,7 +391,8 @@ router.patch('/editbooking', verify, async (req, res) => {
         books[ind] = editBook
       }
 
-      await client.query(`UPDATE Rooms${hDId} SET books = ? where id = ?`, [JSON.stringify(books), id])
+      await client.query(`UPDATE Rooms${hDId} SET books = ?, updatedAsOf = ? where id = ?`,
+        [JSON.stringify(books), date1.toISOString(), id])
 
       let oldFreeBy = '1-4-2024'
       if (ind > -1) {
@@ -451,6 +453,9 @@ router.patch('/editbooking', verify, async (req, res) => {
       const result0 = { updatedAsOf: date1 }
       result.push(result0)
     }
+
+    (await checkInAndOutOps).checkInAndOut(hDId.toString())
+
     res.status(200).json((networkResponse('success', result[0].updatedAsOf)))
   } catch (error) {
     console.log(error)
@@ -530,6 +535,8 @@ router.patch('/book', safeVerify, async (req, res) => {
       }
     }
 
+    (await checkInAndOutOps).checkInAndOut(hDId.toString())
+
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     console.log(error)
@@ -581,7 +588,7 @@ router.delete('/deleterooms', verify, async (req, res) => {
     for (let i = 0; i < ids.length; i += 1) {
       const id = ids[i]
       const rows = await client.query(`SELECT name FROM Rooms${hId} where id = ?`, [id])
-      await client.query(`UPDATE Rooms${hId} SET deletedAsOf = ? where id = ?`, [new Date().toISOString(), id])
+      await client.query(`DELETE FROM Rooms${hId} where id = ?`, [id])
 
       addLog(hId, 'Room deleted', `&V&${rows[0].name}&V& ^deleted^ by |${decodedToken?.username}|`, new Date(), 'N/A')
     }

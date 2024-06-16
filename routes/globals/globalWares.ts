@@ -74,7 +74,7 @@ export const createDBs = async (req, res, next) => {
       // await client.query(`DROP TABLE IF EXISTS ${`Rooms${hDId}`}`)
       // await client.query(`DROP TABLE IF EXISTS ${`HotelInfo${hDId}`}`)
       // await client.query(`DROP TABLE IF EXISTS ${`Photos${hDId}`}`)
-      const resp = await client.query(`CREATE TABLE IF NOT EXISTS ${`HotelInfo${hDId}`} ( id serial PRIMARY KEY,
+      const resp = await client.query(`CREATE TABLE IF NOT EXISTS HotelInfo${hDId} ( id serial PRIMARY KEY,
         roomGroups MEDIUMTEXT, roomTypes MEDIUMTEXT, rates MEDIUMTEXT, services MEDIUMTEXT)`)
 
       if (!resp.warningCount) {
@@ -88,13 +88,13 @@ export const createDBs = async (req, res, next) => {
         )
       }
 
-      await client.query(`CREATE TABLE IF NOT EXISTS ${`Logs${hDId}`} ( id serial PRIMARY KEY, type text, message text,
+      await client.query(`CREATE TABLE IF NOT EXISTS Logs${hDId} ( id serial PRIMARY KEY, type text, message text,
         date text, value text, updatedBy text NULL, updatedAsOf text, fields MEDIUMTEXT NULL, isDelete text NULL)`)
 
-      await client.query(`CREATE TABLE IF NOT EXISTS ${`Photos${hDId}`} ( id serial PRIMARY KEY,
+      await client.query(`CREATE TABLE IF NOT EXISTS Photos${hDId} ( id serial PRIMARY KEY,
         img MEDIUMTEXT NULL)`)
 
-      await client.query(`CREATE TABLE IF NOT EXISTS ${`Rooms${hDId}`}
+      await client.query(`CREATE TABLE IF NOT EXISTS Rooms${hDId}
         ( id serial PRIMARY KEY, name text, onHold text NULL, createdOn text, deletedAsOf text NULL,
           perks text, updatedAsOf text, updatedBy text, books LONGTEXT, field1 text NULL, field2 text NULL,
           floor text, roomTypeId text)`)

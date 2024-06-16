@@ -2,19 +2,19 @@
   "compilerOptions": {
     "esModuleInterop": true,
   //   "skipLibCheck": true,
-  //   "target": "es2022",
+   //  "target": "es2022",
   //   "verbatimModuleSyntax": true,
   //   "allowJs": true,
-  //   "resolveJsonModule": true,
+   //  "resolveJsonModule": false,
   //   "moduleDetection": "force",
   //   "strict": true,
   //   "noUncheckedIndexedAccess": true,
-  //   "moduleResolution": "Bundler",
-  //   "module": "ESNext",
+   //  "moduleResolution": "node",
+    // "module": "esnext",
   //   "noEmit": true,
   //   "lib": ["DOM"],
   //   "noImplicitAny": false
   },
   "include": [".eslintrc.js", "babel.config.js", "webpack.config.js", "*.ts", "routes/*.ts"
-    , "routes/globals/*.ts", "routes/globals/cO/*.ts"]
+    , "routes/globals/*.ts", "routes/globals/cO/*.ts", "routes/cronJobs/*.ts"]
 }
