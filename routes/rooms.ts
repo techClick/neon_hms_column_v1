@@ -318,10 +318,10 @@ router.patch('/editbookaccess', verify, async (req, res) => {
       [JSON.stringify(newBooks), updatedAsOf, roomId])
 
     if (hasKeyAccess) {
-      addLog(hId, 'Key card access', `&V&${roomName}&V& key card access &granted& to &${name}&
+      addLog(hId, 'Key card access', `&V&${roomName}&V& &key card& access &granted& to &${name}&
         by |${decodedToken?.username}|`, new Date(updatedAsOf), 'N/A')
     } else {
-      addLog(hId, 'Key card access', `&V&${roomName}&V& key card access set to ^not^ granted
+      addLog(hId, 'Key card access', `&V&${roomName}&V& &key card& access set to ^not^ granted
         by |${decodedToken?.username}|`, new Date(updatedAsOf), 'N/A')
     }
 

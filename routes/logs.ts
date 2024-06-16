@@ -50,7 +50,11 @@ router.get('/getlogs', verify, async (req, res) => {
 
     const rows = await client.query(`SELECT * from ${`Logs${id}`}`)
 
-    res.status(200).json((networkResponse('success', rows.filter((r) => !r.isDelete))))
+    const onYearAgo = new Date()
+    onYearAgo.setFullYear(new Date().getFullYear() - 1)
+    const logs = rows.filter((row) => !row.isDelete && +new Date(row.date) > +onYearAgo)
+
+    res.status(200).json((networkResponse('success', logs)))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }
