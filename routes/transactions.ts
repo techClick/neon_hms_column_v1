@@ -1,4 +1,4 @@
-import { convertDate } from './globals/dates'
+import { convertDate, convertDate2, convertTime2 } from './globals/dates'
 import { verifiedPayment } from './globals/flutterwave'
 import { networkResponse } from './globals/networkResponse'
 import express from 'express'
@@ -102,13 +102,33 @@ router.post('/verifypayment', async (req, res) => {
   }
 })
 
+const keyCardMailOptions = (hotelName: string, hId: string | number): any => {
+  return {
+    from: 3,
+    to: 'ceo@lodgefirst.com',
+    subject: `Key Card request for ${hotelName} ${convertDate2(new Date())} ${convertTime2(new Date())}`,
+    html: `Work calls,
+      <br />
+      <br />
+      ID: ${hId}
+      Name: ${hotelName}
+      `
+  }
+}
+
 router.patch('/extendsubscription', async (req, res) => {
   try {
     const hDId = Number(req.get('hDId'))
-    const { expires, channelExpiry, billingDate } = req.body
+    const hDName = req.get('hDName')
+    const { expires, channelExpiry, billingDate, keyCardExpiry } = req.body
 
-    await neonClient.query('UPDATE Hotels SET expires = ?, channelExpiry = ?, billingDate = ? where id = ?',
-      [expires, channelExpiry, billingDate, hDId])
+    if (keyCardExpiry) {
+      await sendMail(hDName, keyCardMailOptions(hDName, hDId))
+      await neonClient.query('UPDATE Hotels SET keyCardExpiry = ? where id = ?', [keyCardExpiry, hDId])
+    } else {
+      await neonClient.query('UPDATE Hotels SET expires = ?, channelExpiry = ?, billingDate = ? where id = ?',
+        [expires, channelExpiry, billingDate, hDId])
+    }
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {

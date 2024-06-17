@@ -30,7 +30,8 @@ const origMailOptions = {
 const froms = (hotelName: string) => [
   `"${hotelName} - LodgeFirst" ${process.env.EMAIL_SENDER}`,
   `"${hotelName} - Reservations" ${process.env.EMAIL_SENDER}`,
-  `"${hotelName} - Reports" ${process.env.EMAIL_SENDER}`
+  `"${hotelName} - Reports" ${process.env.EMAIL_SENDER}`,
+  `"LodgeFirst - ${hotelName}" ${process.env.EMAIL_SENDER}`
 ]
 export const sendMail = async (hotelName: string, options?: typeof origMailOptions): Promise<any> => {
   if (options) options = { ...options, from: froms(hotelName)[options.from || 0] }
