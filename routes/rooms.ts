@@ -572,6 +572,8 @@ router.patch('/deletebooking', verify, async (req, res) => {
       }
     }
 
+    (await checkInAndOutOps).checkInAndOut(hDId.toString())
+
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
     console.log(error)
@@ -592,6 +594,8 @@ router.delete('/deleterooms', verify, async (req, res) => {
 
       addLog(hId, 'Room deleted', `&V&${rows[0].name}&V& ^deleted^ by |${decodedToken?.username}|`, new Date(), 'N/A')
     }
+
+    (await checkInAndOutOps).checkInAndOut(hId.toString())
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
