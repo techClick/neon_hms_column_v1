@@ -107,10 +107,11 @@ const keyCardMailOptions = (hotelName: string, hId: string | number): any => {
     from: 3,
     to: 'ceo@lodgefirst.com',
     subject: `Key Card request for ${hotelName} ${convertDate2(new Date())} ${convertTime2(new Date())}`,
-    html: `Work calls,
+    html: `Key card needed,
       <br />
       <br />
       ID: ${hId}
+      <br />
       Name: ${hotelName}
       `
   }
