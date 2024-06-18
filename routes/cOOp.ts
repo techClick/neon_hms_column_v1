@@ -6,6 +6,7 @@ import { client, neonClient } from './globals/connection'
 import { addLog } from './logs'
 import { getIO } from './globals/socket'
 import { addPropertyCO } from './globals/cO/addProperty'
+import { checkInAndOutOps } from '..'
 
 const router = express.Router()
 
@@ -607,6 +608,8 @@ const handleBooking = async (hId: string, bookingData, revisionId?) => {
   } else {
     bookResult = await cancelBooking(hId, bookingData)
   }
+
+  (await checkInAndOutOps).checkInAndOut(hId)
 
   if (bookResult[0] === 'pass' && revisionId) {
     const ackResult = await ackBooking(hId, revisionId)

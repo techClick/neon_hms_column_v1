@@ -21,22 +21,22 @@ export const checkInAndOutOp = async () => {
         const book: BookingDetails = books[i]
 
         // Check ins
-        let logRows = await client.query(`SELECT * FROM Logs${hId} where type = ? AND date = ? AND message like ?`,
-          ['Check in', book.startDate, `%${book.id.replace(/(?:-|_|:)+/g, '')}%`])
+        let logRows = await client.query(`SELECT * FROM Logs${hId} where type = ? AND message like ?`,
+          ['Check in', `%${book.id.replace(/(?:-|_|:)+/g, '')}%`])
         if (!logRows.length) {
           const diff = +new Date(book.startDate) - +new Date()
 
           timers[+hId].push(
             setTimeout(async () => {
               await addLog(+hId, 'Check in', `&V&${roomName}&V& Check &in& time for &${book.name}&&-&${
-                book.id.replace(/(?:-|_|:)+/g, '')}&-&`, new Date(book.startDate), 'N/A')
+                book.id.replace(/(?:-|_|:)+/g, '')}&-&`, new Date(), 'N/A')
             }, diff <= 5 ? 5 : diff)
           )
         }
 
         // Check outs
-        logRows = await client.query(`SELECT * FROM Logs${hId} where type = ? AND date = ? AND message like ?`,
-          ['Check out', book.endDate, `%${book.id.replace(/(?:-|_|:)+/g, '')}%`])
+        logRows = await client.query(`SELECT * FROM Logs${hId} where type = ? AND message like ?`,
+          ['Check out', `%${book.id.replace(/(?:-|_|:)+/g, '')}%`])
         if (!logRows.length) {
           const diff = +new Date(book.endDate) - +new Date()
 

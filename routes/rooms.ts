@@ -475,7 +475,7 @@ router.patch('/book', safeVerify, async (req, res) => {
 
     for (let i = 0; i < bookingDetails.length; i += 1) {
       const {
-        name, number, roomId, bookDate, token, rate, startDate, endDate, days, email, transfer
+        name, number, roomId, bookDate, token, rate, startDate, endDate, days: days0, email, transfer
       } = bookingDetails[i]
 
       const rows = await client.query(`SELECT books, name FROM Rooms${hDId} where id = ?`, [roomId])
@@ -494,7 +494,7 @@ router.patch('/book', safeVerify, async (req, res) => {
       if (email) {
         const bookEmailDetails: BookEmailDetails = {
           name,
-          days,
+          days: days0,
           checkIn: convertDate(new Date(startDate)),
           checkInTime: convertTime2(new Date(startDate)),
           checkOut: convertDate(new Date(endDate)),
@@ -512,6 +512,8 @@ router.patch('/book', safeVerify, async (req, res) => {
           bookMailOptions(hotelName, email, name.split(' ')[0], bookEmailDetails)
         )
       }
+
+      const days = +days0
 
       if (transfer) {
         if (+new Date(startDate) <= +new Date()) {
