@@ -71,7 +71,7 @@ export const addStaffTmp = async (req, id, hotelName) => {
       finalRes = await sendMail(hotelName, registerMailOptions(hotelName, id, path || '', registerKey, email))
     }
 
-    addLog(id, 'Staff added', `|${username}| &(${roles[Number(permission)]})& added by |${
+    await addLog(id, 'Staff added', `|${username}| &(${roles[Number(permission)]})& added by |${
         decodedToken?.username ?? 'Tech CTO'}|`, new Date(), 'N/A')
 
     if (finalRes && !finalRes.accepted) {

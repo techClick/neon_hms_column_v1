@@ -26,7 +26,7 @@ router.post('/auth', async (req, res) => {
       return res.status(403).json((networkResponse('error', 'Wrong password or email')))
     }
 
-    addLog(rows[0].hotelId, 'Staff logged in', `|${rows[0].username}| &(${roles[Number(rows[0].permission)]})& logged in`
+    await addLog(rows[0].hotelId, 'Staff logged in', `|${rows[0].username}| &(${roles[Number(rows[0].permission)]})& logged in`
       , new Date(), 'N/A')
 
     const token = jwt.sign({ username: rows[0].username }, process.env.SECRET_TOKEN_KEY, { expiresIn: tokenExpTime })

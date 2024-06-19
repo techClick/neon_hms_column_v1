@@ -45,7 +45,7 @@ router.post('/addroom', verify, async (req, res) => {
     const roomTypes = JSON.parse(rows1[0].roomTypes)
     const roomTypeName = roomTypes.find((t) => t.id === roomTypeId).name
 
-    addLog(id, 'Room added', `&V&${name}&V& added as a &${roomTypeName}& room by |${username}|`, date, 'N/A')
+    await addLog(id, 'Room added', `&V&${name}&V& added as a &${roomTypeName}& room by |${username}|`, date, 'N/A')
 
     const addedRoom = {
       id: rows2[0].id,
@@ -118,7 +118,7 @@ router.patch('/editroom', verify, async (req, res) => {
     ].join('') || 'room type/rate-plan changed'
 
     if (edits) {
-      addLog(hDId, 'Room change', `&V&${name}&V& details &changed& by |${username}|. Changes are: ${edits}`, date, 'N/A')
+      await addLog(hDId, 'Room change', `&V&${name}&V& details &changed& by |${username}|. Changes are: ${edits}`, date, 'N/A')
     }
 
     const responseData = {
@@ -319,10 +319,10 @@ router.patch('/editbookaccess', verify, async (req, res) => {
       [JSON.stringify(newBooks), updatedAsOf, roomId])
 
     if (hasKeyAccess) {
-      addLog(hId, 'Key card access', `&V&${roomName}&V& &key card& access &granted& to &${name}&
+      await addLog(hId, 'Key card access', `&V&${roomName}&V& &key card& access &granted& to &${name}&
         by |${decodedToken?.username}|`, new Date(updatedAsOf), 'N/A')
     } else {
-      addLog(hId, 'Key card access', `&V&${roomName}&V& &key card& access set to ^not^ granted
+      await addLog(hId, 'Key card access', `&V&${roomName}&V& &key card& access set to ^not^ granted
         by |${decodedToken?.username}|`, new Date(updatedAsOf), 'N/A')
     }
 
@@ -408,7 +408,7 @@ router.patch('/editbooking', verify, async (req, res) => {
 
         if (!days && !hrs && !mins) mins = (date).getTime() > (new Date(oldFreeBy)).getTime() ? 1 : -1
 
-        addLog(hDId, 'Reservation cancelled', `&V&${roomName}&V& reservation of${days ? ` &${days} night${
+        await addLog(hDId, 'Reservation cancelled', `&V&${roomName}&V& reservation of${days ? ` &${days} night${
           days === 1 ? '' : 's'}&` : `${hrs ? ` ${hrs} hr${hrs === 1 ? '' : 's'}` : ''}${
           mins ? ` ${mins} min${mins === 1 ? '' : 's'}` : ''}`} ^cancelled^ by |${username}|`, date1
         , (-1 * (refundAmount || 0)).toString())
@@ -419,7 +419,7 @@ router.patch('/editbooking', verify, async (req, res) => {
         const mins = Math.trunc((time - (days * (1000 * 60 * 60 * 24)) - (hrs * (1000 * 60 * 60))) /
           (1000 * 60))
 
-        addLog(hDId, 'Reservation change', `&V&${roomName}&V& reservation time ${days < 0 || hrs < 0 || mins < 0
+        await addLog(hDId, 'Reservation change', `&V&${roomName}&V& reservation time ${days < 0 || hrs < 0 || mins < 0
           ? `^reduced^ by${days < 0 ? ` &${days * -1} day${days === -1 ? '' : 's'}&` : ''}${hrs < 0 ? ` ${
           hrs * -1} hr${hrs === -1 ? '' : 's'}` : ''}${mins < 0 ? ` ${mins * -1} min${mins === -1 ? '' : 's'}`
           : ''}` : `&extended& by${days > 0 ? ` &${days} day${days === 1 ? '' : 's'}&` : ''}${hrs > 0 ? ` ${
@@ -517,20 +517,20 @@ router.patch('/book', safeVerify, async (req, res) => {
 
       if (transfer) {
         if (+new Date(startDate) <= +new Date()) {
-          addLog(hDId, 'Reservation change', `&V&${transfer.fromName}&V& reservation of &${days} night${
+          await addLog(hDId, 'Reservation change', `&V&${transfer.fromName}&V& reservation of &${days} night${
             days === 1 ? '' : 's'} transferred& to &V&${transfer.toName}&V& by |${username}|`,
           new Date(bookDate), transfer.cost.toString())
         } else {
-          addLog(hDId, 'Reservation change', `&V&${transfer.fromName}&V& &advance& reservation of &${days} night${
+          await addLog(hDId, 'Reservation change', `&V&${transfer.fromName}&V& &advance& reservation of &${days} night${
             days === 1 ? '' : 's'} transferred& to &V&${transfer.toName}&V& by |${username}|`,
           new Date(bookDate), transfer.cost.toString())
         }
       } else if (+new Date(startDate) <= +new Date()) {
-        addLog(hDId, 'Desk reservation', `&V&${rows[0].name}&V& reserved for &${days} night${days === 1 ? '' : 's'}& by |${
+        await addLog(hDId, 'Desk reservation', `&V&${rows[0].name}&V& reserved for &${days} night${days === 1 ? '' : 's'}& by |${
           username}| for &${name}& ${email ? `on &${email}&` : ''} ${(email && number) ? ` and &${
           number}&` : number ? `on &${number}&` : ''}`, new Date(bookDate), Number(rate).toString())
       } else {
-        addLog(hDId, 'Desk reservation', `&V&${rows[0].name}&V& reserved in &advance& for &${days}
+        await addLog(hDId, 'Desk reservation', `&V&${rows[0].name}&V& reserved in &advance& for &${days}
           night${days === 1 ? '' : 's'}& by |${username}| for &${name}& ${email ? `on
           &${email}&` : ''} ${(email && number) ? ` and &${number}&` : number ? `on &${number}&` : ''}`,
         new Date(bookDate), Number(rate).toString())
@@ -564,11 +564,11 @@ router.patch('/deletebooking', verify, async (req, res) => {
 
     if (!skipLog) {
       if (+new Date(startDate) <= +new Date()) {
-        addLog(hDId, 'Reservation cancelled', `&V&${roomName}&V& reservation of &${deleteBooking.days} night${
+        await addLog(hDId, 'Reservation cancelled', `&V&${roomName}&V& reservation of &${deleteBooking.days} night${
           deleteBooking.days === 1 ? '' : 's'}& for &${deleteBooking.name}& ^cancelled^ by |${username}|`, new Date(updatedAsOf)
         , (-1 * Number(rate)).toString())
       } else {
-        addLog(hDId, 'Reservation cancelled', `&V&${roomName}&V& &advance& reservation of &${deleteBooking.days} night${
+        await addLog(hDId, 'Reservation cancelled', `&V&${roomName}&V& &advance& reservation of &${deleteBooking.days} night${
           deleteBooking.days === 1 ? '' : 's'}& for &${deleteBooking.name}& ^cancelled^ by |${username}|`, new Date(updatedAsOf)
         , (-1 * Number(rate)).toString())
       }
@@ -594,7 +594,7 @@ router.delete('/deleterooms', verify, async (req, res) => {
       const rows = await client.query(`SELECT name FROM Rooms${hId} where id = ?`, [id])
       await client.query(`DELETE FROM Rooms${hId} where id = ?`, [id])
 
-      addLog(hId, 'Room deleted', `&V&${rows[0].name}&V& ^deleted^ by |${decodedToken?.username}|`, new Date(), 'N/A')
+      await addLog(hId, 'Room deleted', `&V&${rows[0].name}&V& ^deleted^ by |${decodedToken?.username}|`, new Date(), 'N/A')
     }
 
     (await checkInAndOutOps).checkInAndOut(hId.toString())

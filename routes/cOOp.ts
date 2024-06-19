@@ -366,7 +366,7 @@ const cancelBooking = async (hId: string, booking: any) => {
 
       const days = Number(book.days)
       const rate = +new Date(checkInDate) > +new Date() ? ((-1 * Number(book.rate)) || 0).toString() : '0'
-      addLog(Number(hId), 'Reservation cancelled', `&V&${rows2[0]?.name}&V& reservation of &${days} night${
+      await addLog(Number(hId), 'Reservation cancelled', `&V&${rows2[0]?.name}&V& reservation of &${days} night${
         days === 1 ? '' : 's'}& ^cancelled^ by online booker on &C&${otaName}&C&`, date, rate)
     }
 
@@ -461,7 +461,7 @@ const modifyBooking = async (hId: string, booking: any) => {
 
       const days = days0 - Number(book.days)
       const rate = Number(amount) - Number(book.rate)
-      addLog(Number(hId), 'Reservation change', `&V&${rows2[0]?.name}&V& reservation time ${days < 0
+      await addLog(Number(hId), 'Reservation change', `&V&${rows2[0]?.name}&V& reservation time ${days < 0
         ? `^reduced^ by &${days * -1} day${days === -1 ? '' : 's'}&` : `&extended& by &${days} day${
         days === 1 ? '' : 's'}& by online booker on &C&${otaName}&C&`}`, date, Number(rate).toString())
     }
@@ -570,7 +570,7 @@ const newBooking = async (hId: string, booking: any) => {
       await client.query(`UPDATE ${`Rooms${hId}`} SET books = ?, updatedAsOf = ? where id = ?`, [
         thisBooks[i], date.toISOString(), selectedRoom])
 
-      addLog(Number(hId), 'Online reservation', `&V&${rows1[selectedInd].name}&V& reserved for &${days}
+      await addLog(Number(hId), 'Online reservation', `&V&${rows1[selectedInd].name}&V& reserved for &${days}
         night${Number(days) === 1 ? '' : 's'}& online by &${name} ${surname}&${email
           ? ` on &${email}&` : ''} ${(email && number) ? ` and &${number}&` : number ? ` on &${number}&`
           : ''}. Registered by &C&${otaName}&C&`,

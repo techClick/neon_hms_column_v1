@@ -35,7 +35,7 @@ router.patch('/savecurrency', verify, async (req, res) => {
 
     await neonClient.query('UPDATE Hotels SET currency = ? where id = ?', [newCurrency, id])
 
-    addLog(id, 'Settings change', `Currency changed from &${currency}& to &${newCurrency}& by |${
+    await addLog(id, 'Settings change', `Currency changed from &${currency}& to &${newCurrency}& by |${
       decodedToken.username}|`, new Date(), 'N/A')
 
     res.status(200).json((networkResponse('success', true)))
@@ -58,7 +58,7 @@ router.patch('/addgroup', verify, async (req, res) => {
 
     await client.query(`UPDATE ${`HotelInfo${hDId}`} SET roomGroups = ?`, [JSON.stringify(groups)])
 
-    addLog(hDId, 'Settings change', `&${addGroup} Group& added by |${
+    await addLog(hDId, 'Settings change', `&${addGroup} Group& added by |${
       decodedToken.username}|`, new Date(), 'N/A')
 
     res.status(200).json((networkResponse('success', true)))
@@ -79,13 +79,13 @@ router.patch('/updateroomtypes', verify, async (req, res) => {
 
     if (roomType) {
       if (isUpdate) {
-        addLog(hDId, 'Settings change', `&${roomType.name} Room Type& updated by |${
+        await addLog(hDId, 'Settings change', `&${roomType.name} Room Type& updated by |${
           decodedToken.username}|`, new Date(), 'N/A')
       } else if (isDelete) {
-        addLog(hDId, 'Settings change', `&${roomType.name} Room Type& updated by |${
+        await addLog(hDId, 'Settings change', `&${roomType.name} Room Type& updated by |${
           decodedToken.username}|`, new Date(), 'N/A')
       } else {
-        addLog(hDId, 'Settings change', `&${roomType.name} Room Type& added by |${
+        await addLog(hDId, 'Settings change', `&${roomType.name} Room Type& added by |${
           decodedToken.username}|`, new Date(), 'N/A')
       }
     }
@@ -109,14 +109,14 @@ router.patch('/updaterates', verify, async (req, res) => {
 
     if (rate) {
       if (isUpdate) {
-        addLog(hDId, 'Rate Plan change', `&${rate.name} Rate Plan& updated by |${
+        await addLog(hDId, 'Rate Plan change', `&${rate.name} Rate Plan& updated by |${
           decodedToken.username}|`, new Date(), 'N/A')
       } else if (isDelete) {
-        addLog(hDId, 'Rate Plan change', `&${rate.name} Rate Plan& of base rate
+        await addLog(hDId, 'Rate Plan change', `&${rate.name} Rate Plan& of base rate
           &${currency}${Number(rate.baseRate).toLocaleString()}&
           ^deleted^ by |${decodedToken.username}|`, new Date(), 'N/A')
       } else {
-        addLog(hDId, 'Rate Plan change', `&${rate.name} Rate Plan& with base rate
+        await addLog(hDId, 'Rate Plan change', `&${rate.name} Rate Plan& with base rate
           &${currency}${Number(rate.baseRate).toLocaleString()}& added by |${
           decodedToken.username}|`, new Date(), 'N/A')
       }
@@ -146,10 +146,10 @@ router.post('/addphotos', verify, async (req, res) => {
     }
 
     if (roomTypeName) {
-      addLog(hDId, 'Settings change', `&${roomTypeName}& room type &photos& updated by |${
+      await addLog(hDId, 'Settings change', `&${roomTypeName}& room type &photos& updated by |${
         decodedToken.username}|`, new Date(), 'N/A')
     } else {
-      addLog(hDId, 'Settings change', `&Photos& for new room added by |${
+      await addLog(hDId, 'Settings change', `&Photos& for new room added by |${
         decodedToken.username}|`, new Date(), 'N/A')
     }
 
@@ -172,7 +172,7 @@ router.delete('/deletephoto', verify, async (req, res) => {
         [id])
     }
 
-    addLog(hDId, 'Settings change', `&${roomTypeName}& room type &photos& ^deleted^ by |${
+    await addLog(hDId, 'Settings change', `&${roomTypeName}& room type &photos& ^deleted^ by |${
       decodedToken.username}|`, new Date(), 'N/A')
 
     res.status(200).json((networkResponse('success', true)))
@@ -192,7 +192,7 @@ router.post('/updateservices', verify, async (req, res) => {
 
     await client.query(`UPDATE Rooms${hDId} SET updatedAsOf = ? where id = ?`, [updatedAsOf, roomId])
 
-    addLog(hDId, 'Meal delivered', logMessage, new Date(updatedAsOf), 'N/A')
+    await addLog(hDId, 'Meal delivered', logMessage, new Date(updatedAsOf), 'N/A')
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {

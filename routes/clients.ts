@@ -39,7 +39,7 @@ router.patch('/editstaff', verify, async (req, res) => {
     const edits = `${!isOldUserName ? `Username changed from &${rows[0].username}&
       to &${username}&. ` : ''}${!isOldUserType ? `User role changed from &${roles[Number(rows[0].permission)]}&
       to &${roles[Number(permission)]}&.` : ''}`
-    addLog(id, 'Staff change', `|${username}| &(${roles[Number(permission)]})& details changed by |${
+    await addLog(id, 'Staff change', `|${username}| &(${roles[Number(permission)]})& details changed by |${
       decodedToken.username}|_%_Changes: ${edits}`, new Date(), 'N/A')
 
     res.status(200).json((networkResponse('success', true)))
@@ -59,7 +59,7 @@ router.delete('/deletestaff', verify, async (req, res) => {
       and hotelId = ?`, [email, id])
     await neonClient.query('DELETE FROM Staff WHERE email = ? and hotelId = ?', [email, id])
 
-    addLog(id, 'Staff removed', `&${rows[0].username} (${roles[Number(rows[0].permission)]})&'s access ^revoked^ by |${
+    await addLog(id, 'Staff removed', `&${rows[0].username} (${roles[Number(rows[0].permission)]})&'s access ^revoked^ by |${
       decodedToken.username}|`, new Date(), 'N/A')
 
     res.status(200).json((networkResponse('success', true)))
