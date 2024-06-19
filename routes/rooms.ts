@@ -565,11 +565,11 @@ router.patch('/deletebooking', verify, async (req, res) => {
     if (!skipLog) {
       if (+new Date(startDate) <= +new Date()) {
         await addLog(hDId, 'Reservation cancelled', `&V&${roomName}&V& reservation of &${deleteBooking.days} night${
-          deleteBooking.days === 1 ? '' : 's'}& for &${deleteBooking.name}& ^cancelled^ by |${username}|`, new Date(updatedAsOf)
+          deleteBooking.days === '1' ? '' : 's'}& for &${deleteBooking.name}& ^cancelled^ by |${username}|`, new Date(updatedAsOf)
         , (-1 * Number(rate)).toString())
       } else {
         await addLog(hDId, 'Reservation cancelled', `&V&${roomName}&V& &advance& reservation of &${deleteBooking.days} night${
-          deleteBooking.days === 1 ? '' : 's'}& for &${deleteBooking.name}& ^cancelled^ by |${username}|`, new Date(updatedAsOf)
+          deleteBooking.days === '1' ? '' : 's'}& for &${deleteBooking.name}& ^cancelled^ by |${username}|`, new Date(updatedAsOf)
         , (-1 * Number(rate)).toString())
       }
     }
