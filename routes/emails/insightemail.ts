@@ -1,7 +1,7 @@
 import express from 'express'
-import { networkResponse } from './globals/networkResponse'
-import { sendMail } from './globals/email'
-import { convertDate2, convertTime2 } from './globals/dates'
+import { networkResponse } from '../globals/networkResponse'
+import { sendMail } from '../emails/email'
+import { convertDate2, convertTime2 } from '../globals/dates'
 const router = express.Router()
 
 router.post('/insightemail', async (req, res) => {

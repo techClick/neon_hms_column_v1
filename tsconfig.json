@@ -16,5 +16,5 @@
   //   "noImplicitAny": false
   },
   "include": [".eslintrc.js", "babel.config.js", "webpack.config.js", "*.ts", "routes/*.ts"
-    , "routes/globals/*.ts", "routes/globals/cO/*.ts", "routes/cronJobs/*.ts"]
+    , "routes/globals/*.ts", "routes/globals/cO/*.ts", "routes/cronJobs/*.ts", "routes/emails/email.ts", "routes/emails/sendemail.ts"]
 }

@@ -3,7 +3,7 @@ import { verifiedPayment } from './globals/flutterwave'
 import { networkResponse } from './globals/networkResponse'
 import express from 'express'
 import { neonClient } from './globals/connection'
-import { sendMail } from './globals/email'
+import { sendMail } from './emails/email'
 const router = express.Router()
 
 process.env.TZ = 'Africa/Lagos'

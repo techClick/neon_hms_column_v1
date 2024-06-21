@@ -1,4 +1,4 @@
-import { sendMail } from './globals/email'
+import { sendMail } from './emails/email'
 import { networkResponse } from './globals/networkResponse'
 import express from 'express'
 import cors from 'cors'

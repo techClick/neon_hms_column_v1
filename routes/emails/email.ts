@@ -13,6 +13,16 @@ const transporter = nodemailer.createTransport({
   }
 })
 
+const transporter1 = nodemailer.createTransport({
+  host: 'depro1.fcomet.com',
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.EMAIL_SENDER1,
+    pass: process.env.EMAIL_SECRET_PASSWORD1
+  }
+})
+
 const origMailOptions = {
   from: `"Neon HotelManager" ${process.env.EMAIL_SENDER}` || 1,
   to: 'ikechianya1@gmail.com',
@@ -33,6 +43,7 @@ const froms = (hotelName: string) => [
   `"${hotelName} - Reports" ${process.env.EMAIL_SENDER}`,
   `"LodgeFirst - ${hotelName}" ${process.env.EMAIL_SENDER}`
 ]
+
 export const sendMail = async (hotelName: string, options?: typeof origMailOptions): Promise<any> => {
   if (options) options = { ...options, from: froms(hotelName)[options.from || 0] }
   const mailOptions = { ...origMailOptions, ...options }
@@ -42,5 +53,16 @@ export const sendMail = async (hotelName: string, options?: typeof origMailOptio
   } catch (err) {
     console.log('Mail error', err)
   }
+  return res
+}
+
+export const sendMail2 = async (mailOptions: typeof origMailOptions): Promise<any> => {
+  let res
+  try {
+    res = await transporter1.sendMail(mailOptions)
+  } catch (err) {
+    console.log('Mail error', err)
+  }
+  console.log(res)
   return res
 }

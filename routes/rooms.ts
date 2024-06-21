@@ -1,5 +1,5 @@
 import { convertDate, convertTime2 } from './globals/dates'
-import { sendMail } from './globals/email'
+import { sendMail } from './emails/email'
 import { networkResponse } from './globals/networkResponse'
 import express from 'express'
 import { safeVerify, verify } from './globals/verify'

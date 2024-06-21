@@ -3,7 +3,6 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import { clients } from './routes/clients'
 import { auth } from './routes/auth'
-import { qtAuth } from './routes/qtAuth'
 import { rooms } from './routes/rooms'
 import { settings } from './routes/settings'
 import { transactions } from './routes/transactions'
@@ -18,7 +17,7 @@ import { cronJobs } from './routes/cronJobs/cronJobs'
 import { allowCors, createDBs } from './routes/globals/globalWares'
 import { startSockets } from './routes/globals/socket'
 import { cert } from './routes/certification'
-import { insightEmail } from './routes/insightemail'
+import { insightEmail } from './routes/emails/insightemail'
 import { checkInAndOutOp } from './routes/cronJobs/checkInAndOut'
 
 const app = express()
@@ -45,7 +44,7 @@ app.options('*', cors(corsOptions))
 app.all('*', allowCors)
 app.all('*', createDBs);
 
-[clients, auth, qtAuth, rooms, settings, transactions, webhook, logs, master, cOOp, insights, photo, cert,
+[clients, auth, rooms, settings, transactions, webhook, logs, master, cOOp, insights, photo, cert,
   insightEmail].map((endPoint) => app.use('/', endPoint))
 
 const server = http.createServer(app)

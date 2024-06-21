@@ -28,7 +28,6 @@ const conn1 = mysql.createPool({
 
 const query2 = util.promisify(conn1.query).bind(conn1)
 
-// const clientTmp = [{}, ...query].map((q) => { return { query: q } })
 const client = { query: query[0] }
 const neonClient = { query: query2 }
 export { client, neonClient }

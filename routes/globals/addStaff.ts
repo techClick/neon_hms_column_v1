@@ -1,7 +1,7 @@
 import { neonClient } from './connection'
 import bcrypt from 'bcryptjs'
 import { networkResponse } from './networkResponse'
-import { sendMail } from './email'
+import { sendMail } from '../emails/email'
 import { addLog } from '../logs'
 import { roles } from '../auth'
 

@@ -3,7 +3,7 @@ import { networkResponse } from './globals/networkResponse'
 import { verify } from './globals/verify'
 import PdfDoc from 'pdfkit'
 import fs from 'fs'
-import { sendMail } from './globals/email'
+import { sendMail } from './emails/email'
 import { convertDate2 } from './globals/dates'
 const router = express.Router()
 
