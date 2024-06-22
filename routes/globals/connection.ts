@@ -3,7 +3,7 @@ import util from 'util'
 import dotenv from 'dotenv'
 
 dotenv.config()
-dotenv.config({ path: '.env.local', override: true })
+
 const query = []
 
 for (let i = 1; i < 2; i += 1) {

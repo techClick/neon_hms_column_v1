@@ -56,7 +56,7 @@ router.get('/:campaign/:customer/:type/crm', async (req, res) => {
       demo: 'https://youtu.be/xyFjCx8iRQY',
       pricing: 'https://lodgefirst.com/pricing',
       unSubscribe: 'https://lodgefirst.com/unsubscribe',
-      view: `${'https://spine133.lodgefirst.com'}/xyder/empty.png`
+      view: 'https://lodgefirst.com/xyder/empty.png'
     }
 
     const Location = Locations[type] || Locations.start
