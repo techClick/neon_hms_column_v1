@@ -19,6 +19,7 @@ import { startSockets } from './routes/globals/socket'
 import { cert } from './routes/certification'
 import { insightEmail } from './routes/emails/insightemail'
 import { checkInAndOutOp } from './routes/cronJobs/checkInAndOut'
+import { crm } from './routes/crm'
 
 const app = express()
 app.use(express.json({ limit: '30mb' }))
@@ -45,7 +46,7 @@ app.all('*', allowCors)
 app.all('*', createDBs);
 
 [clients, auth, rooms, settings, transactions, webhook, logs, master, cOOp, insights, photo, cert,
-  insightEmail].map((endPoint) => app.use('/', endPoint))
+  insightEmail, crm].map((endPoint) => app.use('/', endPoint))
 
 const server = http.createServer(app)
 
