@@ -4,7 +4,14 @@ import { networkResponse } from './networkResponse'
 
 export const allowCors = (req, res, next) => {
   res.setHeader('Access-Control-Allow-Credentials', true)
-  res.setHeader('Access-Control-Allow-Origin', process.env.CLIENT_URL)
+
+  const origins = ['https://mobile.lodgefirst.com']
+
+  if (origins.includes(req.header('origin').toLowerCase())) {
+    res.setHeader('Access-Control-Allow-Origin', req.header('origin'))
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', process.env.CLIENT_URL)
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT')
   res.setHeader(
     'Access-Control-Allow-Headers',

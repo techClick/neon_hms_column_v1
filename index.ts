@@ -33,6 +33,8 @@ const corsOptions = {
     process.env.CLIENT_URL,
     'https://www.lodgefirst.com',
     'https://lodgefirst.com',
+    'https://www.mobile.lodgefirst.com',
+    'https://mobile.lodgefirst.com',
     'https://www.lodgerbee.com',
     'https://lodgerbee.com',
     process.env.ENVIRONMENT === 'development' ? process.env.MOBILE_URL : ''
