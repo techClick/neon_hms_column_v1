@@ -35,8 +35,6 @@ const corsOptions = {
     'https://lodgefirst.com',
     'https://www.mobile.lodgefirst.com',
     'https://mobile.lodgefirst.com',
-    'https://www.lodgerbee.com',
-    'https://lodgerbee.com',
     process.env.ENVIRONMENT === 'development' ? process.env.MOBILE_URL : ''
   ],
   methods: 'GET,PUT,POST,PATCH,DELETE'
