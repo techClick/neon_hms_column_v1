@@ -10,7 +10,7 @@ router.get('/info', async (req, res) => {
     const id = Number(req.get('hDId'))
 
     const rows = await client.query(`SELECT roomGroups, roomTypes, rates, services from ${`HotelInfo${id}`}`)
-    const users = await neonClient.query('SELECT username, email, permission from Staff where hotelId = ?',
+    const users = await neonClient.query('SELECT username, email, permission, notifications from Staff where hotelId = ?',
       [id])
 
     const groups = JSON.parse(rows[0]?.roomGroups || '[]')

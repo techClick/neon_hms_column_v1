@@ -348,7 +348,8 @@ const runCronJobs = async () => {
 
   const now = new Date()
   const thisMidnight = new Date(now)
-  thisMidnight.setHours(23, 59, 59, 999)
+  thisMidnight.setDate(thisMidnight.getDate() + 1)
+  thisMidnight.setHours(3, 0, 0, 0)
 
   const timeTillMidnight = +thisMidnight - +now
 

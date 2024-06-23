@@ -41,4 +41,5 @@ const query2 = util.promisify(conn1.query).bind(conn1)
 const client = { query: query[0] }
 const neonClient = { query: query2 }
 const crmClient = { query: query3 }
+
 export { client, neonClient, crmClient }

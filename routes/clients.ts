@@ -25,22 +25,28 @@ router.post('/addstaff', safeVerify, async (req, res) => {
 router.patch('/editstaff', verify, async (req, res) => {
   try {
     const requestBody = req.body
-    const { email, permission, username, decodedToken } = requestBody
+    const { email, permission, username, notifications, decodedToken } = requestBody
 
     const id = Number(req.get('hDId'))
 
-    const rows = await neonClient.query(`SELECT username, permission FROM Staff WHERE email = ?
-      and hotelId = ?`, [email, id])
-    await neonClient.query(`UPDATE Staff SET permission = ?, username = ? WHERE 
-      email = ? and hotelId = ?`, [Number(permission), username, email, id])
+    if (notifications) {
+      await neonClient.query('UPDATE Staff SET notifications = ? WHERE email = ? and hotelId = ?',
+        [JSON.stringify(notifications), email, id])
+    } else {
+      const rows = await neonClient.query(`SELECT username, permission FROM Staff WHERE username = ? email = ?
+        and hotelId = ?`, [email, id])
 
-    const isOldUserType = Number(permission) === Number(rows[0].permission)
-    const isOldUserName = username === rows[0].username
-    const edits = `${!isOldUserName ? `Username changed from &${rows[0].username}&
-      to &${username}&. ` : ''}${!isOldUserType ? `User role changed from &${roles[Number(rows[0].permission)]}&
-      to &${roles[Number(permission)]}&.` : ''}`
-    await addLog(id, 'Staff change', `|${username}| &(${roles[Number(permission)]})& details changed by |${
-      decodedToken.username}|_%_Changes: ${edits}`, new Date(), 'N/A')
+      await neonClient.query(`UPDATE Staff SET permission = ?, username = ? WHERE 
+        email = ? and hotelId = ?`, [Number(permission), username, email, id])
+
+      const isOldUserType = Number(permission) === Number(rows[0].permission)
+      const isOldUserName = username === rows[0].username
+      const edits = `${!isOldUserName ? `Username changed from &${rows[0].username}&
+        to &${username}&. ` : ''}${!isOldUserType ? `User role changed from &${roles[Number(rows[0].permission)]}&
+        to &${roles[Number(permission)]}&.` : ''}`
+      await addLog(id, 'Staff change', `|${username}| &(${roles[Number(permission)]})& details changed by |${
+        decodedToken.username}|_%_Changes: ${edits}`, new Date(), 'N/A')
+    }
 
     res.status(200).json((networkResponse('success', true)))
   } catch (error) {
