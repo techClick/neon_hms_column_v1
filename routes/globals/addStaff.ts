@@ -2,7 +2,7 @@ import { neonClient } from './connection'
 import bcrypt from 'bcryptjs'
 import { networkResponse } from './networkResponse'
 import { sendMail } from '../emails/email'
-import { addLog } from '../logs'
+import { LogType, addLog } from '../logs'
 import { roles } from '../auth'
 
 export const registerMailOptions = (
@@ -59,9 +59,12 @@ export const addStaffTmp = async (req, id, hotelName) => {
       return 1
     }
 
-    await neonClient.query(`INSERT INTO Staff (email, password, permission, username, hotelId)
-      VALUES (?, ?, ?, ?, ?)`,
-    [email.toLowerCase(), password, Number(permission), username, id])
+    const notifications: Array<LogType | 'Hospitality'> = ['Hospitality', 'Desk reservation',
+      'Online reservation', 'Reservation change', 'Reservation cancelled', 'Check in', 'Meal delivered']
+
+    await neonClient.query(`INSERT INTO Staff (email, password, permission, username, hotelId, notifications)
+      VALUES (?, ?, ?, ?, ?, ?)`,
+    [email.toLowerCase(), password, Number(permission), username, id, JSON.stringify(notifications)])
 
     let finalRes: any = null
     if (!password) {
