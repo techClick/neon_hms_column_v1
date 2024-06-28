@@ -11,6 +11,7 @@ const router = express.Router()
 const tokenExpTime = '10m'
 
 export const roles = ['Worker', 'Front desk', 'Front desk 2', 'Sub Manager', 'Manager', 'Owner', 'Tech team']
+
 router.post('/auth', async (req, res) => {
   try {
     const { email, password, hotelId: selectedHotelId } = req.body
@@ -31,7 +32,13 @@ router.post('/auth', async (req, res) => {
 
     const token = jwt.sign({ username: rows[0].username }, process.env.SECRET_TOKEN_KEY, { expiresIn: tokenExpTime })
     res.status(200).json((networkResponse('success',
-      { token, permission: rows[0].permission, username: rows[0].username, hotelId: rows[0].hotelId })))
+      {
+        token,
+        permission: rows[0].permission,
+        username: rows[0].username,
+        hotelId: rows[0].hotelId,
+        staffId: rows[0].id
+      })))
   } catch (error) {
     res.status(500).json((networkResponse('error', error)))
   }

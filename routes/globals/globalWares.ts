@@ -7,7 +7,7 @@ export const allowCors = (req, res, next) => {
 
   const origins = ['https://mobile.lodgefirst.com']
 
-  if (origins.includes(req.header('origin').toLowerCase())) {
+  if (origins.includes(req.header('origin')?.toLowerCase())) {
     res.setHeader('Access-Control-Allow-Origin', req.header('origin'))
   } else {
     res.setHeader('Access-Control-Allow-Origin', process.env.CLIENT_URL)
@@ -28,7 +28,7 @@ export const createDBs = async (req, res, next) => {
   try {
     await neonClient.query(`CREATE TABLE IF NOT EXISTS Staff
     ( id serial PRIMARY KEY, email text, password text, permission integer, forgotKey text NULL,
-      username text, hotelId text, notifications text NULL, field1 text NULL, field2 text NULL)`)
+      username text, hotelId text, notifications text NULL, pushToken text NULL)`)
 
     // await neonClient.query('DROP TABLE IF EXISTS HotelsTMP, Hotels')
     await neonClient.query(`CREATE TABLE IF NOT EXISTS HotelsTMP ( id serial PRIMARY KEY, nameSave text, email text,

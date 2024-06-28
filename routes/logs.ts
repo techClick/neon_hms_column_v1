@@ -3,6 +3,7 @@ import express from 'express'
 import { networkResponse } from './globals/networkResponse'
 import { verify } from './globals/verify'
 import { getSocketFunction } from './globals/socket'
+import { sendPushNotification } from './notifications'
 const router = express.Router()
 
 export type LogType = 'Desk reservation' | 'Reservation cancelled' | 'Room added' | 'Staff logged in' |
@@ -24,6 +25,8 @@ export const addLog = async (
     const roomId = `room${id}`
     socketEmitFunc?.addedLog?.({ roomId, log: rows[0] })
 
+    sendPushNotification(id.toString(), { type })
+
     return rows[0].id.toString()
   } catch (e) {
     console.log('Log error: ', e)
@@ -34,17 +37,6 @@ export const addLog = async (
 router.get('/getlogs', verify, async (req, res) => {
   try {
     const id = Number(req.get('hDId'))
-
-    // await client.query(`DROP TABLE IF EXISTS ${`Logs${id}`}`)
-
-    // const rows0 = await client.query('SELECT * FROM Logs')
-    // rows0.forEach(async (r) => {
-    //   await client.query(`CREATE TABLE IF NOT EXISTS ${`Logs${id}`} ( id serial PRIMARY KEY, type text, message text,
-    //     date text, value text, updatedBy text NULL, updatedAsOf text, field1 text NULL, field2 text NULL )`)
-    //   await client.query(`INSERT INTO ${`Logs${id}`} ( type, message, date, value, updatedBy, updatedAsOf )
-    //     VALUES (?, ?, ?, ?, ?, ?)`, [r.type, r.message, r.date, r.value, 'N/A',
-    //     r.updatedAsOf || r.date.toISOString()])
-    // })
 
     const rows = await client.query(`SELECT * from ${`Logs${id}`}`)
 
